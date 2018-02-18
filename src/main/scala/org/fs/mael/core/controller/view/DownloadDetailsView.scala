@@ -9,7 +9,7 @@ import org.fs.mael.core.controller.LogEntry
 import com.github.nscala_time.time.Imports._
 
 /**
- * Protocol-agnostic mutable download details, common for all download types.
+ * Backend-agnostic mutable download details, common for all download types.
  * Data can be updated dynamically by the downloading threads and UI.
  *
  * @author FS
