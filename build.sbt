@@ -10,7 +10,7 @@ lazy val root = (project in file("."))
   .enablePlugins(BuildInfoPlugin)
   .settings(
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion, buildInfoBuildNumber),
-    buildInfoPackage := "org.mael"
+    buildInfoPackage := "org.fs.mael"
   )
 
 resolvers += "jitpack" at "https://jitpack.io"
