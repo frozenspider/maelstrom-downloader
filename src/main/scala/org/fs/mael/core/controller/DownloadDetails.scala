@@ -4,6 +4,8 @@ import java.io.File
 import java.net.URI
 import java.util.UUID
 
+import org.fs.mael.core.controller.view.DownloadUiView
+
 import com.github.nscala_time.time.Imports._
 
 /**
@@ -16,7 +18,7 @@ final class DownloadDetails(
   var uri:            URI,
   var fileNameOption: Option[String],
   var comment:        String
-) extends DownloadDetailsView {
+) extends DownloadUiView {
 
   override val id: UUID = UUID.randomUUID()
 
@@ -34,4 +36,10 @@ final class DownloadDetails(
   var speedOption: Option[Long] = None
 
   var sections: Map[Start, Downloaded] = Map.empty
+
+  var downloadLog: IndexedSeq[LogEntry] = IndexedSeq.empty
+
+  override def addDownloadLogEntry(entry: LogEntry): Unit = {
+    this.downloadLog = this.downloadLog :+ entry
+  }
 }

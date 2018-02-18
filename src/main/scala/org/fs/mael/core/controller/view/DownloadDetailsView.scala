@@ -1,8 +1,10 @@
-package org.fs.mael.core.controller
+package org.fs.mael.core.controller.view
 
 import java.io.File
 import java.net.URI
 import java.util.UUID
+
+import org.fs.mael.core.controller.LogEntry
 
 import com.github.nscala_time.time.Imports._
 
@@ -41,6 +43,8 @@ trait DownloadDetailsView {
   def speedOption: Option[Long]
 
   def sections: Map[Start, Downloaded]
+
+  def downloadLog: IndexedSeq[LogEntry]
 
   override final def equals(obj: Any): Boolean = obj match {
     case dd: DownloadDetailsView => this.id == dd.id

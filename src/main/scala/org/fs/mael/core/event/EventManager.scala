@@ -6,8 +6,9 @@ import scala.collection.Seq
 import scala.collection.mutable.PriorityQueue
 import scala.math.Ordering
 
-import org.fs.mael.core.controller.DownloadDetailsView
 import org.fs.mael.core.controller.DownloadEntry
+import org.fs.mael.core.controller.LogEntry
+import org.fs.mael.core.controller.view.DownloadDetailsView
 import org.slf4s.Logging
 
 object EventManager extends Logging {
@@ -73,6 +74,13 @@ object EventManager extends Logging {
     enqueue(
       priority.Low,
       subscribers collect { case ui: UiSubscriber => ui.progress(dd) }
+    )
+  }
+
+  def fireLogged(dd: DownloadDetailsView, entry: LogEntry): Unit = {
+    enqueue(
+      priority.Low,
+      subscribers collect { case ui: UiSubscriber => ui.logged(dd, entry) }
     )
   }
 
