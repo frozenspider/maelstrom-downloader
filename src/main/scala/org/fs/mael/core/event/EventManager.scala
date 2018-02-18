@@ -50,21 +50,21 @@ object EventManager extends Logging {
   def fireAdded(dd: DownloadDetailsView): Unit = {
     enqueue(
       priority.High,
-      subscribers foreach (_.added(dd))
+      subscribers collect { case ui: UiSubscriber => ui.added(dd) }
     )
   }
 
   def fireRemoved(ddId: UUID): Unit = {
     enqueue(
       priority.High,
-      subscribers foreach (_.removed(ddId))
+      subscribers collect { case ui: UiSubscriber => ui.removed(ddId) }
     )
   }
 
   def fireError(dd: DownloadDetailsView): Unit = {
     enqueue(
       priority.High,
-      subscribers foreach (_.error(dd))
+      subscribers collect { case ui: UiSubscriber => ui.error(dd) }
     )
   }
 
@@ -72,15 +72,15 @@ object EventManager extends Logging {
   def fireProgress(dd: DownloadDetailsView): Unit = {
     enqueue(
       priority.Low,
-      subscribers foreach (_.progress(dd))
+      subscribers collect { case ui: UiSubscriber => ui.progress(dd) }
     )
   }
 
   /** Any other Download progress changed */
-  def fireUpdated(de: DownloadEntry): Unit = {
+  def fireConfigChanged(de: DownloadEntry): Unit = {
     enqueue(
       priority.High,
-      subscribers foreach (_.updated(de))
+      subscribers collect { case bck: BackendSubscriber => bck.configChanged(de) }
     )
   }
 
