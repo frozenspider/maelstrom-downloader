@@ -1,10 +1,12 @@
-package org.fs.mael.core.controller
+package org.fs.mael.core.event
 
 import java.util.UUID
 
+import scala.collection.Seq
 import scala.collection.mutable.PriorityQueue
 import scala.math.Ordering
 
+import org.fs.mael.core.controller.DownloadDetails
 import org.slf4s.Logging
 
 object EventManager extends Logging {
@@ -44,7 +46,7 @@ object EventManager extends Logging {
   // Client methods: events firing
   //
 
-  def fireAdded(de: DownloadEntry): Unit = {
+  def fireAdded(de: DownloadDetails): Unit = {
     enqueue(
       priority.High,
       subscribers foreach (_.added(de))
@@ -58,7 +60,7 @@ object EventManager extends Logging {
     )
   }
 
-  def fireError(de: DownloadEntry): Unit = {
+  def fireError(de: DownloadDetails): Unit = {
     enqueue(
       priority.High,
       subscribers foreach (_.error(de))
@@ -66,7 +68,7 @@ object EventManager extends Logging {
   }
 
   /** Download progress changed */
-  def fireProgress(de: DownloadEntry): Unit = {
+  def fireProgress(de: DownloadDetails): Unit = {
     enqueue(
       priority.Low,
       subscribers foreach (_.progress(de))
@@ -74,7 +76,7 @@ object EventManager extends Logging {
   }
 
   /** Any other Download progress changed */
-  def fireUpdated(de: DownloadEntry): Unit = {
+  def fireUpdated(de: DownloadDetails): Unit = {
     enqueue(
       priority.High,
       subscribers foreach (_.updated(de))
