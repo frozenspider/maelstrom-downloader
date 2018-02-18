@@ -3,8 +3,9 @@ package org.fs.mael.core.controller
 import java.io.File
 import java.net.URI
 import java.util.UUID
+
 import org.fs.mael.core.controller.view.DownloadUiView
-import org.fs.mael.core.event.EventManager
+
 import com.github.nscala_time.time.Imports._
 
 /**
