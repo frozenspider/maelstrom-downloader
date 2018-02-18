@@ -6,7 +6,8 @@ import scala.collection.Seq
 import scala.collection.mutable.PriorityQueue
 import scala.math.Ordering
 
-import org.fs.mael.core.controller.DownloadDetails
+import org.fs.mael.core.controller.DownloadDetailsView
+import org.fs.mael.core.controller.DownloadEntry
 import org.slf4s.Logging
 
 object EventManager extends Logging {
@@ -38,7 +39,7 @@ object EventManager extends Logging {
 
   def unsubscribe(id: String): Unit = {
     this.synchronized {
-      subscribers = subscribers.filter(_.id != id)
+      subscribers = subscribers.filter(_.subscriberId != id)
     }
   }
 
@@ -46,37 +47,37 @@ object EventManager extends Logging {
   // Client methods: events firing
   //
 
-  def fireAdded(de: DownloadDetails): Unit = {
+  def fireAdded(dd: DownloadDetailsView): Unit = {
     enqueue(
       priority.High,
-      subscribers foreach (_.added(de))
+      subscribers foreach (_.added(dd))
     )
   }
 
-  def fireRemoved(deId: UUID): Unit = {
+  def fireRemoved(ddId: UUID): Unit = {
     enqueue(
       priority.High,
-      subscribers foreach (_.removed(deId))
+      subscribers foreach (_.removed(ddId))
     )
   }
 
-  def fireError(de: DownloadDetails): Unit = {
+  def fireError(dd: DownloadDetailsView): Unit = {
     enqueue(
       priority.High,
-      subscribers foreach (_.error(de))
+      subscribers foreach (_.error(dd))
     )
   }
 
   /** Download progress changed */
-  def fireProgress(de: DownloadDetails): Unit = {
+  def fireProgress(dd: DownloadDetailsView): Unit = {
     enqueue(
       priority.Low,
-      subscribers foreach (_.progress(de))
+      subscribers foreach (_.progress(dd))
     )
   }
 
   /** Any other Download progress changed */
-  def fireUpdated(de: DownloadDetails): Unit = {
+  def fireUpdated(de: DownloadEntry): Unit = {
     enqueue(
       priority.High,
       subscribers foreach (_.updated(de))

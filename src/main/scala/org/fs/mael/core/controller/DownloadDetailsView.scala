@@ -7,7 +7,10 @@ import java.util.UUID
 import com.github.nscala_time.time.Imports._
 
 /**
- * Immutable view of {@code DownloadDetails}
+ * Protocol-agnostic mutable download details, common for all download types.
+ * Data can be updated dynamically by the downloading threads and UI.
+ *
+ * @author FS
  */
 trait DownloadDetailsView {
   type Start = Long
@@ -38,4 +41,11 @@ trait DownloadDetailsView {
   def speedOption: Option[Long]
 
   def sections: Map[Start, Downloaded]
+
+  override final def equals(obj: Any): Boolean = obj match {
+    case dd: DownloadDetailsView => this.id == dd.id
+    case _                       => false
+  }
+
+  override final val hashCode: Int = id.hashCode()
 }

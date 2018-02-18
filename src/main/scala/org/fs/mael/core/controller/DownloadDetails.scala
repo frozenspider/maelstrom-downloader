@@ -7,13 +7,11 @@ import java.util.UUID
 import com.github.nscala_time.time.Imports._
 
 /**
- * Protocol-agnostic mutable download details, common for all download types.
- * Can be updated dynamically by the downloading threads.
- *
  * Note that this class has no advanced logic and changes won't fire any events.
  *
  * @author FS
  */
+// TODO: Do we need this middleware between DownloadEntry and DownloadDetailsView?
 final class DownloadDetails(
   var uri:            URI,
   var fileNameOption: Option[String],
