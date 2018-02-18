@@ -77,9 +77,17 @@ object EventManager extends Logging {
     )
   }
 
+  /** Any displayed download detail (other than download progress) changed */
+  def fireDetails(dd: DownloadDetailsView): Unit = {
+    enqueue(
+      priority.High,
+      subscribers collect { case ui: UiSubscriber => ui.details(dd) }
+    )
+  }
+
   def fireLogged(dd: DownloadDetailsView, entry: LogEntry): Unit = {
     enqueue(
-      priority.Low,
+      priority.High,
       subscribers collect { case ui: UiSubscriber => ui.logged(dd, entry) }
     )
   }

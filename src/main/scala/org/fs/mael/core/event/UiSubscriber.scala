@@ -25,5 +25,8 @@ trait UiSubscriber extends EventSubscriber {
    */
   def progress(dd: DownloadDetailsView): Unit
 
+  /** Any displayed download detail (other than download progress) changed */
+  def details(dd: DownloadDetailsView): Unit
+
   def logged(dd: DownloadDetailsView, entry: LogEntry): Unit
 }
