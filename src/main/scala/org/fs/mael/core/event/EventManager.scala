@@ -8,6 +8,7 @@ import scala.math.Ordering
 
 import org.fs.mael.core.controller.DownloadEntry
 import org.fs.mael.core.controller.LogEntry
+import org.fs.mael.core.controller.Status
 import org.fs.mael.core.controller.view.DownloadDetailsView
 import org.slf4s.Logging
 
@@ -62,10 +63,10 @@ object EventManager extends Logging {
     )
   }
 
-  def fireError(dd: DownloadDetailsView): Unit = {
+  def fireStatusChanged(dd: DownloadDetailsView, s: Status): Unit = {
     enqueue(
       priority.High,
-      subscribers collect { case ui: UiSubscriber => ui.error(dd) }
+      subscribers collect { case ui: UiSubscriber => ui.statusChanged(dd, s) }
     )
   }
 
