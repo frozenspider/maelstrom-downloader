@@ -4,7 +4,7 @@ import java.util.UUID
 
 import org.fs.mael.core.controller.LogEntry
 import org.fs.mael.core.controller.Status
-import org.fs.mael.core.controller.view.DownloadDetailsView
+import org.fs.mael.core.controller.entry.DownloadDetailsView
 
 /**
  * UI event subscriber, interested in changes which may

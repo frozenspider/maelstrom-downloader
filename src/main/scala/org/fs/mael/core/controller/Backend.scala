@@ -2,6 +2,8 @@ package org.fs.mael.core.controller
 
 import java.net.URI
 
+import org.fs.mael.core.controller.entry.DownloadEntry
+
 /*
  * Backend needs to know
  * - backend-specific download properties

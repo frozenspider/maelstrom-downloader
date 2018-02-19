@@ -1,10 +1,10 @@
-package org.fs.mael.core.controller
+package org.fs.mael.core.controller.entry
 
 import java.io.File
 import java.net.URI
 import java.util.UUID
 
-import org.fs.mael.core.controller.view.DownloadUiView
+import org.fs.mael.core.controller.LogEntry
 
 import com.github.nscala_time.time.Imports._
 

@@ -1,4 +1,4 @@
-package org.fs.mael.core.controller.view
+package org.fs.mael.core.controller.entry
 
 import java.util.UUID
 

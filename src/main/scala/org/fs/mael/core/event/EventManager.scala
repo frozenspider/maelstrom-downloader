@@ -6,10 +6,10 @@ import scala.collection.Seq
 import scala.collection.mutable.PriorityQueue
 import scala.math.Ordering
 
-import org.fs.mael.core.controller.DownloadEntry
 import org.fs.mael.core.controller.LogEntry
 import org.fs.mael.core.controller.Status
-import org.fs.mael.core.controller.view.DownloadDetailsView
+import org.fs.mael.core.controller.entry.DownloadDetailsView
+import org.fs.mael.core.controller.entry.DownloadEntry
 import org.slf4s.Logging
 
 object EventManager extends Logging {
