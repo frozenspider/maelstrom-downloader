@@ -1,6 +1,6 @@
 package org.fs.mael.core.event
 
-import org.fs.mael.core.controller.entry.DownloadEntry
+import org.fs.mael.core.entry.DownloadEntry
 
 /**
  * Backend event subscriber, interested in changes which may

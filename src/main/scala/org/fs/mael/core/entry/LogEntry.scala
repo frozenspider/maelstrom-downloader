@@ -1,4 +1,4 @@
-package org.fs.mael.core.controller
+package org.fs.mael.core.entry
 
 import com.github.nscala_time.time.Imports._
 

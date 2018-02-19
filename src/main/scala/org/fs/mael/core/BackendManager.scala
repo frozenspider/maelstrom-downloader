@@ -1,4 +1,4 @@
-package org.fs.mael.core.controller
+package org.fs.mael.core
 
 import java.net.URI
 

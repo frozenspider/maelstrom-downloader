@@ -1,8 +1,8 @@
-package org.fs.mael.core.controller
+package org.fs.mael.core
 
 import java.net.URI
 
-import org.fs.mael.core.controller.entry.DownloadEntry
+import org.fs.mael.core.entry.DownloadEntry
 
 /*
  * Backend needs to know
