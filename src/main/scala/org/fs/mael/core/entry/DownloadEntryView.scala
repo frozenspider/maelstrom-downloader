@@ -12,7 +12,7 @@ import com.github.nscala_time.time.Imports._
  *
  * @author FS
  */
-trait DownloadDetailsView {
+trait DownloadEntryView {
   type Start = Long
   type Downloaded = Long
 
@@ -45,7 +45,7 @@ trait DownloadDetailsView {
   def downloadLog: IndexedSeq[LogEntry]
 
   override final def equals(obj: Any): Boolean = obj match {
-    case dd: DownloadDetailsView => this.id == dd.id
+    case dd: DownloadEntryView => this.id == dd.id
     case _                       => false
   }
 

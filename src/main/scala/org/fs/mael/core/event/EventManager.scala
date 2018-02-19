@@ -7,7 +7,7 @@ import scala.collection.mutable.PriorityQueue
 import scala.math.Ordering
 
 import org.fs.mael.core.Status
-import org.fs.mael.core.entry.DownloadDetailsView
+import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.slf4s.Logging
@@ -49,47 +49,47 @@ object EventManager extends Logging {
   // Client methods: events firing
   //
 
-  def fireAdded(dd: DownloadDetailsView): Unit = {
+  def fireAdded(de: DownloadEntryView): Unit = {
     enqueue(
       priority.High,
-      subscribers collect { case ui: UiSubscriber => ui.added(dd) }
+      subscribers collect { case ui: UiSubscriber => ui.added(de) }
     )
   }
 
-  def fireRemoved(ddId: UUID): Unit = {
+  def fireRemoved(deId: UUID): Unit = {
     enqueue(
       priority.High,
-      subscribers collect { case ui: UiSubscriber => ui.removed(ddId) }
+      subscribers collect { case ui: UiSubscriber => ui.removed(deId) }
     )
   }
 
-  def fireStatusChanged(dd: DownloadDetailsView, s: Status): Unit = {
+  def fireStatusChanged(de: DownloadEntryView, s: Status): Unit = {
     enqueue(
       priority.High,
-      subscribers collect { case ui: UiSubscriber => ui.statusChanged(dd, s) }
+      subscribers collect { case ui: UiSubscriber => ui.statusChanged(de, s) }
     )
   }
 
   /** Download progress changed */
-  def fireProgress(dd: DownloadDetailsView): Unit = {
+  def fireProgress(de: DownloadEntryView): Unit = {
     enqueue(
       priority.Low,
-      subscribers collect { case ui: UiSubscriber => ui.progress(dd) }
+      subscribers collect { case ui: UiSubscriber => ui.progress(de) }
     )
   }
 
   /** Any displayed download detail (other than download progress) changed */
-  def fireDetails(dd: DownloadDetailsView): Unit = {
+  def fireDetails(de: DownloadEntryView): Unit = {
     enqueue(
       priority.High,
-      subscribers collect { case ui: UiSubscriber => ui.details(dd) }
+      subscribers collect { case ui: UiSubscriber => ui.details(de) }
     )
   }
 
-  def fireLogged(dd: DownloadDetailsView, entry: LogEntry): Unit = {
+  def fireLogged(de: DownloadEntryView, entry: LogEntry): Unit = {
     enqueue(
       priority.High,
-      subscribers collect { case ui: UiSubscriber => ui.logged(dd, entry) }
+      subscribers collect { case ui: UiSubscriber => ui.logged(de, entry) }
     )
   }
 
