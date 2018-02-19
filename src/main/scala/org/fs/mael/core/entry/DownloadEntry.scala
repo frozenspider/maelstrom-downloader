@@ -23,19 +23,19 @@ abstract class DownloadEntry(
 
   override val dateCreated: DateTime = DateTime.now()
 
-  var locationOption: Option[File]
+  var locationOption: Option[File] = None
 
-  var displayName: String
+  var displayName: String = uri.toString
 
-  var sizeOption: Option[Long]
+  var sizeOption: Option[Long] = None
 
-  var supportsResumingOption: Option[Boolean]
+  var supportsResumingOption: Option[Boolean] = None
 
-  var speedOption: Option[Long]
+  var speedOption: Option[Long] = None
 
-  var sections: Map[Start, Downloaded]
+  var sections: Map[Start, Downloaded] = Map.empty
 
-  var downloadLog: IndexedSeq[LogEntry]
+  var downloadLog: IndexedSeq[LogEntry] = IndexedSeq.empty
 
   override def addDownloadLogEntry(entry: LogEntry): Unit = {
     this.downloadLog = this.downloadLog :+ entry

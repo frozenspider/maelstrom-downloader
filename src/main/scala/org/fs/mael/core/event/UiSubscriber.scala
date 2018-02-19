@@ -30,7 +30,7 @@ trait UiSubscriber extends EventSubscriber {
    *
    * Should be fired by download list manager.
    */
-  def removed(deId: UUID): Unit
+  def removed(de: DownloadEntryView): Unit
 
   //
   // Backend events

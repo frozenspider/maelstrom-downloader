@@ -49,5 +49,5 @@ trait DownloadEntryView {
     case _                       => false
   }
 
-  override final val hashCode: Int = id.hashCode()
+  override final lazy val hashCode: Int = id.hashCode()
 }
