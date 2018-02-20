@@ -10,7 +10,9 @@ import com.github.nscala_time.time.Imports._
 case class LogEntry(tpe: LogEntry.Type, date: DateTime, details: String)
 
 object LogEntry {
-  sealed trait Type
+  sealed trait Type {
+    override val toString = this.getClass.getSimpleName.replaceAllLiterally("$", "")
+  }
   object Info extends Type
   object Request extends Type
   object Response extends Type

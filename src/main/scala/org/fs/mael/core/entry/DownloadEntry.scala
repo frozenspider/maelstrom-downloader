@@ -4,6 +4,8 @@ import java.io.File
 import java.net.URI
 import java.util.UUID
 
+import org.fs.mael.core.Status
+
 import com.github.nscala_time.time.Imports._
 
 /**
@@ -23,19 +25,21 @@ abstract class DownloadEntry(
 
   override val dateCreated: DateTime = DateTime.now()
 
-  var locationOption: Option[File]
+  var locationOption: Option[File] = None
 
-  var displayName: String
+  var displayName: String = uri.toString
 
-  var sizeOption: Option[Long]
+  var status: Status = Status.Stopped
 
-  var supportsResumingOption: Option[Boolean]
+  var sizeOption: Option[Long] = None
 
-  var speedOption: Option[Long]
+  var supportsResumingOption: Option[Boolean] = None
 
-  var sections: Map[Start, Downloaded]
+  var speedOption: Option[Long] = None
 
-  var downloadLog: IndexedSeq[LogEntry]
+  var sections: Map[Start, Downloaded] = Map.empty
+
+  var downloadLog: IndexedSeq[LogEntry] = IndexedSeq.empty
 
   override def addDownloadLogEntry(entry: LogEntry): Unit = {
     this.downloadLog = this.downloadLog :+ entry

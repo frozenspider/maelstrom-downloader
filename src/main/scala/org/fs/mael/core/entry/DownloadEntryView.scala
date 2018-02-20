@@ -4,6 +4,8 @@ import java.io.File
 import java.net.URI
 import java.util.UUID
 
+import org.fs.mael.core.Status
+
 import com.github.nscala_time.time.Imports._
 
 /**
@@ -21,13 +23,17 @@ trait DownloadEntryView {
   def dateCreated: DateTime
 
   def uri: URI
+
   def fileNameOption: Option[String]
+
   def comment: String
 
   def locationOption: Option[File]
 
   /** File name of download if known, display name otherwise */
   def displayName: String
+
+  def status: Status
 
   def sizeOption: Option[Long]
 
@@ -46,8 +52,8 @@ trait DownloadEntryView {
 
   override final def equals(obj: Any): Boolean = obj match {
     case dd: DownloadEntryView => this.id == dd.id
-    case _                       => false
+    case _                     => false
   }
 
-  override final val hashCode: Int = id.hashCode()
+  override final lazy val hashCode: Int = id.hashCode()
 }

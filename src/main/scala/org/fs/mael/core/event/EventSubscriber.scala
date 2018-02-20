@@ -16,5 +16,5 @@ trait EventSubscriber {
     case _                   => false
   }
 
-  override final val hashCode: Int = subscriberId.hashCode()
+  override final lazy val hashCode: Int = subscriberId.hashCode()
 }

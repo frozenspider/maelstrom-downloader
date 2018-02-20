@@ -5,7 +5,9 @@ package org.fs.mael.core
  *
  * @author FS
  */
-sealed trait Status
+sealed trait Status {
+  override val toString = this.getClass.getSimpleName.replaceAllLiterally("$", "")
+}
 
 object Status {
   object Running extends Status

@@ -21,10 +21,10 @@ object DownloadListManager {
   }
 
   /** Remove an existing entry from a download list, firing an event */
-  def remove(deId: UUID): Unit = {
+  def remove(de: DownloadEntry): Unit = {
     this.synchronized {
-      entries = entries filter (_.id != deId)
-      EventManager.fireRemoved(deId)
+      entries -= de
+      EventManager.fireRemoved(de)
     }
   }
 

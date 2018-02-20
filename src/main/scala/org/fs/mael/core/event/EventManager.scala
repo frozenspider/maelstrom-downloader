@@ -51,20 +51,23 @@ object EventManager extends Logging {
 
   def fireAdded(de: DownloadEntryView): Unit = {
     enqueue(
+      "added " + de.uri,
       priority.High,
       subscribers collect { case ui: UiSubscriber => ui.added(de) }
     )
   }
 
-  def fireRemoved(deId: UUID): Unit = {
+  def fireRemoved(de: DownloadEntryView): Unit = {
     enqueue(
+      "removed " + de.uri,
       priority.High,
-      subscribers collect { case ui: UiSubscriber => ui.removed(deId) }
+      subscribers collect { case ui: UiSubscriber => ui.removed(de) }
     )
   }
 
   def fireStatusChanged(de: DownloadEntryView, s: Status): Unit = {
     enqueue(
+      "status of " + de.uri + " changed to " + s,
       priority.High,
       subscribers collect { case ui: UiSubscriber => ui.statusChanged(de, s) }
     )
@@ -73,6 +76,7 @@ object EventManager extends Logging {
   /** Download progress changed */
   def fireProgress(de: DownloadEntryView): Unit = {
     enqueue(
+      "progress",
       priority.Low,
       subscribers collect { case ui: UiSubscriber => ui.progress(de) }
     )
@@ -81,6 +85,7 @@ object EventManager extends Logging {
   /** Any displayed download detail (other than download progress) changed */
   def fireDetails(de: DownloadEntryView): Unit = {
     enqueue(
+      "details",
       priority.High,
       subscribers collect { case ui: UiSubscriber => ui.details(de) }
     )
@@ -88,6 +93,7 @@ object EventManager extends Logging {
 
   def fireLogged(de: DownloadEntryView, entry: LogEntry): Unit = {
     enqueue(
+      "logged",
       priority.High,
       subscribers collect { case ui: UiSubscriber => ui.logged(de, entry) }
     )
@@ -96,6 +102,7 @@ object EventManager extends Logging {
   /** Any other Download progress changed */
   def fireConfigChanged(de: DownloadEntry): Unit = {
     enqueue(
+      "configChanged",
       priority.High,
       subscribers collect { case bck: BackendSubscriber => bck.configChanged(de) }
     )
@@ -105,8 +112,9 @@ object EventManager extends Logging {
   // Helpers
   //
 
-  private def enqueue(priority: Int, event: => Unit): Unit = {
+  private def enqueue(eventMsg: => String, priority: Int, event: => Unit): Unit = {
     this.synchronized {
+      log.trace(eventMsg)
       pq.enqueue(
         ((priority, () => event))
       )
