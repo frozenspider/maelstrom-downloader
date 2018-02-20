@@ -13,6 +13,8 @@ import org.fs.mael.core.entry.DownloadEntry
 trait Backend {
   type DE <: DownloadEntry
 
+  def entryClass: Class[DE]
+
   val id: String
 
   def isSupported(uri: URI): Boolean
