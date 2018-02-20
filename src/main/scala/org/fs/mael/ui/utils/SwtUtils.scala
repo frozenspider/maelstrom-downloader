@@ -1,11 +1,12 @@
-package org.fs.mael.ui.helper
+package org.fs.mael.ui.utils
 
 import org.eclipse.swt.SWT
 import org.eclipse.swt.events.KeyEvent
 import org.eclipse.swt.graphics.Rectangle
 import org.eclipse.swt.widgets._
+import org.fs.mael.core.CoreUtils
 
-object SwtHelper {
+object SwtUtils extends CoreUtils {
   def getCurrentMonitor(c: Control): Monitor = {
     val rect = c.getBounds
     val monitors = c.getDisplay.getMonitors
@@ -55,12 +56,4 @@ object SwtHelper {
     e => pf applyOrElse (e, NoopAny2UnitPF)
 
   val NoopAny2UnitPF: PartialFunction[Any, Unit] = { case _ => }
-
-  implicit class RichAnyRef[T <: AnyRef](ref: T) {
-    /** Execute arbitrary code block and return the value itself */
-    def withChanges(code: T => Unit): T = {
-      code(ref)
-      ref
-    }
-  }
 }

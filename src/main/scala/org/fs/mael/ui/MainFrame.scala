@@ -13,7 +13,7 @@ import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.event.UiSubscriber
 import org.fs.mael.core.list.DownloadListManager
-import org.fs.mael.ui.helper.SwtHelper._
+import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
 
 import com.github.nscala_time.time.Imports._

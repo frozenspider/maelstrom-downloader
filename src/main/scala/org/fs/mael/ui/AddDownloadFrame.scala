@@ -10,7 +10,7 @@ import org.eclipse.swt.widgets._
 import org.fs.mael.core.BackendManager
 import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.core.list.DownloadListManager
-import org.fs.mael.ui.helper.SwtHelper._
+import org.fs.mael.ui.utils.SwtUtils._
 
 class AddDownloadFrame(dialog: Shell) {
   init()
