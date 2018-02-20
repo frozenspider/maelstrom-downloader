@@ -41,7 +41,7 @@ trait UiSubscriber extends EventSubscriber {
    *
    * Should be fired by backend.
    */
-  def statusChanged(de: DownloadEntryView, s: Status): Unit
+  def statusChanged(de: DownloadEntryView, prevStatus: Status): Unit
 
   /**
    * Download progress changed.
@@ -57,7 +57,7 @@ trait UiSubscriber extends EventSubscriber {
    *
    * Should be fired by backend.
    */
-  def details(de: DownloadEntryView): Unit
+  def detailsChanged(de: DownloadEntryView): Unit
 
   /**
    * New entry added to download log.

@@ -235,7 +235,7 @@ class MainFrame(shell: Shell) extends UiSubscriber with Logging {
     findDownloadRowIdxOption(de) map (mainTable.remove)
   }
 
-  override def statusChanged(de: DownloadEntryView, s: Status): Unit = display.syncExec { () =>
+  override def statusChanged(de: DownloadEntryView, prevStatus: Status): Unit = display.syncExec { () =>
     // Full row update
     findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
   }
@@ -251,7 +251,7 @@ class MainFrame(shell: Shell) extends UiSubscriber with Logging {
     }
   }
 
-  override def details(de: DownloadEntryView): Unit = display.syncExec { () =>
+  override def detailsChanged(de: DownloadEntryView): Unit = display.syncExec { () =>
     findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
   }
 
