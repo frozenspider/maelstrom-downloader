@@ -1,6 +1,7 @@
-name         := "maelstrom-downloader"
-version      := "0.1"
-scalaVersion := "2.12.3"
+name           := "maelstrom-downloader"
+val prettyName =  "Maelstrom Downloader"
+version        := "0.1"
+scalaVersion   := "2.12.3"
 
 sourceManaged            := baseDirectory.value / "src_managed"
 sourceManaged in Compile := baseDirectory.value / "src_managed" / "main" / "scala"
@@ -9,7 +10,12 @@ sourceManaged in Test    := baseDirectory.value / "src_managed" / "test" / "scal
 lazy val root = (project in file("."))
   .enablePlugins(BuildInfoPlugin)
   .settings(
-    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion, buildInfoBuildNumber),
+    buildInfoKeys := Seq[BuildInfoKey](
+      name,
+      "prettyName" -> prettyName,
+      version,
+      "fullPrettyName" -> (prettyName + " v" + version.value),
+      buildInfoBuildNumber),
     buildInfoPackage := "org.fs.mael"
   )
 

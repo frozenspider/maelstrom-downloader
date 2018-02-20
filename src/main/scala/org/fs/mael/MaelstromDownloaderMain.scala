@@ -16,12 +16,13 @@ import org.slf4s.Logging
 
 import com.github.nscala_time.time.Imports._
 
-object MaelstromMain extends App with Logging {
+object MaelstromDownloaderMain extends App with Logging {
 
   //
   // Init code
   //
 
+  log.info(BuildInfo.fullPrettyName)
   log.info("Application started, initializing...")
 
   val shell = StopWatch.measureAndCall {
@@ -67,9 +68,6 @@ object MaelstromMain extends App with Logging {
     val display = new Display()
     new Shell(display).withChanges { shell =>
       (new MainFrame(shell)).init()
-
-      shell.setSize(1000, 600)
-      centerOnScreen(shell)
       shell.open()
     }
   }
@@ -80,5 +78,6 @@ object MaelstromMain extends App with Logging {
       if (!display.readAndDispatch()) display.sleep()
     }
     display.dispose()
+    log.info("Application closed")
   }
 }

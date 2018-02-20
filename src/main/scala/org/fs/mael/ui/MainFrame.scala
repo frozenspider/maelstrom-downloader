@@ -6,6 +6,7 @@ import org.eclipse.swt.events._
 import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
+import org.fs.mael.BuildInfo
 import org.fs.mael.core.Status
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.entry.LogEntry
@@ -62,8 +63,12 @@ class MainFrame(shell: Shell) extends UiSubscriber with Logging {
     // Init
 
     renderDownloads(DownloadListManager.list())
+
     adjustColumnWidths(mainTable)
     mainTable.setFocus()
+    shell.setText(BuildInfo.fullPrettyName)
+    shell.setSize(1000, 600)
+    centerOnScreen(shell)
 
     EventManager.subscribe(this)
   }
@@ -142,9 +147,7 @@ class MainFrame(shell: Shell) extends UiSubscriber with Logging {
   }
 
   private def onAppClose(e: Event) {
-    // TODO: Ask for a proper action
     // TODO: Check active downloads, ask for confirmation if any exists
-    log.info("Application closed")
   }
 
   private def adjustColumnWidths(table: Table): Unit = {
