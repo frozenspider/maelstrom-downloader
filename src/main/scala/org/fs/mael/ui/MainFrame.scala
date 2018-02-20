@@ -13,15 +13,20 @@ import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.Status
 import org.fs.mael.core.event.EventManager
 
+import com.github.nscala_time.time.Imports._
+import org.fs.mael.core.list.DownloadListManager
+import org.eclipse.swt.graphics.Color
+
 class MainFrame(shell: Shell) extends UiSubscriber {
   private val display = shell.getDisplay
-  private var table: Table = _
+  private var mainTable: Table = _
+  private var logTable: Table = _
   private val mainColumnHeaders = Seq(ColumnDef("File Name"), ColumnDef("Downloaded"), ColumnDef("Comment"))
-  private val logColumnHeaders = Seq(ColumnDef("", 25), ColumnDef("Date", 80), ColumnDef("Time", 80), ColumnDef("Information", 500))
+  private val logColumnHeaders = Seq(ColumnDef("", 60 /*25*/ ), ColumnDef("Date", 80), ColumnDef("Time", 80), ColumnDef("Information", 500))
+  private var lastProgressUpdateTS: Long = System.currentTimeMillis
 
   def init(): Unit = {
     shell.addDisposeListener(e => onDisposed())
-    EventManager.subscribe(this)
 
     // Layout
 
@@ -44,12 +49,18 @@ class MainFrame(shell: Shell) extends UiSubscriber {
     val sashForm = new SashForm(group, SWT.VERTICAL)
     sashForm.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true))
 
-    createTable(sashForm)
+    createMainTable(sashForm)
     createDetailsPanel(sashForm)
 
     sashForm.setWeights(Array(10, 10))
 
-    table.setFocus()
+    // Init
+
+    renderDownloads(DownloadListManager.list())
+    adjustColumnWidths(mainTable)
+    mainTable.setFocus()
+
+    EventManager.subscribe(this)
   }
 
   def createMenu(parent: Decorations): Unit = {
@@ -86,34 +97,27 @@ class MainFrame(shell: Shell) extends UiSubscriber {
     })
   }
 
-  private def createTable(parent: Composite): Unit = {
-    table = new Table(parent, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION)
-    table.setLinesVisible(true)
-    table.setHeaderVisible(true)
-    table.addKeyListener(keyPressed {
-      case e if e.keyCode == SWT.DEL && table.getSelectionCount > 0 =>
+  private def createMainTable(parent: Composite): Unit = {
+    mainTable = new Table(parent, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION)
+    mainTable.setLinesVisible(true)
+    mainTable.setHeaderVisible(true)
+    mainTable.addKeyListener(keyPressed {
+      case e if e.keyCode == SWT.DEL && mainTable.getSelectionCount > 0 =>
         println("Delete")
+    })
+    mainTable.addListener(SWT.Selection, e => {
+      getSelectedDownloadEntryOption map renderDownloadLog getOrElse { logTable.removeAll() }
     })
 
     mainColumnHeaders.foreach { h =>
-      val c = new TableColumn(table, SWT.NONE)
+      val c = new TableColumn(mainTable, SWT.NONE)
       c.setText(h.name)
       c.setWidth(h.width)
     }
-
-    (1 to 3).map { i =>
-      val item = new TableItem(table, SWT.NONE)
-      item.setText(0, "x " + i)
-      item.setText(1, "y")
-      item.setText(2, "this stuff behaves the way I expect")
-    }
-
-    table.getColumns.filter(_.getWidth == 0).map(_.pack())
   }
 
   private def createDetailsPanel(parent: Composite): Unit = {
-    // TODO: Show download log
-    val logTable = new Table(parent, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION)
+    logTable = new Table(parent, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION)
     logTable.setLinesVisible(true)
     logTable.setHeaderVisible(true)
     logTable.addKeyListener(keyPressed {
@@ -127,18 +131,81 @@ class MainFrame(shell: Shell) extends UiSubscriber {
       c.setWidth(h.width)
     }
 
-    (1 to 3).map { i =>
-      val item = new TableItem(logTable, SWT.NONE)
-      item.setText(1, "date " + i)
-      item.setText(2, "time " + i)
-      item.setText(3, "info " + i)
-    }
-
     logTable.getColumns.filter(_.getWidth == 0).map(_.pack())
   }
 
   private def onDisposed() {
     println("Disposed")
+  }
+
+  private def adjustColumnWidths(table: Table): Unit = {
+    table.getColumns.filter(_.getWidth == 0).map(_.pack())
+  }
+
+  private def renderDownloads(entries: Iterable[DownloadEntryView]): Unit = {
+    entries.toSeq.sortBy(_.dateCreated).foreach { de =>
+      val newRow = new TableItem(mainTable, SWT.NONE)
+      fillDownloadRow(newRow, de)
+    }
+  }
+
+  private def fillDownloadRow(row: TableItem, de: DownloadEntryView): Unit = {
+    row.setData(de)
+    row.setText(0, de.status + " " + de.displayName)
+    row.setText(1, de.downloadedSize.toString)
+    row.setText(2, de.comment)
+  }
+
+  private def findDownloadRowIdxOption(de: DownloadEntryView): Option[Int] = {
+    mainTable.getItems.indexWhere(_.getData match {
+      case de2: DownloadEntryView if de2.id == de.id => true
+      case _                                         => false
+    }) match {
+      case -1 => None
+      case x  => Some(x)
+    }
+  }
+
+  private def getSelectedDownloadEntryOption: Option[DownloadEntryView] = {
+    if (mainTable.getSelectionCount == 1) {
+      mainTable.getSelection.head.getData match {
+        case de: DownloadEntryView => Some(de)
+      }
+    } else {
+      None
+    }
+  }
+
+  private def renderDownloadLog(de: DownloadEntryView): Unit = {
+    logTable.removeAll()
+    de.downloadLog.foreach(appendDownloadLogEntry)
+    // Scroll to bottom
+    if (logTable.getItemCount > 0) {
+      logTable.showItem(logTable.getItem(logTable.getItemCount - 1))
+    }
+  }
+
+  private def appendDownloadLogEntry(entry: LogEntry): Unit = {
+    val lines = entry.details.trim.split("\n")
+    def pickColor(tpe: LogEntry.Type): Color = tpe match {
+      case LogEntry.Info     => new Color(display, 0xE4, 0xF1, 0xFF)
+      case LogEntry.Request  => new Color(display, 0xFF, 0xFF, 0xDD)
+      case LogEntry.Response => new Color(display, 0xDD, 0xFF, 0xDD)
+      case LogEntry.Error    => new Color(display, 0xFF, 0xDD, 0xDD)
+    }
+    new TableItem(logTable, SWT.NONE).withChanges { row =>
+      row.setText(0, entry.tpe.toString)
+      row.setText(1, entry.date.toString(MainFrame.DateFmt))
+      row.setText(2, entry.date.toString(MainFrame.TimeFmt))
+      row.setText(3, lines.head.trim)
+      row.setBackground(pickColor(entry.tpe))
+    }
+    lines.tail.foreach { line =>
+      new TableItem(logTable, SWT.NONE).withChanges { row =>
+        row.setText(3, line.trim)
+        row.setBackground(pickColor(entry.tpe))
+      }
+    }
   }
 
   //
@@ -148,34 +215,50 @@ class MainFrame(shell: Shell) extends UiSubscriber {
   override val subscriberId: String = "swt-ui"
 
   override def added(de: DownloadEntryView): Unit = display.syncExec { () =>
-    val newItem = new TableItem(table, SWT.NONE)
-    newItem.setText(0, de.displayName)
-    newItem.setText(1, de.downloadedSize.toString)
-    newItem.setText(2, de.comment)
+    val newRow = new TableItem(mainTable, SWT.NONE)
+    fillDownloadRow(newRow, de)
   }
 
   override def removed(de: DownloadEntryView): Unit = display.syncExec { () =>
-    val idx = table.getItems.indexWhere(_.getData == de.id)
-    if (idx != -1) {
-      table.remove(idx)
-    }
+    findDownloadRowIdxOption(de) map (mainTable.remove)
   }
 
   override def statusChanged(de: DownloadEntryView, s: Status): Unit = display.syncExec { () =>
-    // TODO: NYI
+    // Full row update
+    findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
   }
 
-  override def progress(de: DownloadEntryView): Unit = display.syncExec { () =>
-    // TODO: NYI
+  override def progress(de: DownloadEntryView): Unit = {
+    // We assume this is only called by event manager processing thread, so no additional sync needed
+    if (System.currentTimeMillis() - lastProgressUpdateTS > MainFrame.ProgressUpdateThresholdMs) {
+      display.syncExec { () =>
+        // TODO: Optimize
+        findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
+      }
+      lastProgressUpdateTS = System.currentTimeMillis()
+    }
   }
 
   override def details(de: DownloadEntryView): Unit = display.syncExec { () =>
-    // TODO: NYI
+    findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
   }
 
   override def logged(de: DownloadEntryView, entry: LogEntry): Unit = display.syncExec { () =>
-    // TODO: NYI
+    if (getSelectedDownloadEntryOption == Some(de)) {
+      appendDownloadLogEntry(entry)
+    }
   }
 
+  //
+  // Helper classes
+  //
+
   case class ColumnDef(name: String, width: Int = 0)
+}
+
+object MainFrame {
+  val ProgressUpdateThresholdMs = 10
+
+  val DateFmt = DateTimeFormat.forPattern("yyyy-MM-dd")
+  val TimeFmt = DateTimeFormat.forPattern("HH:mm:ss")
 }

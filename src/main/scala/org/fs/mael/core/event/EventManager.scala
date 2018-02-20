@@ -67,7 +67,7 @@ object EventManager extends Logging {
 
   def fireStatusChanged(de: DownloadEntryView, s: Status): Unit = {
     enqueue(
-      "statusChanged",
+      "status of " + de.uri + " changed to " + s,
       priority.High,
       subscribers collect { case ui: UiSubscriber => ui.statusChanged(de, s) }
     )

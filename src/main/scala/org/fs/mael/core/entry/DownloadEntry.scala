@@ -4,6 +4,8 @@ import java.io.File
 import java.net.URI
 import java.util.UUID
 
+import org.fs.mael.core.Status
+
 import com.github.nscala_time.time.Imports._
 
 /**
@@ -26,6 +28,8 @@ abstract class DownloadEntry(
   var locationOption: Option[File] = None
 
   var displayName: String = uri.toString
+
+  var status: Status = Status.Stopped
 
   var sizeOption: Option[Long] = None
 
