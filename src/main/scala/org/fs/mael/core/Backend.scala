@@ -26,6 +26,8 @@ trait Backend {
     createInner(uri)
   }
 
+  val downloader: BackendDownloader[DE]
+
   protected def createInner(uri: URI): DE
 
   //  def start(de: DE): Unit
