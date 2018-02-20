@@ -5,25 +5,25 @@ import java.net.URI
 import scala.collection.SortedSet
 
 object BackendManager {
-  /** Processors, ordered from highest to lowest priority */
-  private var _backends: SortedSet[Backend] =
-    SortedSet.empty(Ordering.ordered[Backend].reverse)
+  /** Backends with priority, ordered from highest to lowest priority */
+  private var _backends: SortedSet[(Backend, Int)] =
+    SortedSet.empty((x, y) => -(x._2 compareTo y._2))
 
-  def +=(backend: Backend): Unit = {
+  def +=(backend: Backend, priority: Int): Unit = {
     this.synchronized {
-      _backends += backend
+      _backends += (backend -> priority)
     }
   }
 
   def -=(backend: Backend): Unit = {
     this.synchronized {
-      _backends -= backend
+      _backends = _backends.filter(_._1 != backend)
     }
   }
 
   def findFor(uri: URI): Option[Backend] = {
     this.synchronized {
-      _backends find (_.isSupported(uri))
+      _backends map (_._1) find (_.isSupported(uri))
     }
   }
 }

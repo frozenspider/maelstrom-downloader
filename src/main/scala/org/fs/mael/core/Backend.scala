@@ -10,10 +10,8 @@ import org.fs.mael.core.entry.DownloadEntry
  * UI needs to query backend for
  * - backend-specific UI
  */
-trait Backend extends Comparable[Backend] {
+trait Backend {
   type DE <: DownloadEntry
-
-  val priority: Int
 
   val id: String
 
@@ -31,7 +29,4 @@ trait Backend extends Comparable[Backend] {
   //  def start(de: DE): Unit
 
   //  def stop(de: DE): Unit
-
-  override def compareTo(that: Backend): Int =
-    this.priority compare that.priority
 }

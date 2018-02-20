@@ -7,8 +7,6 @@ import java.net.URI
 class StubBackend extends Backend {
   override type DE = DownloadEntry
 
-  override val priority: Int = Int.MinValue
-
   override val id: String = "dummy"
 
   override def isSupported(uri: URI): Boolean = true

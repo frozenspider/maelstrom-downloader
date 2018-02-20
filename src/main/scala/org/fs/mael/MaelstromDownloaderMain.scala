@@ -39,7 +39,7 @@ object MaelstromDownloaderMain extends App with Logging {
   //
 
   def initServices(): Unit = {
-    BackendManager += (new StubBackend)
+    BackendManager += (new StubBackend, Int.MinValue)
   }
 
   def addTestData(): Unit = {
