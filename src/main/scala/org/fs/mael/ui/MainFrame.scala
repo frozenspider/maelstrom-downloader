@@ -3,30 +3,35 @@ package org.fs.mael.ui
 import org.eclipse.swt._
 import org.eclipse.swt.custom.SashForm
 import org.eclipse.swt.events._
+import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
-import org.fs.mael.core.event.UiSubscriber
-import org.fs.mael.ui.helper.SwtHelper._
-import java.util.UUID
+import org.fs.mael.core.Status
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.entry.LogEntry
-import org.fs.mael.core.Status
 import org.fs.mael.core.event.EventManager
+import org.fs.mael.core.event.UiSubscriber
+import org.fs.mael.core.list.DownloadListManager
+import org.fs.mael.ui.helper.SwtHelper._
+import org.slf4s.Logging
 
 import com.github.nscala_time.time.Imports._
-import org.fs.mael.core.list.DownloadListManager
-import org.eclipse.swt.graphics.Color
 
-class MainFrame(shell: Shell) extends UiSubscriber {
+class MainFrame(shell: Shell) extends UiSubscriber with Logging {
   private val display = shell.getDisplay
-  private var mainTable: Table = _
-  private var logTable: Table = _
+
   private val mainColumnHeaders = Seq(ColumnDef("File Name"), ColumnDef("Downloaded"), ColumnDef("Comment"))
   private val logColumnHeaders = Seq(ColumnDef("", 60 /*25*/ ), ColumnDef("Date", 80), ColumnDef("Time", 80), ColumnDef("Information", 500))
+
+  private var mainTable: Table = _
+  private var logTable: Table = _
+
+  /** When the download progress update was rendered for the last time, used to avoid excessive load */
   private var lastProgressUpdateTS: Long = System.currentTimeMillis
 
   def init(): Unit = {
-    shell.addDisposeListener(e => onDisposed())
+    shell.addListener(SWT.Close, e => onWindowClose(e))
+    display.addListener(SWT.Close, e => onAppClose(e))
 
     // Layout
 
@@ -74,7 +79,7 @@ class MainFrame(shell: Shell) extends UiSubscriber {
     fileItem.setMenu(submenu)
 
     val itemExit = new MenuItem(submenu, SWT.PUSH)
-    itemExit.addListener(SWT.Selection, e => display.dispose())
+    itemExit.addListener(SWT.Selection, e => display.close())
     itemExit.setText("Exit")
   }
 
@@ -87,7 +92,6 @@ class MainFrame(shell: Shell) extends UiSubscriber {
       val dialog = new Shell(shell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL)
       new AddDownloadFrame(dialog)
       dialog.open()
-      println("Add")
     })
 
     toolbar.pack()
@@ -104,6 +108,7 @@ class MainFrame(shell: Shell) extends UiSubscriber {
     mainTable.addKeyListener(keyPressed {
       case e if e.keyCode == SWT.DEL && mainTable.getSelectionCount > 0 =>
         println("Delete")
+      // TODO: Implement
     })
     mainTable.addListener(SWT.Selection, e => {
       getSelectedDownloadEntryOption map renderDownloadLog getOrElse { logTable.removeAll() }
@@ -120,10 +125,6 @@ class MainFrame(shell: Shell) extends UiSubscriber {
     logTable = new Table(parent, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION)
     logTable.setLinesVisible(true)
     logTable.setHeaderVisible(true)
-    logTable.addKeyListener(keyPressed {
-      case e if e.keyCode == SWT.DEL && logTable.getSelectionCount > 0 =>
-        println("Delete")
-    })
 
     logColumnHeaders.foreach { h =>
       val c = new TableColumn(logTable, SWT.NONE)
@@ -134,8 +135,16 @@ class MainFrame(shell: Shell) extends UiSubscriber {
     logTable.getColumns.filter(_.getWidth == 0).map(_.pack())
   }
 
-  private def onDisposed() {
-    println("Disposed")
+  private def onWindowClose(e: Event) {
+    // TODO: Ask for a proper action
+    log.info("Window closed")
+    display.close()
+  }
+
+  private def onAppClose(e: Event) {
+    // TODO: Ask for a proper action
+    // TODO: Check active downloads, ask for confirmation if any exists
+    log.info("Application closed")
   }
 
   private def adjustColumnWidths(table: Table): Unit = {
@@ -257,7 +266,8 @@ class MainFrame(shell: Shell) extends UiSubscriber {
 }
 
 object MainFrame {
-  val ProgressUpdateThresholdMs = 10
+  val ProgressUpdatesPerSecond = 10
+  val ProgressUpdateThresholdMs = 100
 
   val DateFmt = DateTimeFormat.forPattern("yyyy-MM-dd")
   val TimeFmt = DateTimeFormat.forPattern("HH:mm:ss")

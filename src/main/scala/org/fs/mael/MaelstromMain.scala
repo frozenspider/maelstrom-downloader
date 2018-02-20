@@ -11,14 +11,31 @@ import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.ui.MainFrame
 import org.fs.mael.ui.helper.SwtHelper._
+import org.fs.utility.StopWatch
+import org.slf4s.Logging
 
 import com.github.nscala_time.time.Imports._
 
-object MaelstromEntry extends App {
+object MaelstromMain extends App with Logging {
 
-  initServices()
-  addTestData()
-  launchUi()
+  //
+  // Init code
+  //
+
+  log.info("Application started, initializing...")
+
+  val shell = StopWatch.measureAndCall {
+    initServices()
+    addTestData()
+    launchUi()
+  }((_, ms) =>
+    log.info(s"Init done in ${ms} ms"))
+
+  uiLoop()
+
+  //
+  // Methods
+  //
 
   def initServices(): Unit = {
     BackendManager += (new StubBackend)
@@ -45,17 +62,20 @@ object MaelstromEntry extends App {
     add("https://stackoverflow.com/questions/48859244/javafx-turn-off-font-smoothing")()
   }
 
-  def launchUi(): Unit = {
+  def launchUi(): Shell = {
     // https://www.eclipse.org/swt/snippets/
     val display = new Display()
-    val shell = new Shell(display)
+    new Shell(display).withChanges { shell =>
+      (new MainFrame(shell)).init()
 
-    (new MainFrame(shell)).init()
+      shell.setSize(1000, 600)
+      centerOnScreen(shell)
+      shell.open()
+    }
+  }
 
-    shell.setSize(1000, 600)
-    centerOnScreen(shell)
-    shell.open()
-
+  def uiLoop(): Unit = {
+    val display = shell.getDisplay
     while (!shell.isDisposed()) {
       if (!display.readAndDispatch()) display.sleep()
     }
