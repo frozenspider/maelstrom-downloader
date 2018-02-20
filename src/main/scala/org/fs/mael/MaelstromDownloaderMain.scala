@@ -5,6 +5,7 @@ import java.net.URI
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 import org.fs.mael.backend.StubBackend
+import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.core.BackendManager
 import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.entry.DownloadEntry
@@ -39,6 +40,7 @@ object MaelstromDownloaderMain extends App with Logging {
   //
 
   def initServices(): Unit = {
+    BackendManager += (new HttpBackend, 0)
     BackendManager += (new StubBackend, Int.MinValue)
   }
 
