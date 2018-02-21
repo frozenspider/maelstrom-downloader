@@ -1,6 +1,8 @@
 package org.fs.mael.core
 
 import org.fs.mael.core.entry.DownloadEntry
+import org.fs.mael.core.entry.LogEntry
+import org.fs.mael.core.event.EventManager
 
 trait BackendDownloader[DE <: DownloadEntry] {
   import Status._
@@ -18,4 +20,19 @@ trait BackendDownloader[DE <: DownloadEntry] {
   }
 
   def stopInner(de: DE): Unit
+
+  //
+  // Helpers
+  //
+
+  protected def addLogAndFire(de: DE, logEntry: LogEntry): Unit = {
+    de.addDownloadLogEntry(logEntry)
+    EventManager.fireLogged(de, logEntry)
+  }
+
+  protected def changeStatusAndFire(de: DE, newStatus: Status): Unit = {
+    val prevStatus = de.status
+    de.status = newStatus
+    EventManager.fireStatusChanged(de, prevStatus)
+  }
 }
