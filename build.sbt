@@ -35,17 +35,19 @@ val swtArtifact = {
 }
 libraryDependencies ++= Seq(
   // UI
-  "org.eclipse.swt"         % swtArtifact             % "4.6.1",
+  "org.eclipse.swt"           % swtArtifact             % "4.6.1",
+  // Network
+  "org.apache.httpcomponents" %  "httpclient"           % "4.5.5",
   // Logging
-  "org.slf4s"               %% "slf4s-api"            % "1.7.25",
-  "ch.qos.logback"          %  "logback-classic"      % "1.1.2",
+  "org.slf4s"                 %% "slf4s-api"            % "1.7.25",
+  "ch.qos.logback"            %  "logback-classic"      % "1.1.2",
   // Other
-  "com.github.frozenspider" %% "fs-common-utils"      % "0.1.3",
-  "org.apache.commons"      %  "commons-lang3"        % "3.4",
-  "com.github.nscala-time"  %% "nscala-time"          % "2.16.0",
-  "com.typesafe"            %  "config"               % "1.3.2",
+  "com.github.frozenspider"   %% "fs-common-utils"      % "0.1.3",
+  "org.apache.commons"        %  "commons-lang3"        % "3.4",
+  "com.github.nscala-time"    %% "nscala-time"          % "2.16.0",
+  "com.typesafe"              %  "config"               % "1.3.2",
   // Test
-  "junit"                   %  "junit"                % "4.12"  % "test",
-  "org.scalactic"           %% "scalactic"            % "3.0.4" % "test",
-  "org.scalatest"           %% "scalatest"            % "3.0.4" % "test"
+  "junit"                     %  "junit"                % "4.12"  % "test",
+  "org.scalactic"             %% "scalactic"            % "3.0.4" % "test",
+  "org.scalatest"             %% "scalatest"            % "3.0.4" % "test"
 )

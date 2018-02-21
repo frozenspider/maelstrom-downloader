@@ -7,6 +7,7 @@ import java.util.UUID
 import org.fs.mael.core.Status
 
 import com.github.nscala_time.time.Imports._
+import scala.collection.mutable.Map
 
 /**
  * Entry for a specific download processor, implementation details may vary.
@@ -17,15 +18,16 @@ import com.github.nscala_time.time.Imports._
  */
 abstract class DownloadEntry(
   var uri:            URI,
-  var fileNameOption: Option[String],
+  _location:          File,
+  var filenameOption: Option[String],
   var comment:        String
-) extends DownloadUiView {
+) extends DownloadEntryView with DownloadEntryLoggableView {
 
   override val id: UUID = UUID.randomUUID()
 
   override val dateCreated: DateTime = DateTime.now()
 
-  var locationOption: Option[File] = None
+  def location: File = _location
 
   var displayName: String = uri.toString
 
@@ -37,7 +39,7 @@ abstract class DownloadEntry(
 
   var speedOption: Option[Long] = None
 
-  var sections: Map[Start, Downloaded] = Map.empty
+  val sections: Map[Start, Downloaded] = Map.empty
 
   var downloadLog: IndexedSeq[LogEntry] = IndexedSeq.empty
 

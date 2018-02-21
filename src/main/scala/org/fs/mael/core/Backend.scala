@@ -3,6 +3,7 @@ package org.fs.mael.core
 import java.net.URI
 
 import org.fs.mael.core.entry.DownloadEntry
+import java.io.File
 
 /*
  * Backend needs to know
@@ -21,14 +22,14 @@ trait Backend {
 
   // TODO: Rework
   /** Create a {@code DownloadEntry} from an URI */
-  def create(uri: URI): DE = {
+  def create(uri: URI, location: File): DE = {
     require(isSupported(uri), "URI not supported")
-    createInner(uri)
+    createInner(uri, location)
   }
 
   val downloader: BackendDownloader[DE]
 
-  protected def createInner(uri: URI): DE
+  protected def createInner(uri: URI, location: File): DE
 
   //  def start(de: DE): Unit
 

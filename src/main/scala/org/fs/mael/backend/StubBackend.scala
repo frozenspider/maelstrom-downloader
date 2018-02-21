@@ -4,6 +4,7 @@ import org.fs.mael.core.Backend
 import org.fs.mael.core.entry.DownloadEntry
 import java.net.URI
 import org.fs.mael.core.BackendDownloader
+import java.io.File
 
 class StubBackend extends Backend {
   override type DE = DownloadEntry
@@ -19,7 +20,7 @@ class StubBackend extends Backend {
     def stopInner(de: DE): Unit = { println("stopped " + de) }
   }
 
-  override protected def createInner(uri: URI): DE = {
-    new DownloadEntry(uri, None, "Stub comment") {}
+  override protected def createInner(uri: URI, location: File): DE = {
+    new DownloadEntry(uri, location, None, "Stub comment") {}
   }
 }

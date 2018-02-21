@@ -4,6 +4,7 @@ import java.net.URI
 
 import org.fs.mael.core.Backend
 import org.fs.mael.core.entry.DownloadEntry
+import java.io.File
 
 class HttpBackend extends Backend {
   override type DE = HttpBackend.DE
@@ -20,8 +21,8 @@ class HttpBackend extends Backend {
     }
   }
 
-  override protected def createInner(uri: URI): DE = {
-    new DownloadEntry(uri, None, "HTTP!11") {}
+  override protected def createInner(uri: URI, location: File): DE = {
+    new DownloadEntry(uri, location, None, "HTTP!11") {}
   }
 
   override val downloader = new HttpBackendDownloader

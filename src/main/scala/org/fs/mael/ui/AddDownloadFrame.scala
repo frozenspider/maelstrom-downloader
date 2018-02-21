@@ -12,6 +12,7 @@ import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.ui.utils.SwtUtils._
+import java.io.File
 
 class AddDownloadFrame(dialog: Shell) {
   init()
@@ -65,7 +66,7 @@ class AddDownloadFrame(dialog: Shell) {
       url.getProtocol match {
         case "http" | "https" =>
           val backend = BackendManager.findFor(url.toURI).get
-          val entry = backend.create(url.toURI)
+          val entry = backend.create(url.toURI, new File("c:/users/fs/desktop/dl")) // TODO
           DownloadListManager.add(entry)
           dialog.dispose()
         case other => throw new UserFriendlyException(s"Unsupported scheme: $other")
