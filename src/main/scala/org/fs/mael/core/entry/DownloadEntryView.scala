@@ -32,7 +32,7 @@ trait DownloadEntryView {
   def comment: String
 
   /** File name of download if known, display name otherwise */
-  def displayName: String
+  def displayName: String = filenameOption getOrElse uri.toString
 
   def status: Status
 

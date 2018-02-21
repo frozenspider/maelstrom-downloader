@@ -29,8 +29,6 @@ abstract class DownloadEntry(
 
   def location: File = _location
 
-  var displayName: String = uri.toString
-
   var status: Status = Status.Stopped
 
   var sizeOption: Option[Long] = None

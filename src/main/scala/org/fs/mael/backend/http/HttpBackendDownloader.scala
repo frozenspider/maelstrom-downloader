@@ -2,11 +2,13 @@ package org.fs.mael.backend.http
 
 import java.io.File
 import java.io.RandomAccessFile
+import java.net.SocketException
 import java.net.UnknownHostException
 
-import scala.util.Random
-
 import org.apache.http.HttpEntity
+import org.apache.http.HttpHeaders
+import org.apache.http.HttpResponse
+import org.apache.http.HttpStatus
 import org.apache.http.client.methods.RequestBuilder
 import org.apache.http.config.Registry
 import org.apache.http.config.RegistryBuilder
@@ -25,6 +27,7 @@ import org.apache.http.impl.conn.DefaultHttpResponseParserFactory
 import org.apache.http.impl.conn.ManagedHttpClientConnectionFactory
 import org.apache.http.impl.io.DefaultHttpRequestWriterFactory
 import org.fs.mael.core.BackendDownloader
+import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.Status
 import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.core.entry.LogEntry
@@ -33,7 +36,9 @@ import org.slf4s.Logging
 
 class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Logging {
 
-  private val dlThreadGroup = new ThreadGroup(HttpBackend.Id + "-dltg")
+  private val dlThreadGroup = new ThreadGroup(HttpBackend.Id + "-dltg").withChanges { tg =>
+    tg.setDaemon(true)
+  }
 
   private var threads: Seq[DownloadingThread] = Seq.empty
 
@@ -78,8 +83,12 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
     threads = threads filter (_ != t)
   }
 
+  // TODO: Support multiple download threads
+  // TODO: Handle "file already exists"
   private class DownloadingThread(val de: HttpBackend#DE)
     extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id) {
+
+    this.setDaemon(true)
 
     override def run(): Unit = {
       try {
@@ -105,41 +114,52 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
           clientBuilder.build()
         }
 
-        val rb = RequestBuilder.get(de.uri)
-        val req = rb.build()
+        val partial = de.downloadedSize > 0
+
+        val req = {
+          val rb = RequestBuilder.get(de.uri)
+          if (partial) {
+            // Note that range upper-bound is inclusive
+            rb.addHeader(HttpHeaders.RANGE, "bytes=" + de.downloadedSize + "-")
+          }
+          rb.build()
+        }
         val res = httpClient.execute(req)
         try {
-          if (res.getStatusLine.getStatusCode != 200) {
+          val responseCode = res.getStatusLine.getStatusCode
+          if ((!partial && responseCode != HttpStatus.SC_OK) || (partial && responseCode != HttpStatus.SC_PARTIAL_CONTENT)) {
             throw new UserFriendlyException(s"Server responded with an error")
           }
           val entity = res.getEntity
 
-          val filename = de.filenameOption match {
-            case Some(s) => s
-            case None =>
-              // TODO: Deduce filename
-              val randomStr = Random.alphanumeric.take(10).mkString
-              val assignedName = "file-" + randomStr + ".txt"
-              de.filenameOption = Some(assignedName)
-              EventManager.fireDetailsChanged(de)
-              assignedName
+          val filename = de.filenameOption getOrElse {
+            val filename = deduceFilename(res)
+            de.filenameOption = Some(filename)
+            EventManager.fireDetailsChanged(de)
+            filename
           }
 
-          entity.getContentLength match {
-            case x if x > 0 =>
-              de.sizeOption = Some(x)
-              EventManager.fireDetailsChanged(de)
-            case _ => // NOOP
+          // TODO: Detect size change
+          if (de.sizeOption.isEmpty) {
+            entity.getContentLength match {
+              case x if x > 0 =>
+                de.sizeOption = Some(if (partial) x + de.downloadedSize else x)
+                EventManager.fireDetailsChanged(de)
+              case _ => // NOOP
+            }
           }
 
-          // TODO: de.supportsResumingOption
+          de.supportsResumingOption = Some(
+            Option(res.getFirstHeader(HttpHeaders.ACCEPT_RANGES)) map (_.getValue == "bytes") getOrElse false
+          )
+          EventManager.fireDetailsChanged(de)
 
           downloadEntity(entity)
 
           // If no exception is thrown
           changeStatusAndFire(de, Status.Complete)
           addLogAndFire(de, LogEntry.info("Download complete"))
-          log.info(s"Download finished: ${de.uri} (${de.id})")
+          log.info(s"Download complete: ${de.uri} (${de.id})")
         } finally {
           res.close()
         }
@@ -148,6 +168,9 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
           errorLogAndFire(de, ex.getMessage)
         case ex: UnknownHostException =>
           errorLogAndFire(de, "Host cannot be resolved: " + ex.getMessage)
+        case ex: SocketException =>
+          // TODO: Support retries
+          errorLogAndFire(de, ex.getMessage)
         case ex: InterruptedException =>
           // Otherwise terminate normally
           if (de.status.canBeStopped) stopLogAndFire(de)
@@ -157,10 +180,39 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
       }
     }
 
+    def deduceFilename(res: HttpResponse): String = {
+      {
+        // If filename is specified in Content-Disposition header
+        Option(res.getFirstHeader("Content-Disposition")).flatMap(h => {
+          val headerParts = (
+            for {
+              el <- h.getElements.toSeq
+              param <- el.getParameters
+            } yield (param.getName -> param.getValue)
+          ).toMap
+          // As per RFC-6266
+          headerParts.get("filename*") orElse headerParts.get("filename")
+        })
+      } orElse {
+        // Try to use the last part of URL path as filename
+        de.uri.toURL.getPath.split("/").lastOption flatMap {
+          case x if x.length > 0 => Some(x)
+          case _                 => None
+        }
+      } map { fn =>
+        // Replace invalid filename characters
+        fn replaceAll ("[\\\\/:*?\"<>|]", "_")
+      } getOrElse {
+        // When everything else fails - generate a filename from UUID
+        "file-" + de.id.toString.toUpperCase
+      }
+    }
+
     private def downloadEntity(entity: HttpEntity): Unit = {
       val file = instantiateFile()
       try {
         de.sizeOption map file.setLength
+        file.seek(de.downloadedSize + 1)
 
         val currThread = Thread.currentThread()
         val bufferSize = 10 * 1024 // 10 Kb
@@ -168,11 +220,11 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
         val is = entity.getContent
         try {
           val buffer = Array.fill[Byte](bufferSize)(0x00)
-          val startPos: Long = 0
+          val sectionStartPos: Long = 0
           var len = is.read(buffer)
           while (len > 0) {
             file.write(buffer, 0, len)
-            de.sections += (startPos -> (file.getFilePointer - startPos))
+            de.sections += (sectionStartPos -> (file.getFilePointer - 1 - sectionStartPos))
             EventManager.fireProgress(de)
             if (currThread.isInterrupted) throw new InterruptedException
             len = is.read(buffer)
