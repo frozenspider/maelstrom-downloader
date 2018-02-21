@@ -7,6 +7,8 @@ import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.BuildInfo
+import org.fs.mael.core.BackendManager
+import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.Status
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.entry.LogEntry
@@ -26,6 +28,9 @@ class MainFrame(shell: Shell) extends UiSubscriber with Logging {
 
   private var mainTable: Table = _
   private var logTable: Table = _
+
+  private var btnStart: ToolItem = _
+  private var btnStop: ToolItem = _
 
   /** When the download progress update was rendered for the last time, used to avoid excessive load */
   private var lastProgressUpdateTS: Long = System.currentTimeMillis
@@ -91,13 +96,36 @@ class MainFrame(shell: Shell) extends UiSubscriber with Logging {
   def createToolbar(parent: Composite): Unit = {
     val toolbar = new ToolBar(parent, SWT.FLAT)
 
-    val itemAdd = new ToolItem(toolbar, SWT.PUSH)
-    itemAdd.setText("Add")
-    itemAdd.addListener(SWT.Selection, e => {
-      val dialog = new Shell(shell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL)
-      new AddDownloadFrame(dialog)
-      dialog.open()
-    })
+    val btnAdd = (new ToolItem(toolbar, SWT.PUSH)).withChanges { btnAdd =>
+      btnAdd.setText("Add")
+      btnAdd.addListener(SWT.Selection, e => {
+        val dialog = new Shell(shell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL)
+        new AddDownloadFrame(dialog)
+        dialog.open()
+      })
+    }
+
+    btnStart = (new ToolItem(toolbar, SWT.PUSH)).withChanges { btnStart =>
+      btnStart.setText("Start")
+      btnStart.setEnabled(false)
+      btnStart.addListener(SWT.Selection, e => {
+        getSelectedDownloadEntries map { de =>
+          val pair = BackendManager.findFor(de)
+          pair.backend.downloader.start(pair.de)
+        }
+      })
+    }
+
+    btnStop = (new ToolItem(toolbar, SWT.PUSH)).withChanges { btnStop =>
+      btnStop.setText("Stop")
+      btnStop.setEnabled(false)
+      btnStop.addListener(SWT.Selection, e => {
+        getSelectedDownloadEntries map { de =>
+          val pair = BackendManager.findFor(de)
+          pair.backend.downloader.stop(pair.de)
+        }
+      })
+    }
 
     toolbar.pack()
     toolbar.setLayoutData((new GridData()).withChanges { gridData =>
@@ -118,6 +146,7 @@ class MainFrame(shell: Shell) extends UiSubscriber with Logging {
     mainTable.addListener(SWT.Selection, e => {
       getSelectedDownloadEntryOption map renderDownloadLog getOrElse { logTable.removeAll() }
     })
+    mainTable.addListener(SWT.Selection, e => updateButtonsEnabledState())
 
     mainColumnHeaders.foreach { h =>
       val c = new TableColumn(mainTable, SWT.NONE)
@@ -178,11 +207,17 @@ class MainFrame(shell: Shell) extends UiSubscriber with Logging {
     }
   }
 
+  /** Return all selected entries */
+  private def getSelectedDownloadEntries: Seq[DownloadEntryView] = {
+    mainTable.getSelection map (_.getData match {
+      case de: DownloadEntryView => de
+    })
+  }
+
+  /** Return a singular selected entry. If multiple entries are selected, returns {@code None}. */
   private def getSelectedDownloadEntryOption: Option[DownloadEntryView] = {
     if (mainTable.getSelectionCount == 1) {
-      mainTable.getSelection.head.getData match {
-        case de: DownloadEntryView => Some(de)
-      }
+      getSelectedDownloadEntries.headOption
     } else {
       None
     }
@@ -220,6 +255,10 @@ class MainFrame(shell: Shell) extends UiSubscriber with Logging {
     }
   }
 
+  private def updateButtonsEnabledState(): Unit = {
+    btnStart.setEnabled(getSelectedDownloadEntries exists (_.status.canBeStarted))
+    btnStop.setEnabled(getSelectedDownloadEntries exists (_.status.canBeStopped))
+  }
   //
   // Subscriber trait
   //
@@ -238,6 +277,7 @@ class MainFrame(shell: Shell) extends UiSubscriber with Logging {
   override def statusChanged(de: DownloadEntryView, prevStatus: Status): Unit = display.syncExec { () =>
     // Full row update
     findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
+    updateButtonsEnabledState()
   }
 
   override def progress(de: DownloadEntryView): Unit = {

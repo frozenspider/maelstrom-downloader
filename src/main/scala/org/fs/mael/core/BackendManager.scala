@@ -29,9 +29,10 @@ object BackendManager {
     }
   }
 
-  def findFor(de: DownloadEntryView): Backend = {
+  def findFor(de: DownloadEntryView): BackendWithEntry = {
     this.synchronized {
-      (_backends map (_._1) find (_.entryClass == de.getClass)).get
+      val backend = (_backends map (_._1) find (_.entryClass isInstance de)).get
+      BackendWithEntry(backend, de)
     }
   }
 }

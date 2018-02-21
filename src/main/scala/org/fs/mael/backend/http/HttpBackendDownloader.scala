@@ -16,6 +16,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
       if (threads exists (t => t.de == de && t.isAlive)) {
         log.warn(s"Attempt to start an already-running entry: ${de.id} (${de.uri})")
       } else {
+        log.info(s"Download started: ${de.id} (${de.uri})")
         val prevStatus = de.status
         de.status = Status.Running
         val newThread = new DownloadingThread(de)
@@ -28,14 +29,15 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
   def stopInner(de: HttpBackend.DE): Unit =
     this.synchronized {
       threads find (_.de == de) match {
+        case None =>
+          log.warn(s"Attempt to stop a not started entry: ${de.id} (${de.uri})")
         case Some(t) =>
+          log.info(s"Download stopped: ${de.id} (${de.uri})")
           val prevStatus = de.status
           de.status = Status.Stopped
           t.interrupt()
           threads = threads filter (_.de != de)
           EventManager.fireStatusChanged(de, prevStatus)
-        case None =>
-          log.warn(s"Attempt to stop a not started entry: ${de.id} (${de.uri})")
       }
     }
 

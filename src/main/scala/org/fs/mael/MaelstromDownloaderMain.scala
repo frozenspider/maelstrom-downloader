@@ -8,6 +8,7 @@ import org.fs.mael.backend.StubBackend
 import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.core.BackendManager
 import org.fs.mael.core.CoreUtils._
+import org.fs.mael.core.Status
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.list.DownloadListManager
@@ -52,6 +53,7 @@ object MaelstromDownloaderMain extends App with Logging {
     }
     add("http://www.example.com") { de =>
       de.comment = "info on example"
+      de.status = Status.Error
     }
     add("https://www.google.com") { de =>
       de.comment = "info on google"
@@ -60,6 +62,7 @@ object MaelstromDownloaderMain extends App with Logging {
       de.addDownloadLogEntry(LogEntry(LogEntry.Response, DateTime.parse("2000-01-03T01:23:45"), "What?"))
       de.addDownloadLogEntry(LogEntry(LogEntry.Request, DateTime.parse("2000-01-03T01:23:45"), "Take\nthat\nmulti\nline!"))
       de.addDownloadLogEntry(LogEntry(LogEntry.Error, DateTime.now(), "The end"))
+      de.status = Status.Running
     }
     add("https://www.facebook.com/test")()
     add("https://stackoverflow.com/questions/48859244/javafx-turn-off-font-smoothing")()
