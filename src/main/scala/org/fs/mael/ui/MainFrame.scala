@@ -123,7 +123,7 @@ class MainFrame(shell: Shell) extends Logging {
       btnAdd.setText("Add")
       btnAdd.addListener(SWT.Selection, e => {
         val dialog = new Shell(shell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL)
-        new AddDownloadFrame(dialog)
+        new AddDownloadFrame(dialog, prefMgr)
         dialog.open()
       })
     }
@@ -375,6 +375,9 @@ class MainFrame(shell: Shell) extends Logging {
       if (!shell.isDisposed) {
         val newRow = new TableItem(mainTable, SWT.NONE)
         fillDownloadRow(newRow, de)
+        mainTable.deselectAll()
+        mainTable.select(mainTable.getItems.indexOf(newRow))
+        mainTable.showItem(newRow)
       }
     }
 

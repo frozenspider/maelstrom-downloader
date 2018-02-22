@@ -1,28 +1,37 @@
 package org.fs.mael.ui
 
-import org.eclipse.jface.preference.PreferenceStore
-import org.eclipse.jface.preference.{ PreferenceManager => JPreferenceManager }
-import org.eclipse.swt.widgets.Shell
-import org.eclipse.jface.preference.PreferenceDialog
-import org.fs.mael.core.CoreUtils._
-import org.eclipse.jface.preference.PreferenceNode
-import org.eclipse.jface.preference.PreferencePage
-import org.eclipse.jface.preference.ScaleFieldEditor
-import org.eclipse.jface.preference.DirectoryFieldEditor
-import org.eclipse.jface.preference.FieldEditorPreferencePage
-import org.eclipse.jface.preference.FontFieldEditor
-import org.eclipse.jface.preference.IntegerFieldEditor
-import org.eclipse.jface.preference.RadioGroupFieldEditor
-import org.eclipse.jface.preference.FileFieldEditor
-import org.eclipse.jface.preference.BooleanFieldEditor
-import org.eclipse.jface.preference.PathEditor
-import org.eclipse.jface.preference.StringFieldEditor
-import org.eclipse.jface.preference.ColorFieldEditor
 import java.io.FileNotFoundException
 
+import org.eclipse.jface.preference.BooleanFieldEditor
+import org.eclipse.jface.preference.ColorFieldEditor
+import org.eclipse.jface.preference.DirectoryFieldEditor
+import org.eclipse.jface.preference.FieldEditorPreferencePage
+import org.eclipse.jface.preference.FileFieldEditor
+import org.eclipse.jface.preference.FontFieldEditor
+import org.eclipse.jface.preference.IntegerFieldEditor
+import org.eclipse.jface.preference.PathEditor
+import org.eclipse.jface.preference.PreferenceDialog
+import org.eclipse.jface.preference.{ PreferenceManager => JPreferenceManager }
+import org.eclipse.jface.preference.PreferenceNode
+import org.eclipse.jface.preference.PreferenceStore
+import org.eclipse.jface.preference.RadioGroupFieldEditor
+import org.eclipse.jface.preference.ScaleFieldEditor
+import org.eclipse.jface.preference.StringFieldEditor
+import org.eclipse.swt.widgets.Shell
+import org.fs.mael.BuildInfo
+import org.fs.mael.core.CoreUtils._
+
 class PreferenceManager {
+  import PreferenceManager._
+
   val store = new PreferenceStore().withCode { store => // TODO: Link to file
-    store.setFilename("testfile.prefs")
+    store.setFilename(BuildInfo.name + ".prefs")
+    store.setDefault(PreferenceIds.DownloadPath, {
+      sys.props("os.name") match {
+        case os if os startsWith "Windows" => sys.env("USERPROFILE") + "\\Downloads"
+        case _                             => sys.props("user.home") + "/downloads"
+      }
+    })
     try {
       store.load()
     } catch {
@@ -31,8 +40,13 @@ class PreferenceManager {
   }
 
   val mgr = new JPreferenceManager().withCode { mgr =>
-    val node1 = new PreferenceNode("p1", "label1", null, classOf[PreferenceManager.FieldEditorPageOne].getName)
-    val node2 = new PreferenceNode("p2", "label2", null, classOf[PreferenceManager.FieldEditorPageTwo].getName)
+    def addRootPage(id: String, label: String, clazz: Class[_]): Unit = {
+      val page = new PreferenceNode("main", "Main", null, clazz.getName)
+      mgr.addToRoot(page)
+    }
+    addRootPage("main", "Main", classOf[MainPage])
+    val node1 = new PreferenceNode("p1", "label1", null, classOf[FieldEditorPageOne].getName)
+    val node2 = new PreferenceNode("p2", "label2", null, classOf[FieldEditorPageTwo].getName)
     mgr.addToRoot(node1)
     mgr.addToRoot(node2)
   }
@@ -43,8 +57,19 @@ class PreferenceManager {
     dlg.open()
   }
 
+  def getStringProperty(id: PreferenceIds.PreferenceId) = {
+    store.getString(id)
+  }
 }
 object PreferenceManager {
+  class MainPage extends FieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
+    def createFieldEditors(): Unit = {
+      new DirectoryFieldEditor(PreferenceIds.DownloadPath, "Download path:", getFieldEditorParent).withCode { dfe =>
+        addField(dfe)
+      }
+    }
+  }
+
   // Use the "flat" layout
   class FieldEditorPageOne extends FieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
 
