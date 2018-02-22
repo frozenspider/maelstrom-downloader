@@ -11,6 +11,7 @@ import org.apache.http.HttpEntity
 import org.apache.http.HttpHeaders
 import org.apache.http.HttpResponse
 import org.apache.http.HttpStatus
+import org.apache.http.client.methods.HttpUriRequest
 import org.apache.http.client.methods.RequestBuilder
 import org.apache.http.config.Registry
 import org.apache.http.config.RegistryBuilder
@@ -134,6 +135,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
           }
           rb.build()
         }
+
         val res = httpClient.execute(req)
         try {
           val entity = doChecked {
@@ -178,7 +180,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
             EventManager.fireDetailsChanged(de)
           }
 
-          downloadEntity(entity)
+          downloadEntity(req, entity, partial)
 
           // If no exception is thrown
           changeStatusAndFire(de, Status.Complete)
@@ -230,8 +232,8 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
       }
     }
 
-    private def downloadEntity(entity: HttpEntity): Unit = {
-      val file = instantiateFile()
+    private def downloadEntity(req: HttpUriRequest, entity: HttpEntity, partial: Boolean): Unit = {
+      val file = instantiateFile(partial)
       try {
         de.sizeOption map file.setLength
         file.seek(de.downloadedSize + 1)
@@ -252,15 +254,24 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
             }
           }
         } finally {
-          is.close()
+          // Necessary to forcefully close input stream.
+          // This is needed because closing the input stream with known Content-Length
+          // attempts to download the rest of the entity.
+          // Yes, it's as messed-up as it sounds.
+          req.abort()
         }
       } finally {
         file.close()
       }
     }
 
-    private def instantiateFile(): RandomAccessFile = {
+    private def instantiateFile(partial: Boolean): RandomAccessFile = {
       val f = new File(de.location, de.filenameOption.get)
+      if (partial && !f.exists) {
+        throw new UserFriendlyException(s"File is missing")
+      } else if (!partial && f.exists) {
+        throw new UserFriendlyException(s"File already exists")
+      }
       f.createNewFile()
       if (!f.canWrite) {
         throw new UserFriendlyException(s"Can't write to file ${f.getAbsolutePath}")
