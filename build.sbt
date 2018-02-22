@@ -22,7 +22,7 @@ lazy val root = (project in file("."))
 resolvers += "jitpack"  at "https://jitpack.io"
 
 val swtBaseArtifact = "org.eclipse.swt"
-val swtArtifact = {
+val swtOsArtifact = {
   val osDependentPart = (sys.props("os.name"), sys.props("os.arch")) match {
     case ("Linux", _) => "gtk.linux.x86"
     case ("Mac OS X", "amd64" | "x86_64") => "cocoa.macosx.x86_64"
@@ -35,9 +35,8 @@ val swtArtifact = {
 }
 libraryDependencies ++= Seq(
   // UI
-//  "org.eclipse.swt"           %  swtArtifact            % "4.6.1",
   "org.eclipse.platform"      %  swtBaseArtifact        % "3.106.2" exclude("org.eclipse.platform", "org.eclipse.swt.${osgi.platform}"),
-  "org.eclipse.platform"      %  swtArtifact            % "3.106.2" exclude("org.eclipse.platform", swtBaseArtifact),
+  "org.eclipse.platform"      %  swtOsArtifact          % "3.106.2" exclude("org.eclipse.platform", swtBaseArtifact),
   "org.eclipse.platform"      %  "org.eclipse.jface"    % "3.13.2"  exclude("org.eclipse.platform", swtBaseArtifact),
   // Network
   "org.apache.httpcomponents" %  "httpclient"           % "4.5.5",
