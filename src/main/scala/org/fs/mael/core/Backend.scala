@@ -20,7 +20,6 @@ trait Backend {
 
   def isSupported(uri: URI): Boolean
 
-  // TODO: Rework
   /** Create a {@code DownloadEntry} from an URI */
   def create(uri: URI, location: File): DE = {
     require(isSupported(uri), "URI not supported")

@@ -93,8 +93,6 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
     }
   }
 
-  // TODO: Support multiple download threads
-  // TODO: Handle "file already exists"
   // TODO: Handle partially downloaded file deleted
   private class DownloadingThread(val de: HttpBackend#DE)
     extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
@@ -118,7 +116,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
         }
         addLogAndFire(de, LogEntry.info("Starting download..."))
         val cookieStore = new BasicCookieStore()
-        val connManager = createConnManager(0) // TODO: Timeout
+        val connManager = createConnManager(0)
         val httpClient = {
           val clientBuilder = HttpClients.custom()
             .setDefaultCookieStore(cookieStore)
@@ -193,10 +191,8 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
         case ex: UserFriendlyException =>
           errorLogAndFire(de, ex.getMessage)
         case ex: UnknownHostException =>
-          // TODO: Support retries
           errorLogAndFire(de, "Host cannot be resolved: " + ex.getMessage)
         case ex: SocketException =>
-          // TODO: Support retries
           errorLogAndFire(de, ex.getMessage)
         case ex: InterruptedException =>
           log.debug(s"Thread interrupted: ${this.getName}")

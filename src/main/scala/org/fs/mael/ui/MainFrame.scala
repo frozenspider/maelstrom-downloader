@@ -169,13 +169,11 @@ class MainFrame(shell: Shell) extends Logging {
   }
 
   private def onWindowClose(e: Event) {
-    // TODO: Ask for a proper action
     log.info("Window closed")
     display.close()
   }
 
   private def onAppClose(e: Event) {
-    // TODO: Check active downloads, ask for confirmation if any exists
   }
 
   private def adjustColumnWidths(table: Table): Unit = {

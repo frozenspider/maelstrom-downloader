@@ -5,10 +5,6 @@ import java.util.UUID
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.EventManager
 
-/*
- * TODO:
- * Persist
- */
 object DownloadListManager {
   private var entries: Set[DownloadEntry] = Set.empty
 
