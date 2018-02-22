@@ -23,7 +23,7 @@ import com.github.nscala_time.time.Imports._
 class MainFrame(shell: Shell) extends UiSubscriber with Logging {
   private val display = shell.getDisplay
 
-  private val mainColumnHeaders = Seq(ColumnDef("File Name"), ColumnDef("Downloaded"), ColumnDef("Comment"))
+  private val mainColumnHeaders = Seq(ColumnDef("File Name"), ColumnDef("Downloaded"), ColumnDef("Size", 80), ColumnDef("Comment"))
   private val logColumnHeaders = Seq(ColumnDef("", 60 /*25*/ ), ColumnDef("Date", 80), ColumnDef("Time", 80), ColumnDef("Information", 500))
 
   private var mainTable: Table = _
@@ -194,7 +194,8 @@ class MainFrame(shell: Shell) extends UiSubscriber with Logging {
     row.setData(de)
     row.setText(0, de.status + " " + de.displayName)
     row.setText(1, de.downloadedSize.toString)
-    row.setText(2, de.comment)
+    row.setText(2, de.sizeOption.getOrElse("").toString)
+    row.setText(3, de.comment)
   }
 
   private def findDownloadRowIdxOption(de: DownloadEntryView): Option[Int] = {
@@ -259,22 +260,25 @@ class MainFrame(shell: Shell) extends UiSubscriber with Logging {
     btnStart.setEnabled(getSelectedDownloadEntries exists (_.status.canBeStarted))
     btnStop.setEnabled(getSelectedDownloadEntries exists (_.status.canBeStopped))
   }
+
   //
   // Subscriber trait
   //
 
   override val subscriberId: String = "swt-ui"
 
-  override def added(de: DownloadEntryView): Unit = display.syncExec { () =>
-    val newRow = new TableItem(mainTable, SWT.NONE)
-    fillDownloadRow(newRow, de)
+  override def added(de: DownloadEntryView): Unit = syncExecSafely {
+    if (!shell.isDisposed) {
+      val newRow = new TableItem(mainTable, SWT.NONE)
+      fillDownloadRow(newRow, de)
+    }
   }
 
-  override def removed(de: DownloadEntryView): Unit = display.syncExec { () =>
+  override def removed(de: DownloadEntryView): Unit = syncExecSafely {
     findDownloadRowIdxOption(de) map (mainTable.remove)
   }
 
-  override def statusChanged(de: DownloadEntryView, prevStatus: Status): Unit = display.syncExec { () =>
+  override def statusChanged(de: DownloadEntryView, prevStatus: Status): Unit = syncExecSafely {
     // Full row update
     findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
     updateButtonsEnabledState()
@@ -283,7 +287,7 @@ class MainFrame(shell: Shell) extends UiSubscriber with Logging {
   override def progress(de: DownloadEntryView): Unit = {
     // We assume this is only called by event manager processing thread, so no additional sync needed
     if (System.currentTimeMillis() - lastProgressUpdateTS > MainFrame.ProgressUpdateThresholdMs) {
-      display.syncExec { () =>
+      syncExecSafely {
         // TODO: Optimize
         findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
       }
@@ -291,15 +295,21 @@ class MainFrame(shell: Shell) extends UiSubscriber with Logging {
     }
   }
 
-  override def detailsChanged(de: DownloadEntryView): Unit = display.syncExec { () =>
+  override def detailsChanged(de: DownloadEntryView): Unit = syncExecSafely {
     findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
   }
 
-  override def logged(de: DownloadEntryView, entry: LogEntry): Unit = display.syncExec { () =>
+  override def logged(de: DownloadEntryView, entry: LogEntry): Unit = syncExecSafely {
     if (getSelectedDownloadEntryOption == Some(de)) {
       appendDownloadLogEntry(entry)
     }
   }
+
+  /** Execute code in UI thread iff UI is not disposed yet */
+  private def syncExecSafely(code: => Unit): Unit =
+    display.syncExec { () =>
+      if (!shell.isDisposed) code
+    }
 
   //
   // Helper classes
