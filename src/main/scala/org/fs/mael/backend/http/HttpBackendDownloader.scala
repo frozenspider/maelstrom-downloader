@@ -156,14 +156,21 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
             filename
           }
 
-          // TODO: Detect size change
-          if (de.sizeOption.isEmpty) {
-            entity.getContentLength match {
-              case x if x > 0 => doChecked {
-                de.sizeOption = Some(if (partial) x + de.downloadedSize else x)
-                EventManager.fireDetailsChanged(de)
+          val contentLengthOption = entity.getContentLength match {
+            case x if x > 0 => Some(x)
+            case _          => None
+          }
+          val reportedSizeOption = contentLengthOption map (x => if (partial) x + de.downloadedSize else x)
+          reportedSizeOption map { reportedSize =>
+            doChecked {
+              de.sizeOption match {
+                case None =>
+                  de.sizeOption = Some(reportedSize)
+                  EventManager.fireDetailsChanged(de)
+                case Some(prevSize) if prevSize != reportedSize =>
+                  throw new UserFriendlyException("File size on server changed")
+                case _ => // NOOP
               }
-              case _ => // NOOP
             }
           }
 
