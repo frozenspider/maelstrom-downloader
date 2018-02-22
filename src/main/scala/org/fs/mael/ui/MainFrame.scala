@@ -20,7 +20,7 @@ import org.slf4s.Logging
 
 import com.github.nscala_time.time.Imports._
 
-class MainFrame(shell: Shell) extends UiSubscriber with Logging {
+class MainFrame(shell: Shell) extends Logging {
   private val display = shell.getDisplay
 
   private val mainColumnHeaders = Seq(ColumnDef("File Name"), ColumnDef("Downloaded"), ColumnDef("Size", 80), ColumnDef("Comment"))
@@ -75,7 +75,7 @@ class MainFrame(shell: Shell) extends UiSubscriber with Logging {
     shell.setSize(1000, 600)
     centerOnScreen(shell)
 
-    EventManager.subscribe(this)
+    EventManager.subscribe(subscriber)
   }
 
   def createMenu(parent: Decorations): Unit = {
@@ -265,51 +265,53 @@ class MainFrame(shell: Shell) extends UiSubscriber with Logging {
   // Subscriber trait
   //
 
-  override val subscriberId: String = "swt-ui"
+  object subscriber extends UiSubscriber {
+    override val subscriberId: String = "swt-ui"
 
-  override def added(de: DownloadEntryView): Unit = syncExecSafely {
-    if (!shell.isDisposed) {
-      val newRow = new TableItem(mainTable, SWT.NONE)
-      fillDownloadRow(newRow, de)
-    }
-  }
-
-  override def removed(de: DownloadEntryView): Unit = syncExecSafely {
-    findDownloadRowIdxOption(de) map (mainTable.remove)
-  }
-
-  override def statusChanged(de: DownloadEntryView, prevStatus: Status): Unit = syncExecSafely {
-    // Full row update
-    findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
-    updateButtonsEnabledState()
-  }
-
-  override def progress(de: DownloadEntryView): Unit = {
-    // We assume this is only called by event manager processing thread, so no additional sync needed
-    if (System.currentTimeMillis() - lastProgressUpdateTS > MainFrame.ProgressUpdateThresholdMs) {
-      syncExecSafely {
-        // TODO: Optimize
-        findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
+    override def added(de: DownloadEntryView): Unit = syncExecSafely {
+      if (!shell.isDisposed) {
+        val newRow = new TableItem(mainTable, SWT.NONE)
+        fillDownloadRow(newRow, de)
       }
-      lastProgressUpdateTS = System.currentTimeMillis()
     }
-  }
 
-  override def detailsChanged(de: DownloadEntryView): Unit = syncExecSafely {
-    findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
-  }
-
-  override def logged(de: DownloadEntryView, entry: LogEntry): Unit = syncExecSafely {
-    if (getSelectedDownloadEntryOption == Some(de)) {
-      appendDownloadLogEntry(entry)
+    override def removed(de: DownloadEntryView): Unit = syncExecSafely {
+      findDownloadRowIdxOption(de) map (mainTable.remove)
     }
-  }
 
-  /** Execute code in UI thread iff UI is not disposed yet */
-  private def syncExecSafely(code: => Unit): Unit =
-    display.syncExec { () =>
-      if (!shell.isDisposed) code
+    override def statusChanged(de: DownloadEntryView, prevStatus: Status): Unit = syncExecSafely {
+      // Full row update
+      findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
+      updateButtonsEnabledState()
     }
+
+    override def progress(de: DownloadEntryView): Unit = {
+      // We assume this is only called by event manager processing thread, so no additional sync needed
+      if (System.currentTimeMillis() - lastProgressUpdateTS > MainFrame.ProgressUpdateThresholdMs) {
+        syncExecSafely {
+          // TODO: Optimize
+          findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
+        }
+        lastProgressUpdateTS = System.currentTimeMillis()
+      }
+    }
+
+    override def detailsChanged(de: DownloadEntryView): Unit = syncExecSafely {
+      findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
+    }
+
+    override def logged(de: DownloadEntryView, entry: LogEntry): Unit = syncExecSafely {
+      if (getSelectedDownloadEntryOption == Some(de)) {
+        appendDownloadLogEntry(entry)
+      }
+    }
+
+    /** Execute code in UI thread iff UI is not disposed yet */
+    private def syncExecSafely(code: => Unit): Unit =
+      display.syncExec { () =>
+        if (!shell.isDisposed) code
+      }
+  }
 
   //
   // Helper classes
