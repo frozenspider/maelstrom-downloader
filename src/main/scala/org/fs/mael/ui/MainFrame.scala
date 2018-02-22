@@ -89,15 +89,27 @@ class MainFrame(shell: Shell) extends Logging {
     val bar = new Menu(parent, SWT.BAR)
     parent.setMenuBar(bar)
 
-    val fileItem = new MenuItem(bar, SWT.CASCADE)
-    fileItem.setText("&File")
+    new MenuItem(bar, SWT.CASCADE).withCode { menuItem =>
+      menuItem.setText("&File")
 
-    val submenu = new Menu(parent, SWT.DROP_DOWN)
-    fileItem.setMenu(submenu)
+      val submenu = new Menu(parent, SWT.DROP_DOWN)
+      menuItem.setMenu(submenu)
 
-    val itemExit = new MenuItem(submenu, SWT.PUSH)
-    itemExit.addListener(SWT.Selection, e => display.close())
-    itemExit.setText("Exit")
+      val itemExit = new MenuItem(submenu, SWT.PUSH)
+      itemExit.setText("Exit")
+      itemExit.addListener(SWT.Selection, e => display.close())
+    }
+
+    new MenuItem(bar, SWT.CASCADE).withCode { menuItem =>
+      menuItem.setText("&Service")
+
+      val submenu = new Menu(parent, SWT.DROP_DOWN)
+      menuItem.setMenu(submenu)
+
+      val itemOptions = new MenuItem(submenu, SWT.PUSH)
+      itemOptions.setText("Options")
+      itemOptions.addListener(SWT.Selection, e => ???)
+    }
   }
 
   def createToolbar(parent: Composite): Unit = {
@@ -416,7 +428,6 @@ class MainFrame(shell: Shell) extends Logging {
 }
 
 object MainFrame {
-  val ProgressUpdatesPerSecond = 10
   val ProgressUpdateThresholdMs = 100
 
   val DateFmt = DateTimeFormat.forPattern("yyyy-MM-dd")
