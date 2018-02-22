@@ -33,7 +33,7 @@ class MainFrame(shell: Shell) extends Logging {
   )
   private val logColumnHeaders = Seq(ColumnDef("", 24), ColumnDef("Date", 80), ColumnDef("Time", 80), ColumnDef("Information", 500))
 
-  private var prefMgr: PreferenceManager = _
+  private var cfgMgr: ConfigManager = _
 
   private var mainTable: Table = _
   private var logTable: Table = _
@@ -45,7 +45,7 @@ class MainFrame(shell: Shell) extends Logging {
   private var lastProgressUpdateTS: Long = System.currentTimeMillis
 
   def init(): Unit = {
-    prefMgr = new PreferenceManager
+    cfgMgr = new ConfigManager
 
     shell.addListener(SWT.Close, e => onWindowClose(e))
     display.addListener(SWT.Close, e => onAppClose(e))
@@ -112,7 +112,7 @@ class MainFrame(shell: Shell) extends Logging {
 
       val itemOptions = new MenuItem(submenu, SWT.PUSH)
       itemOptions.setText("Options")
-      itemOptions.addListener(SWT.Selection, e => prefMgr.showDialog(shell))
+      itemOptions.addListener(SWT.Selection, e => cfgMgr.showDialog(shell))
     }
   }
 
@@ -123,7 +123,7 @@ class MainFrame(shell: Shell) extends Logging {
       btnAdd.setText("Add")
       btnAdd.addListener(SWT.Selection, e => {
         val dialog = new Shell(shell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL)
-        new AddDownloadFrame(dialog, prefMgr)
+        new AddDownloadFrame(dialog, cfgMgr)
         dialog.open()
       })
     }

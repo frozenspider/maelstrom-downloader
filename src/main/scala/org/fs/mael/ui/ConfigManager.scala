@@ -11,7 +11,7 @@ import org.eclipse.jface.preference.FontFieldEditor
 import org.eclipse.jface.preference.IntegerFieldEditor
 import org.eclipse.jface.preference.PathEditor
 import org.eclipse.jface.preference.PreferenceDialog
-import org.eclipse.jface.preference.{ PreferenceManager => JPreferenceManager }
+import org.eclipse.jface.preference.PreferenceManager
 import org.eclipse.jface.preference.PreferenceNode
 import org.eclipse.jface.preference.PreferenceStore
 import org.eclipse.jface.preference.RadioGroupFieldEditor
@@ -21,12 +21,12 @@ import org.eclipse.swt.widgets.Shell
 import org.fs.mael.BuildInfo
 import org.fs.mael.core.CoreUtils._
 
-class PreferenceManager {
-  import PreferenceManager._
+class ConfigManager {
+  import ConfigManager._
 
   val store = new PreferenceStore().withCode { store => // TODO: Link to file
     store.setFilename(BuildInfo.name + ".prefs")
-    store.setDefault(PreferenceIds.DownloadPath, {
+    store.setDefault(ConfigOptions.DownloadPath, {
       sys.props("os.name") match {
         case os if os startsWith "Windows" => sys.env("USERPROFILE") + "\\Downloads"
         case _                             => sys.props("user.home") + "/downloads"
@@ -39,7 +39,7 @@ class PreferenceManager {
     }
   }
 
-  val mgr = new JPreferenceManager().withCode { mgr =>
+  val mgr = new PreferenceManager().withCode { mgr =>
     def addRootPage(id: String, label: String, clazz: Class[_]): Unit = {
       val page = new PreferenceNode("main", "Main", null, clazz.getName)
       mgr.addToRoot(page)
@@ -57,14 +57,15 @@ class PreferenceManager {
     dlg.open()
   }
 
-  def getStringProperty(id: PreferenceIds.PreferenceId) = {
+  def getStringProperty(id: ConfigOptions.Id) = {
     store.getString(id)
   }
 }
-object PreferenceManager {
+
+object ConfigManager {
   class MainPage extends FieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
     def createFieldEditors(): Unit = {
-      new DirectoryFieldEditor(PreferenceIds.DownloadPath, "Download path:", getFieldEditorParent).withCode { dfe =>
+      new DirectoryFieldEditor(ConfigOptions.DownloadPath, "Download path:", getFieldEditorParent).withCode { dfe =>
         addField(dfe)
       }
     }

@@ -16,7 +16,7 @@ import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.ui.utils.SwtUtils._
 
-class AddDownloadFrame(dialog: Shell, prefMgr: PreferenceManager) {
+class AddDownloadFrame(dialog: Shell, cfgMgr: ConfigManager) {
   init()
 
   var uriInput: Text = _
@@ -78,7 +78,7 @@ class AddDownloadFrame(dialog: Shell, prefMgr: PreferenceManager) {
       url.getProtocol match {
         case "http" | "https" =>
           val backend = BackendManager.findFor(url.toURI).get
-          val entry = backend.create(url.toURI, new File(prefMgr.getStringProperty(PreferenceIds.DownloadPath)))
+          val entry = backend.create(url.toURI, new File(cfgMgr.getStringProperty(ConfigOptions.DownloadPath)))
           DownloadListManager.add(entry)
           dialog.dispose()
         case other => throw new UserFriendlyException(s"Unsupported scheme: $other")
