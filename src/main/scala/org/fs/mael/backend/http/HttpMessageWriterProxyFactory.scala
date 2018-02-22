@@ -21,6 +21,9 @@ class HttpMessageWriterProxyFactory(
 
   class HttpMessageWriterProxy(delegate: HttpMessageWriter[HttpRequest]) extends HttpMessageWriter[HttpRequest] {
     override def write(message: HttpRequest): Unit = {
+      if (Thread.currentThread().isInterrupted)
+        throw new InterruptedException
+
       delegate.write(message)
 
       // Formatting code taken from AbstractMessageWriter

@@ -23,6 +23,9 @@ class HttpMessageParserProxyFactory(
 
   class HttpMessageParserProxy(delegate: HttpMessageParser[HttpResponse]) extends HttpMessageParser[HttpResponse] {
     override def parse(): HttpResponse = {
+      if (Thread.currentThread().isInterrupted)
+        throw new InterruptedException
+
       // Intercepting low-level parsing is inconvenient here, so we
       // go along with reverse-formatting already parsed response
       delegate.parse().withChanges { res =>

@@ -74,7 +74,6 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
 
   private def stopLogAndFire(de: HttpBackend.DE, threadOption: Option[Thread]): Unit = {
     changeStatusAndFire(de, Status.Stopped)
-    // TODO: Fix issue with this log entry being out of sync with request-response entries
     addLogAndFire(de, LogEntry.info("Download stopped"))
     threadOption match {
       case None    => log.info(s"Download stopped: ${de.uri} (${de.id})")
@@ -278,11 +277,11 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
         new ManagedHttpClientConnectionFactory(
           new HttpMessageWriterProxyFactory(
             DefaultHttpRequestWriterFactory.INSTANCE,
-            msg => addLogAndFire(de, LogEntry.request(msg))
+            msg => doChecked(addLogAndFire(de, LogEntry.request(msg)))
           ),
           new HttpMessageParserProxyFactory(
             DefaultHttpResponseParserFactory.INSTANCE,
-            msg => addLogAndFire(de, LogEntry.response(msg))
+            msg => doChecked(addLogAndFire(de, LogEntry.response(msg)))
           )
         )
       val connMgr = new BasicHttpClientConnectionManager(HttpBackendDownloader.SocketFactoryRegistry, connFactory, null, null)
