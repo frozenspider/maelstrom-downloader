@@ -12,6 +12,13 @@ import org.fs.mael.core.event.EventManager
 object DownloadListManager {
   private var entries: Set[DownloadEntry] = Set.empty
 
+  /** Called initially upon application start, no event is fired */
+  def init(entries: Iterable[DownloadEntry]): Unit = {
+    this.synchronized {
+      this.entries = entries.toSet
+    }
+  }
+
   /** Add a new entry to a download list, firing an event */
   def add(de: DownloadEntry): Unit = {
     this.synchronized {
@@ -29,6 +36,8 @@ object DownloadListManager {
   }
 
   def list(): Set[DownloadEntry] = {
-    entries
+    this.synchronized {
+      entries
+    }
   }
 }

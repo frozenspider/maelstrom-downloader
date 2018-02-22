@@ -22,7 +22,6 @@ import com.github.nscala_time.time.Imports._
 
 class MainFrame(shell: Shell) extends Logging {
   private val display = shell.getDisplay
-
   private val mainColumnHeaders = Seq(ColumnDef("File Name"), ColumnDef("Downloaded"), ColumnDef("Size", 80), ColumnDef("Comment"))
   private val logColumnHeaders = Seq(ColumnDef("", 60 /*25*/ ), ColumnDef("Date", 80), ColumnDef("Time", 80), ColumnDef("Information", 500))
 
@@ -184,7 +183,8 @@ class MainFrame(shell: Shell) extends Logging {
   }
 
   private def renderDownloads(entries: Iterable[DownloadEntryView]): Unit = {
-    entries.toSeq.sortBy(_.dateCreated).foreach { de =>
+    val sorted = entries.toSeq.sortBy(_.dateCreated)
+    sorted.foreach { de =>
       val newRow = new TableItem(mainTable, SWT.NONE)
       fillDownloadRow(newRow, de)
     }

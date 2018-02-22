@@ -5,6 +5,8 @@ import java.io.RandomAccessFile
 import java.net.SocketException
 import java.net.UnknownHostException
 
+import scala.util.Random
+
 import org.apache.http.HttpEntity
 import org.apache.http.HttpHeaders
 import org.apache.http.HttpResponse
@@ -36,7 +38,7 @@ import org.slf4s.Logging
 
 class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Logging {
 
-  private val dlThreadGroup = new ThreadGroup(HttpBackend.Id + "-dltg").withChanges { tg =>
+  private val dlThreadGroup = new ThreadGroup(HttpBackend.Id + "_download").withChanges { tg =>
     tg.setDaemon(true)
   }
 
@@ -44,33 +46,40 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
 
   def startInner(de: HttpBackend.DE): Unit =
     this.synchronized {
-      if (threads exists (t => t.de == de && t.isAlive)) {
-        log.warn(s"Attempt to start an already-running entry: ${de.uri} (${de.id})")
+      if (threads exists (t => t.de == de && t.isAlive && !t.isInterrupted)) {
+        val activeThreads = threads.filter(t => t.isAlive && !t.isInterrupted)
+        log.warn(s"Attempt to start an already-running entry: ${de.uri} (${de.id})" +
+          s", active threads: ${activeThreads.size} (${activeThreads.map(_.getName).mkString(", ")})")
       } else {
         changeStatusAndFire(de, Status.Running)
-        log.info(s"Download started: ${de.uri} (${de.id})")
         val newThread = new DownloadingThread(de)
         threads = newThread +: threads
         newThread.start()
+        log.info(s"Download started: ${de.uri} (${de.id}) as ${newThread.getName}")
       }
     }
 
   def stopInner(de: HttpBackend.DE): Unit = {
     this.synchronized {
-      threads find (_.de == de) match {
+      val threadOption = threads find (_.de == de)
+      threadOption match {
         case None =>
           log.warn(s"Attempt to stop a not started entry: ${de.uri} (${de.id})")
         case Some(t) =>
           t.interrupt()
       }
-      stopLogAndFire(de)
+      stopLogAndFire(de, threadOption)
     }
   }
 
-  private def stopLogAndFire(de: HttpBackend.DE): Unit = {
+  private def stopLogAndFire(de: HttpBackend.DE, threadOption: Option[Thread]): Unit = {
     changeStatusAndFire(de, Status.Stopped)
+    // TODO: Fix issue with this log entry being out of sync with request-response entries
     addLogAndFire(de, LogEntry.info("Download stopped"))
-    log.info(s"Download stopped: ${de.uri} (${de.id})")
+    threadOption match {
+      case None    => log.info(s"Download stopped: ${de.uri} (${de.id})")
+      case Some(t) => log.info(s"Download stopped: ${de.uri} (${de.id}) by ${t.getName}")
+    }
   }
 
   private def errorLogAndFire(de: HttpBackend.DE, msg: String): Unit = {
@@ -80,13 +89,16 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
   }
 
   private def removeThread(t: Thread): Unit = {
-    threads = threads filter (_ != t)
+    this.synchronized {
+      threads = threads filter (_ != t)
+    }
   }
 
   // TODO: Support multiple download threads
   // TODO: Handle "file already exists"
+  // TODO: Handle partially downloaded file deleted
   private class DownloadingThread(val de: HttpBackend#DE)
-    extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id) {
+    extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
 
     this.setDaemon(true)
 
@@ -95,6 +107,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
         runInner()
       } finally {
         removeThread(this)
+        log.debug(s"Thread removed: ${this.getName}")
       }
     }
 
@@ -126,33 +139,40 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
         }
         val res = httpClient.execute(req)
         try {
-          val responseCode = res.getStatusLine.getStatusCode
-          if ((!partial && responseCode != HttpStatus.SC_OK) || (partial && responseCode != HttpStatus.SC_PARTIAL_CONTENT)) {
-            throw new UserFriendlyException(s"Server responded with an error")
+          val entity = doChecked {
+            val responseCode = res.getStatusLine.getStatusCode
+            if ((!partial && responseCode != HttpStatus.SC_OK) || (partial && responseCode != HttpStatus.SC_PARTIAL_CONTENT)) {
+              throw new UserFriendlyException(s"Server responded with an error")
+            }
+            res.getEntity
           }
-          val entity = res.getEntity
 
           val filename = de.filenameOption getOrElse {
             val filename = deduceFilename(res)
-            de.filenameOption = Some(filename)
-            EventManager.fireDetailsChanged(de)
+            doChecked {
+              de.filenameOption = Some(filename)
+              EventManager.fireDetailsChanged(de)
+            }
             filename
           }
 
           // TODO: Detect size change
           if (de.sizeOption.isEmpty) {
             entity.getContentLength match {
-              case x if x > 0 =>
+              case x if x > 0 => doChecked {
                 de.sizeOption = Some(if (partial) x + de.downloadedSize else x)
                 EventManager.fireDetailsChanged(de)
+              }
               case _ => // NOOP
             }
           }
 
-          de.supportsResumingOption = Some(
-            Option(res.getFirstHeader(HttpHeaders.ACCEPT_RANGES)) map (_.getValue == "bytes") getOrElse false
-          )
-          EventManager.fireDetailsChanged(de)
+          doChecked {
+            de.supportsResumingOption = Some(
+              Option(res.getFirstHeader(HttpHeaders.ACCEPT_RANGES)) map (_.getValue == "bytes") getOrElse false
+            )
+            EventManager.fireDetailsChanged(de)
+          }
 
           downloadEntity(entity)
 
@@ -167,13 +187,13 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
         case ex: UserFriendlyException =>
           errorLogAndFire(de, ex.getMessage)
         case ex: UnknownHostException =>
+          // TODO: Support retries
           errorLogAndFire(de, "Host cannot be resolved: " + ex.getMessage)
         case ex: SocketException =>
           // TODO: Support retries
           errorLogAndFire(de, ex.getMessage)
         case ex: InterruptedException =>
-          // Otherwise terminate normally
-          if (de.status.canBeStopped) stopLogAndFire(de)
+          log.debug(s"Thread interrupted: ${this.getName}")
         case ex: Exception =>
           log.error("Unexpected error", ex)
           errorLogAndFire(de, "Unexpected error: " + ex.toString)
@@ -214,7 +234,6 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
         de.sizeOption map file.setLength
         file.seek(de.downloadedSize + 1)
 
-        val currThread = Thread.currentThread()
         val bufferSize = 10 * 1024 // 10 Kb
 
         val is = entity.getContent
@@ -224,10 +243,11 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
           var len = is.read(buffer)
           while (len > 0) {
             file.write(buffer, 0, len)
-            de.sections += (sectionStartPos -> (file.getFilePointer - 1 - sectionStartPos))
-            EventManager.fireProgress(de)
-            if (currThread.isInterrupted) throw new InterruptedException
-            len = is.read(buffer)
+            doChecked {
+              de.sections += (sectionStartPos -> (file.getFilePointer - 1 - sectionStartPos))
+              EventManager.fireProgress(de)
+              len = is.read(buffer)
+            }
           }
         } finally {
           is.close()
@@ -265,6 +285,12 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
           .build()
       )
       connMgr
+    }
+
+    /** Execute an action only if thread isn't interrupted, in which case - throw {@code InterruptedException} */
+    private def doChecked[T](action: => T): T = {
+      if (this.isInterrupted) throw new InterruptedException
+      action
     }
   }
 }

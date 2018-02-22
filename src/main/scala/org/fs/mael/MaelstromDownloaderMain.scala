@@ -31,7 +31,7 @@ object MaelstromDownloaderMain extends App with Logging {
   val shell = StopWatch.measureAndCall {
     initServices()
     addTestData()
-    launchUi()
+    initUi()
   }((_, ms) =>
     log.info(s"Init done in ${ms} ms"))
 
@@ -47,11 +47,13 @@ object MaelstromDownloaderMain extends App with Logging {
   }
 
   def addTestData(): Unit = {
+    var entries: Seq[DownloadEntry] = Seq.empty
+
     def add(uriString: String)(code: (DownloadEntry => Unit) = (de => ())): Unit = {
       val loc = new File(System.getProperty("java.io.tmpdir"))
       val uri = new URI(uriString)
       val backend = BackendManager.findFor(uri).get
-      DownloadListManager.add(backend.create(uri, loc).withChanges(code))
+      entries = entries :+ backend.create(uri, loc).withChanges(code)
     }
     add("http://www.example.com") { de =>
       de.comment = "info on example"
@@ -87,18 +89,19 @@ object MaelstromDownloaderMain extends App with Logging {
       //MD5 2c7ab85a893283e98c931e9511add182
     }
 
+    DownloadListManager.init(entries)
   }
 
-  def launchUi(): Shell = {
+  def initUi(): Shell = {
     // https://www.eclipse.org/swt/snippets/
     val display = new Display()
     new Shell(display).withChanges { shell =>
       (new MainFrame(shell)).init()
-      shell.open()
     }
   }
 
   def uiLoop(): Unit = {
+    shell.open()
     val display = shell.getDisplay
     while (!shell.isDisposed()) {
       if (!display.readAndDispatch()) display.sleep()

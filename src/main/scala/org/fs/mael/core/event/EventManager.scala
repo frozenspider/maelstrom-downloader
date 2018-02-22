@@ -139,12 +139,12 @@ object EventManager extends Logging {
       override def run(): Unit = {
         while (true) {
           try {
-            if (log.underlying.isDebugEnabled) {
+            if (log.underlying.isTraceEnabled) {
               val copy = copyQueue()
               if (!copy.isEmpty) {
-                log.debug(copy.size.toString + " events queued")
+                log.trace(copy.size.toString + " events queued")
                 copy.foreach { e =>
-                  log.debug(e.toString)
+                  log.trace(" >" + e.toString)
                 }
               }
             }
@@ -162,6 +162,7 @@ object EventManager extends Logging {
         val events = dequeueAll()
         events foreach { e =>
           e.eventFunc.apply()
+          log.trace("Event processed: " + e)
         }
       }
     }
