@@ -28,7 +28,7 @@ class HttpMessageParserProxyFactory(
 
       // Intercepting low-level parsing is inconvenient here, so we
       // go along with reverse-formatting already parsed response
-      delegate.parse().withChanges { res =>
+      delegate.parse().withCode { res =>
         val resStrBuilder = new StringBuilder
         val buffer = new CharArrayBuffer(50)
         resStrBuilder ++= res.getStatusLine.toString

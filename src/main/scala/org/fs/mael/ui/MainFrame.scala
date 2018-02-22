@@ -40,14 +40,14 @@ class MainFrame(shell: Shell) extends Logging {
 
     // Layout
 
-    shell.setLayout(new FillLayout(SWT.VERTICAL).withChanges { layout =>
+    shell.setLayout(new FillLayout(SWT.VERTICAL).withCode { layout =>
       layout.spacing = 0
     })
 
     createMenu(shell)
 
     val group = new Composite(shell, SWT.NONE)
-    group.setLayout(new GridLayout().withChanges { layout =>
+    group.setLayout(new GridLayout().withCode { layout =>
       layout.horizontalSpacing = 0
       layout.verticalSpacing = 0
       layout.marginWidth = 0
@@ -95,7 +95,7 @@ class MainFrame(shell: Shell) extends Logging {
   def createToolbar(parent: Composite): Unit = {
     val toolbar = new ToolBar(parent, SWT.FLAT)
 
-    val btnAdd = (new ToolItem(toolbar, SWT.PUSH)).withChanges { btnAdd =>
+    val btnAdd = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnAdd =>
       btnAdd.setText("Add")
       btnAdd.addListener(SWT.Selection, e => {
         val dialog = new Shell(shell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL)
@@ -104,7 +104,7 @@ class MainFrame(shell: Shell) extends Logging {
       })
     }
 
-    btnStart = (new ToolItem(toolbar, SWT.PUSH)).withChanges { btnStart =>
+    btnStart = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnStart =>
       btnStart.setText("Start")
       btnStart.setEnabled(false)
       btnStart.addListener(SWT.Selection, e => {
@@ -115,7 +115,7 @@ class MainFrame(shell: Shell) extends Logging {
       })
     }
 
-    btnStop = (new ToolItem(toolbar, SWT.PUSH)).withChanges { btnStop =>
+    btnStop = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnStop =>
       btnStop.setText("Stop")
       btnStop.setEnabled(false)
       btnStop.addListener(SWT.Selection, e => {
@@ -127,7 +127,7 @@ class MainFrame(shell: Shell) extends Logging {
     }
 
     toolbar.pack()
-    toolbar.setLayoutData((new GridData()).withChanges { gridData =>
+    toolbar.setLayoutData((new GridData()).withCode { gridData =>
       gridData.horizontalAlignment = GridData.FILL
       gridData.grabExcessHorizontalSpace = true
     })
@@ -242,7 +242,7 @@ class MainFrame(shell: Shell) extends Logging {
         val prevLastRow = logTable.getItem(logTable.getItemCount - 1)
         isRowVisible(prevLastRow)
       } else true
-    new TableItem(logTable, SWT.NONE).withChanges { row =>
+    new TableItem(logTable, SWT.NONE).withCode { row =>
       row.setText(0, entry.tpe.toString)
       row.setText(1, entry.date.toString(MainFrame.DateFmt))
       row.setText(2, entry.date.toString(MainFrame.TimeFmt))
@@ -250,7 +250,7 @@ class MainFrame(shell: Shell) extends Logging {
       row.setBackground(pickColor(entry.tpe))
     }
     lines.tail.foreach { line =>
-      new TableItem(logTable, SWT.NONE).withChanges { row =>
+      new TableItem(logTable, SWT.NONE).withCode { row =>
         row.setText(3, line.trim)
         row.setBackground(pickColor(entry.tpe))
       }

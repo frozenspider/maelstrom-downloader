@@ -53,7 +53,7 @@ object MaelstromDownloaderMain extends App with Logging {
       val loc = new File(System.getProperty("java.io.tmpdir"))
       val uri = new URI(uriString)
       val backend = BackendManager.findFor(uri).get
-      entries = entries :+ backend.create(uri, loc).withChanges(code)
+      entries = entries :+ backend.create(uri, loc).withCode(code)
     }
     add("http://www.example.com") { de =>
       de.comment = "info on example"
@@ -95,7 +95,7 @@ object MaelstromDownloaderMain extends App with Logging {
   def initUi(): Shell = {
     // https://www.eclipse.org/swt/snippets/
     val display = new Display()
-    new Shell(display).withChanges { shell =>
+    new Shell(display).withCode { shell =>
       (new MainFrame(shell)).init()
     }
   }

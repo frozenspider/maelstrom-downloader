@@ -38,7 +38,7 @@ import org.slf4s.Logging
 
 class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Logging {
 
-  private val dlThreadGroup = new ThreadGroup(HttpBackend.Id + "_download").withChanges { tg =>
+  private val dlThreadGroup = new ThreadGroup(HttpBackend.Id + "_download").withCode { tg =>
     tg.setDaemon(true)
   }
 
@@ -118,7 +118,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
         }
         addLogAndFire(de, LogEntry.info("Starting download..."))
         val cookieStore = new BasicCookieStore()
-        val connManager = createConnManager(de)(0) // TODO: Timeout
+        val connManager = createConnManager(0) // TODO: Timeout
         val httpClient = {
           val clientBuilder = HttpClients.custom()
             .setDefaultCookieStore(cookieStore)
@@ -272,7 +272,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
       new RandomAccessFile(f, "rw")
     }
 
-    private def createConnManager(de: HttpBackend#DE)(connTimeoutMs: Int): HttpClientConnectionManager = {
+    private def createConnManager(connTimeoutMs: Int): HttpClientConnectionManager = {
       val connFactory: HttpConnectionFactory[HttpRoute, ManagedHttpClientConnection] =
         new ManagedHttpClientConnectionFactory(
           new HttpMessageWriterProxyFactory(

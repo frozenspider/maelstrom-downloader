@@ -28,7 +28,7 @@ class AddDownloadFrame(dialog: Shell) {
     label.setText("URI:")
 
     uriInput = new Text(dialog, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL)
-    uriInput.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_FILL).withChanges { d =>
+    uriInput.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_FILL).withCode { d =>
       d.heightHint = 50
       d.widthHint = 500
     })
@@ -39,7 +39,7 @@ class AddDownloadFrame(dialog: Shell) {
     installDefaultHotkeys(uriInput)
 
     val bottomButtonRow = new Composite(dialog, SWT.NONE)
-    bottomButtonRow.setLayout(new RowLayout().withChanges { layout =>
+    bottomButtonRow.setLayout(new RowLayout().withCode { layout =>
       layout.marginTop = 0
       layout.marginBottom = 0
     })
