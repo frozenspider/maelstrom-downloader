@@ -6,7 +6,7 @@ import org.eclipse.swt.graphics.Rectangle
 import org.eclipse.swt.widgets._
 import org.fs.mael.core.CoreUtils
 
-object SwtUtils extends CoreUtils {
+object SwtUtils {
   def getCurrentMonitor(c: Control): Monitor = {
     val rect = c.getBounds
     val monitors = c.getDisplay.getMonitors

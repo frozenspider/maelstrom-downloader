@@ -3,6 +3,7 @@ package org.fs.mael.core
 import java.net.URI
 
 import org.fs.mael.core.entry.DownloadEntry
+import java.io.File
 
 /*
  * Backend needs to know
@@ -10,10 +11,10 @@ import org.fs.mael.core.entry.DownloadEntry
  * UI needs to query backend for
  * - backend-specific UI
  */
-trait Backend extends Comparable[Backend] {
+trait Backend {
   type DE <: DownloadEntry
 
-  val priority: Int
+  def entryClass: Class[DE]
 
   val id: String
 
@@ -21,17 +22,16 @@ trait Backend extends Comparable[Backend] {
 
   // TODO: Rework
   /** Create a {@code DownloadEntry} from an URI */
-  def create(uri: URI): DE = {
+  def create(uri: URI, location: File): DE = {
     require(isSupported(uri), "URI not supported")
-    createInner(uri)
+    createInner(uri, location)
   }
 
-  protected def createInner(uri: URI): DE
+  val downloader: BackendDownloader[DE]
+
+  protected def createInner(uri: URI, location: File): DE
 
   //  def start(de: DE): Unit
 
   //  def stop(de: DE): Unit
-
-  override def compareTo(that: Backend): Int =
-    this.priority compare that.priority
 }

@@ -65,11 +65,11 @@ object EventManager extends Logging {
     )
   }
 
-  def fireStatusChanged(de: DownloadEntryView, s: Status): Unit = {
+  def fireStatusChanged(de: DownloadEntryView, prevStatus: Status): Unit = {
     enqueue(
-      "status of " + de.uri + " changed to " + s,
+      "status of " + de.uri + " changed from " + prevStatus + " to " + de.status,
       priority.High,
-      subscribers collect { case ui: UiSubscriber => ui.statusChanged(de, s) }
+      subscribers collect { case ui: UiSubscriber => ui.statusChanged(de, prevStatus) }
     )
   }
 
@@ -83,11 +83,11 @@ object EventManager extends Logging {
   }
 
   /** Any displayed download detail (other than download progress) changed */
-  def fireDetails(de: DownloadEntryView): Unit = {
+  def fireDetailsChanged(de: DownloadEntryView): Unit = {
     enqueue(
-      "details",
+      "details changed",
       priority.High,
-      subscribers collect { case ui: UiSubscriber => ui.details(de) }
+      subscribers collect { case ui: UiSubscriber => ui.detailsChanged(de) }
     )
   }
 
@@ -102,7 +102,7 @@ object EventManager extends Logging {
   /** Any other Download progress changed */
   def fireConfigChanged(de: DownloadEntry): Unit = {
     enqueue(
-      "configChanged",
+      "config changed",
       priority.High,
       subscribers collect { case bck: BackendSubscriber => bck.configChanged(de) }
     )

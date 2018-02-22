@@ -18,15 +18,27 @@ object LogEntry {
   object Response extends Type
   object Error extends Type
 
-  def info(date: DateTime = DateTime.now(), details: String): LogEntry =
+  def info(details: String): LogEntry =
+    info(DateTime.now(), details)
+
+  def info(date: DateTime, details: String): LogEntry =
     LogEntry(Info, date, details)
 
-  def request(date: DateTime = DateTime.now(), details: String): LogEntry =
+  def request(details: String): LogEntry =
+    request(DateTime.now(), details)
+
+  def request(date: DateTime, details: String): LogEntry =
     LogEntry(Request, date, details)
 
-  def response(date: DateTime = DateTime.now(), details: String): LogEntry =
+  def response(details: String): LogEntry =
+    response(DateTime.now(), details)
+
+  def response(date: DateTime, details: String): LogEntry =
     LogEntry(Response, date, details)
 
-  def error(date: DateTime = DateTime.now(), details: String): LogEntry =
+  def error(details: String): LogEntry =
+    error(DateTime.now(), details)
+
+  def error(date: DateTime, details: String): LogEntry =
     LogEntry(Error, date, details)
 }

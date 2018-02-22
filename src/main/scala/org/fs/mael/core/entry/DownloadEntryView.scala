@@ -7,6 +7,7 @@ import java.util.UUID
 import org.fs.mael.core.Status
 
 import com.github.nscala_time.time.Imports._
+import scala.collection.MapLike
 
 /**
  * Backend-agnostic mutable download details, common for all download types.
@@ -24,14 +25,14 @@ trait DownloadEntryView {
 
   def uri: URI
 
-  def fileNameOption: Option[String]
+  def location: File
+
+  def filenameOption: Option[String]
 
   def comment: String
 
-  def locationOption: Option[File]
-
   /** File name of download if known, display name otherwise */
-  def displayName: String
+  def displayName: String = filenameOption getOrElse uri.toString
 
   def status: Status
 
@@ -46,7 +47,7 @@ trait DownloadEntryView {
 
   def speedOption: Option[Long]
 
-  def sections: Map[Start, Downloaded]
+  def sections: MapLike[Start, Downloaded, _]
 
   def downloadLog: IndexedSeq[LogEntry]
 
