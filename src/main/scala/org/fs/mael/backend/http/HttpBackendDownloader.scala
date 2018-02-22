@@ -178,6 +178,9 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
               Option(res.getFirstHeader(HttpHeaders.ACCEPT_RANGES)) map (_.getValue == "bytes") getOrElse false
             )
             EventManager.fireDetailsChanged(de)
+            if (!de.supportsResumingOption.get) {
+              addLogAndFire(de, LogEntry.info("Server doesn't support resuming"))
+            }
           }
 
           downloadEntity(req, entity, partial)
