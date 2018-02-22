@@ -4,6 +4,8 @@ import org.eclipse.swt._
 import org.eclipse.swt.custom.SashForm
 import org.eclipse.swt.events._
 import org.eclipse.swt.graphics.Color
+import org.eclipse.swt.graphics.Image
+import org.eclipse.swt.graphics.ImageData
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.BuildInfo
@@ -23,7 +25,7 @@ import com.github.nscala_time.time.Imports._
 class MainFrame(shell: Shell) extends Logging {
   private val display = shell.getDisplay
   private val mainColumnHeaders = Seq(ColumnDef("File Name"), ColumnDef("Downloaded"), ColumnDef("Size", 80), ColumnDef("Comment"))
-  private val logColumnHeaders = Seq(ColumnDef("", 60 /*25*/ ), ColumnDef("Date", 80), ColumnDef("Time", 80), ColumnDef("Information", 500))
+  private val logColumnHeaders = Seq(ColumnDef("", 24), ColumnDef("Date", 80), ColumnDef("Time", 80), ColumnDef("Information", 500))
 
   private var mainTable: Table = _
   private var logTable: Table = _
@@ -165,6 +167,20 @@ class MainFrame(shell: Shell) extends Logging {
       c.setWidth(h.width)
     }
 
+    // Since standard images in table remove background, we have to draw them manually instead
+    logTable.addListener(SWT.PaintItem, e => {
+      val row = e.item.asInstanceOf[TableItem]
+      row.getData match {
+        case entry: LogEntry =>
+          val icon = icons(entry.tpe)
+          val rowBounds = row.getBounds
+          val iconBounds = icon.getBounds
+          val offset = (rowBounds.height - iconBounds.height) / 2
+          e.gc.drawImage(icon, rowBounds.x + offset, rowBounds.y + offset)
+        case _ => // NOOP
+      }
+    })
+
     logTable.getColumns.filter(_.getWidth == 0).map(_.pack())
   }
 
@@ -190,7 +206,8 @@ class MainFrame(shell: Shell) extends Logging {
 
   private def fillDownloadRow(row: TableItem, de: DownloadEntryView): Unit = {
     row.setData(de)
-    row.setText(0, de.status + " " + de.displayName)
+    row.setImage(0, icons(de.status))
+    row.setText(0, de.displayName)
     row.setText(1, de.downloadedSize.toString)
     row.setText(2, de.sizeOption.getOrElse("").toString)
     row.setText(3, de.comment)
@@ -239,7 +256,7 @@ class MainFrame(shell: Shell) extends Logging {
         isRowVisible(prevLastRow)
       } else true
     new TableItem(logTable, SWT.NONE).withCode { row =>
-      row.setText(0, entry.tpe.toString)
+      row.setData(entry)
       row.setText(1, entry.date.toString(MainFrame.DateFmt))
       row.setText(2, entry.date.toString(MainFrame.TimeFmt))
       row.setText(3, lines.head.trim)
@@ -309,6 +326,48 @@ class MainFrame(shell: Shell) extends Logging {
       display.syncExec { () =>
         if (!shell.isDisposed) code
       }
+  }
+
+  object icons {
+    val play: Image = loadIcon("play.png")
+    val stop: Image = loadIcon("stop.png")
+    val error: Image = loadIcon("error.png")
+    val check: Image = loadIcon("check.png")
+
+    val info: Image = loadIcon("info.png")
+    val request: Image = loadIcon("request.png")
+    val response: Image = loadIcon("response.png")
+    val errorCircle: Image = loadIcon("error-circle.png")
+
+    val empty: Image = {
+      new Image(display, new Image(display, 1, 1).getImageData.withCode { idt =>
+        idt.setAlpha(0, 0, 0)
+      })
+    }
+
+    def apply(status: Status): Image = status match {
+      case Status.Running  => play
+      case Status.Stopped  => stop
+      case Status.Error    => error
+      case Status.Complete => check
+    }
+
+    def apply(logType: LogEntry.Type): Image = logType match {
+      case LogEntry.Info     => info
+      case LogEntry.Request  => request
+      case LogEntry.Response => response
+      case LogEntry.Error    => errorCircle
+    }
+
+    private def loadIcon(name: String): Image = {
+      val stream = this.getClass.getResourceAsStream("/icons/" + name)
+      try {
+        val loaded = new ImageData(stream)
+        new Image(display, loaded.scaledTo(16, 16))
+      } finally {
+        stream.close()
+      }
+    }
   }
 
   //

@@ -71,7 +71,9 @@ object MaelstromDownloaderMain extends App with Logging {
     add("https://www.facebook.com/test") { de =>
       de.supportsResumingOption = Some(false)
     }
-    add("https://stackoverflow.com/questions/48859244/javafx-turn-off-font-smoothing")()
+    add("https://stackoverflow.com/questions/48859244/javafx-turn-off-font-smoothing"){ de =>
+      de.status = Status.Complete
+    }
     add("http://ipv4.download.thinkbroadband.com/5MB.zip") { de =>
       de.comment = "5MB file"
     }
