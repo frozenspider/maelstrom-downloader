@@ -4,6 +4,8 @@ import org.eclipse.swt._
 import org.eclipse.swt.custom.SashForm
 import org.eclipse.swt.events._
 import org.eclipse.swt.graphics.Color
+import org.eclipse.swt.graphics.Image
+import org.eclipse.swt.graphics.ImageData
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.BuildInfo
@@ -22,8 +24,14 @@ import com.github.nscala_time.time.Imports._
 
 class MainFrame(shell: Shell) extends Logging {
   private val display = shell.getDisplay
-  private val mainColumnHeaders = Seq(ColumnDef("File Name"), ColumnDef("Downloaded"), ColumnDef("Size", 80), ColumnDef("Comment"))
-  private val logColumnHeaders = Seq(ColumnDef("", 60 /*25*/ ), ColumnDef("Date", 80), ColumnDef("Time", 80), ColumnDef("Information", 500))
+  private val mainColumnDefs = new Columns[DownloadEntryView](
+    ColumnDefExt("File Name", de => de.displayName),
+    ColumnDefExt("Downloaded", downloadEntityFormat.downloadedSize),
+    ColumnDefExt("Size", downloadEntityFormat.size, 80),
+    ColumnDefExt("Comment", de => de.comment, 200),
+    ColumnDefExt("Added", de => de.dateCreated.toString(MainFrame.DateTimeFmt), 120)
+  )
+  private val logColumnHeaders = Seq(ColumnDef("", 24), ColumnDef("Date", 80), ColumnDef("Time", 80), ColumnDef("Information", 500))
 
   private var mainTable: Table = _
   private var logTable: Table = _
@@ -147,10 +155,10 @@ class MainFrame(shell: Shell) extends Logging {
     })
     mainTable.addListener(SWT.Selection, e => updateButtonsEnabledState())
 
-    mainColumnHeaders.foreach { h =>
+    mainColumnDefs.content.map(_.toColumnDef).foreach { cd =>
       val c = new TableColumn(mainTable, SWT.NONE)
-      c.setText(h.name)
-      c.setWidth(h.width)
+      c.setText(cd.name)
+      c.setWidth(cd.width)
     }
   }
 
@@ -164,6 +172,20 @@ class MainFrame(shell: Shell) extends Logging {
       c.setText(h.name)
       c.setWidth(h.width)
     }
+
+    // Since standard images in table remove background, we have to draw them manually instead
+    logTable.addListener(SWT.PaintItem, e => {
+      val row = e.item.asInstanceOf[TableItem]
+      row.getData match {
+        case entry: LogEntry =>
+          val icon = icons(entry.tpe)
+          val rowBounds = row.getBounds
+          val iconBounds = icon.getBounds
+          val offset = (rowBounds.height - iconBounds.height) / 2
+          e.gc.drawImage(icon, rowBounds.x + offset, rowBounds.y + offset)
+        case _ => // NOOP
+      }
+    })
 
     logTable.getColumns.filter(_.getWidth == 0).map(_.pack())
   }
@@ -190,10 +212,14 @@ class MainFrame(shell: Shell) extends Logging {
 
   private def fillDownloadRow(row: TableItem, de: DownloadEntryView): Unit = {
     row.setData(de)
-    row.setText(0, de.status + " " + de.displayName)
-    row.setText(1, de.downloadedSize.toString)
-    row.setText(2, de.sizeOption.getOrElse("").toString)
-    row.setText(3, de.comment)
+    row.setImage(0, icons(de.status))
+    mainColumnDefs.content.zipWithIndex.foreach {
+      case (cd, i) => row.setText(i, cd.fmt(de))
+    }
+    if (de.supportsResumingOption == Some(false)) {
+      // Would be better to add red-ish border, but that's non-trivial
+      row.setForeground(new Color(display, 0x80, 0x00, 0x00))
+    }
   }
 
   private def findDownloadRowIdxOption(de: DownloadEntryView): Option[Int] = {
@@ -229,28 +255,22 @@ class MainFrame(shell: Shell) extends Logging {
 
   private def appendDownloadLogEntry(entry: LogEntry): Unit = {
     val lines = entry.details.trim.split("\n")
-    def pickColor(tpe: LogEntry.Type): Color = tpe match {
-      case LogEntry.Info     => new Color(display, 0xE4, 0xF1, 0xFF)
-      case LogEntry.Request  => new Color(display, 0xFF, 0xFF, 0xDD)
-      case LogEntry.Response => new Color(display, 0xDD, 0xFF, 0xDD)
-      case LogEntry.Error    => new Color(display, 0xFF, 0xDD, 0xDD)
-    }
     val wasShowingLastRow =
       if (logTable.getItemCount > 0) {
         val prevLastRow = logTable.getItem(logTable.getItemCount - 1)
         isRowVisible(prevLastRow)
       } else true
     new TableItem(logTable, SWT.NONE).withCode { row =>
-      row.setText(0, entry.tpe.toString)
+      row.setData(entry)
       row.setText(1, entry.date.toString(MainFrame.DateFmt))
       row.setText(2, entry.date.toString(MainFrame.TimeFmt))
       row.setText(3, lines.head.trim)
-      row.setBackground(pickColor(entry.tpe))
+      row.setBackground(MainFrame.getLogColor(entry.tpe, display))
     }
     lines.tail.foreach { line =>
       new TableItem(logTable, SWT.NONE).withCode { row =>
         row.setText(3, line.trim)
-        row.setBackground(pickColor(entry.tpe))
+        row.setBackground(MainFrame.getLogColor(entry.tpe, display))
       }
     }
     if (wasShowingLastRow) scrollTableToBottom(logTable)
@@ -259,6 +279,73 @@ class MainFrame(shell: Shell) extends Logging {
   private def updateButtonsEnabledState(): Unit = {
     btnStart.setEnabled(getSelectedDownloadEntries exists (_.status.canBeStarted))
     btnStop.setEnabled(getSelectedDownloadEntries exists (_.status.canBeStopped))
+  }
+
+  object downloadEntityFormat {
+    def size(de: DownloadEntryView): String = {
+      de.sizeOption map fmtSizePretty getOrElse ""
+    }
+
+    def downloadedSize(de: DownloadEntryView): String = {
+      val downloadedSize = de.downloadedSize
+      val prettyDownloadedSize = fmtSizePretty(downloadedSize)
+      de.sizeOption match {
+        case Some(totalSize) =>
+          val percent = downloadedSize * 100 / totalSize
+          percent + "% [" + prettyDownloadedSize + "]"
+        case None if downloadedSize > 0 =>
+          "[" + prettyDownloadedSize + "]"
+        case _ =>
+          ""
+      }
+    }
+
+    private def fmtSizePretty(size: Long): String = {
+      val groups = size.toString.reverse.grouped(3).map(_.reverse).toSeq.reverse
+      groups.mkString("", " ", " B")
+    }
+  }
+
+  object icons {
+    val play: Image = loadIcon("play.png")
+    val stop: Image = loadIcon("stop.png")
+    val error: Image = loadIcon("error.png")
+    val check: Image = loadIcon("check.png")
+
+    val info: Image = loadIcon("info.png")
+    val request: Image = loadIcon("request.png")
+    val response: Image = loadIcon("response.png")
+    val errorCircle: Image = loadIcon("error-circle.png")
+
+    val empty: Image = {
+      new Image(display, new Image(display, 1, 1).getImageData.withCode { idt =>
+        idt.setAlpha(0, 0, 0)
+      })
+    }
+
+    def apply(status: Status): Image = status match {
+      case Status.Running  => play
+      case Status.Stopped  => stop
+      case Status.Error    => error
+      case Status.Complete => check
+    }
+
+    def apply(logType: LogEntry.Type): Image = logType match {
+      case LogEntry.Info     => info
+      case LogEntry.Request  => request
+      case LogEntry.Response => response
+      case LogEntry.Error    => errorCircle
+    }
+
+    private def loadIcon(name: String): Image = {
+      val stream = this.getClass.getResourceAsStream("/icons/" + name)
+      try {
+        val loaded = new ImageData(stream)
+        new Image(display, loaded.scaledTo(16, 16))
+      } finally {
+        stream.close()
+      }
+    }
   }
 
   //
@@ -318,6 +405,14 @@ class MainFrame(shell: Shell) extends Logging {
   //
 
   case class ColumnDef(name: String, width: Int = 0)
+
+  case class ColumnDefExt[A](name: String, fmt: A => String, width: Int = 0) {
+    def toColumnDef = ColumnDef(name, width)
+  }
+
+  class Columns[A](val content: ColumnDefExt[A]*) {
+    def apply(i: Int): ColumnDefExt[A] = content(i)
+  }
 }
 
 object MainFrame {
@@ -326,4 +421,12 @@ object MainFrame {
 
   val DateFmt = DateTimeFormat.forPattern("yyyy-MM-dd")
   val TimeFmt = DateTimeFormat.forPattern("HH:mm:ss")
+  val DateTimeFmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
+
+  def getLogColor(tpe: LogEntry.Type, display: Display): Color = tpe match {
+    case LogEntry.Info     => new Color(display, 0xE4, 0xF1, 0xFF)
+    case LogEntry.Request  => new Color(display, 0xFF, 0xFF, 0xDD)
+    case LogEntry.Response => new Color(display, 0xEB, 0xFD, 0xEB)
+    case LogEntry.Error    => new Color(display, 0xFF, 0xDD, 0xDD)
+  }
 }

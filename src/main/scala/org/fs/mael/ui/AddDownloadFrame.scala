@@ -1,5 +1,8 @@
 package org.fs.mael.ui
 
+import java.awt.Toolkit
+import java.awt.datatransfer.DataFlavor
+import java.io.File
 import java.net.MalformedURLException
 import java.net.URL
 
@@ -12,7 +15,6 @@ import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.ui.utils.SwtUtils._
-import java.io.File
 
 class AddDownloadFrame(dialog: Shell) {
   init()
@@ -57,6 +59,16 @@ class AddDownloadFrame(dialog: Shell) {
 
     dialog.pack()
     centerOnScreen(dialog)
+
+    // Try to paste URL from clipboard
+    try {
+      val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
+      val content = clipboard.getData(DataFlavor.stringFlavor).asInstanceOf[String]
+      val url = new URL(content)
+      uriInput.setText(url.toString)
+    } catch {
+      case ex: Exception => // Ignore
+    }
   }
 
   private def okClicked(dialog: Shell): Unit = {
