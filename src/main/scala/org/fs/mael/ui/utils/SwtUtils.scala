@@ -48,6 +48,24 @@ object SwtUtils {
 
   def keyReleased(pf: PartialFunction[KeyEvent, Unit]) = new KeyReleasedListener(pf)
 
+  def isRowVisible(row: TableItem): Boolean = {
+    val table = row.getParent
+    val rowBounds = row.getBounds
+    val tableBounds = table.getBounds
+    val headerHeight = table.getHeaderHeight
+    val rowTop = rowBounds.y
+    val rowBot = rowTop + rowBounds.height
+    val topVisible = rowTop >= headerHeight && rowTop <= tableBounds.height
+    val botVisible = rowBot >= headerHeight && rowBot <= tableBounds.height
+    topVisible && botVisible
+  }
+
+  def scrollTableToBottom(table: Table): Unit = {
+    if (table.getItemCount > 0) {
+      table.showItem(table.getItem(table.getItemCount - 1))
+    }
+  }
+
   //
   // More general stuff
   //

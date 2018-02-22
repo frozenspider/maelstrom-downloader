@@ -227,10 +227,6 @@ class MainFrame(shell: Shell) extends Logging {
   private def renderDownloadLog(de: DownloadEntryView): Unit = {
     logTable.removeAll()
     de.downloadLog.foreach(appendDownloadLogEntry)
-    // Scroll to bottom
-    if (logTable.getItemCount > 0) {
-      logTable.showItem(logTable.getItem(logTable.getItemCount - 1))
-    }
   }
 
   private def appendDownloadLogEntry(entry: LogEntry): Unit = {
@@ -241,6 +237,11 @@ class MainFrame(shell: Shell) extends Logging {
       case LogEntry.Response => new Color(display, 0xDD, 0xFF, 0xDD)
       case LogEntry.Error    => new Color(display, 0xFF, 0xDD, 0xDD)
     }
+    val wasShowingLastRow =
+      if (logTable.getItemCount > 0) {
+        val prevLastRow = logTable.getItem(logTable.getItemCount - 1)
+        isRowVisible(prevLastRow)
+      } else true
     new TableItem(logTable, SWT.NONE).withChanges { row =>
       row.setText(0, entry.tpe.toString)
       row.setText(1, entry.date.toString(MainFrame.DateFmt))
@@ -254,6 +255,7 @@ class MainFrame(shell: Shell) extends Logging {
         row.setBackground(pickColor(entry.tpe))
       }
     }
+    if (wasShowingLastRow) scrollTableToBottom(logTable)
   }
 
   private def updateButtonsEnabledState(): Unit = {
