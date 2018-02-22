@@ -194,6 +194,10 @@ class MainFrame(shell: Shell) extends Logging {
     row.setText(1, de.downloadedSize.toString)
     row.setText(2, de.sizeOption.getOrElse("").toString)
     row.setText(3, de.comment)
+    if (de.supportsResumingOption == Some(false)) {
+      // Would be better to add red-ish border, but that's non-trivial
+      row.setForeground(new Color(display, 0x80, 0x00, 0x00))
+    }
   }
 
   private def findDownloadRowIdxOption(de: DownloadEntryView): Option[Int] = {
@@ -229,12 +233,6 @@ class MainFrame(shell: Shell) extends Logging {
 
   private def appendDownloadLogEntry(entry: LogEntry): Unit = {
     val lines = entry.details.trim.split("\n")
-    def pickColor(tpe: LogEntry.Type): Color = tpe match {
-      case LogEntry.Info     => new Color(display, 0xE4, 0xF1, 0xFF)
-      case LogEntry.Request  => new Color(display, 0xFF, 0xFF, 0xDD)
-      case LogEntry.Response => new Color(display, 0xDD, 0xFF, 0xDD)
-      case LogEntry.Error    => new Color(display, 0xFF, 0xDD, 0xDD)
-    }
     val wasShowingLastRow =
       if (logTable.getItemCount > 0) {
         val prevLastRow = logTable.getItem(logTable.getItemCount - 1)
@@ -245,12 +243,12 @@ class MainFrame(shell: Shell) extends Logging {
       row.setText(1, entry.date.toString(MainFrame.DateFmt))
       row.setText(2, entry.date.toString(MainFrame.TimeFmt))
       row.setText(3, lines.head.trim)
-      row.setBackground(pickColor(entry.tpe))
+      row.setBackground(MainFrame.getLogColor(entry.tpe, display))
     }
     lines.tail.foreach { line =>
       new TableItem(logTable, SWT.NONE).withCode { row =>
         row.setText(3, line.trim)
-        row.setBackground(pickColor(entry.tpe))
+        row.setBackground(MainFrame.getLogColor(entry.tpe, display))
       }
     }
     if (wasShowingLastRow) scrollTableToBottom(logTable)
@@ -326,4 +324,11 @@ object MainFrame {
 
   val DateFmt = DateTimeFormat.forPattern("yyyy-MM-dd")
   val TimeFmt = DateTimeFormat.forPattern("HH:mm:ss")
+
+  def getLogColor(tpe: LogEntry.Type, display: Display): Color = tpe match {
+    case LogEntry.Info     => new Color(display, 0xE4, 0xF1, 0xFF)
+    case LogEntry.Request  => new Color(display, 0xFF, 0xFF, 0xDD)
+    case LogEntry.Response => new Color(display, 0xEB, 0xFD, 0xEB)
+    case LogEntry.Error    => new Color(display, 0xFF, 0xDD, 0xDD)
+  }
 }
