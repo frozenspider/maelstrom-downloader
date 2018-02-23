@@ -96,7 +96,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
 
   // TODO: Handle partially downloaded file deleted
   private class DownloadingThread(val de: HttpBackend#DE)
-    extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
+      extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
 
     this.setDaemon(true)
 
@@ -138,8 +138,8 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
 
         val res = httpClient.execute(req)
         try {
+          val responseCode = res.getStatusLine.getStatusCode
           val entity = doChecked {
-            val responseCode = res.getStatusLine.getStatusCode
             if ((!partial && responseCode != HttpStatus.SC_OK) || (partial && responseCode != HttpStatus.SC_PARTIAL_CONTENT)) {
               throw new UserFriendlyException(s"Server responded with an error")
             }
@@ -175,8 +175,10 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
 
           doChecked {
             de.supportsResumingOption = Some(
-              Option(res.getFirstHeader(HttpHeaders.ACCEPT_RANGES)) map (_.getValue == "bytes") getOrElse false
-            )
+              if (partial && responseCode == HttpStatus.SC_PARTIAL_CONTENT)
+                true
+              else
+                Option(res.getFirstHeader(HttpHeaders.ACCEPT_RANGES)) map (_.getValue == "bytes") getOrElse false)
             EventManager.fireDetailsChanged(de)
             if (!de.supportsResumingOption.get) {
               addLogAndFire(de, LogEntry.info("Server doesn't support resuming"))
@@ -215,8 +217,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
             for {
               el <- h.getElements.toSeq
               param <- el.getParameters
-            } yield (param.getName -> param.getValue)
-          ).toMap
+            } yield (param.getName -> param.getValue)).toMap
           // As per RFC-6266
           headerParts.get("filename*") orElse headerParts.get("filename")
         })
@@ -287,19 +288,15 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
         new ManagedHttpClientConnectionFactory(
           new HttpMessageWriterProxyFactory(
             DefaultHttpRequestWriterFactory.INSTANCE,
-            msg => doChecked(addLogAndFire(de, LogEntry.request(msg)))
-          ),
+            msg => doChecked(addLogAndFire(de, LogEntry.request(msg)))),
           new HttpMessageParserProxyFactory(
             DefaultHttpResponseParserFactory.INSTANCE,
-            msg => doChecked(addLogAndFire(de, LogEntry.response(msg)))
-          )
-        )
+            msg => doChecked(addLogAndFire(de, LogEntry.response(msg)))))
       val connMgr = new BasicHttpClientConnectionManager(HttpBackendDownloader.SocketFactoryRegistry, connFactory, null, null)
       connMgr.setSocketConfig(
         SocketConfig.custom()
           .setSoTimeout(connTimeoutMs)
-          .build()
-      )
+          .build())
       connMgr
     }
 
