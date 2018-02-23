@@ -90,7 +90,6 @@ object MaelstromDownloaderMain extends App with Logging {
     }
     add("https://www.blender.org/wp-content/uploads/2015/04/foryou.png?x34953") { de =>
       de.comment = "Image"
-      //MD5 2c7ab85a893283e98c931e9511add182
     }
 
     DownloadListManager.init(entries)
