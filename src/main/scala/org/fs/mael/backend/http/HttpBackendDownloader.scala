@@ -45,7 +45,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
 
   private var threads: Seq[DownloadingThread] = Seq.empty
 
-  def startInner(de: HttpBackend.DE): Unit =
+  override def startInner(de: HttpBackend.DE, timeoutSec: Int): Unit =
     this.synchronized {
       if (threads exists (t => t.de == de && t.isAlive && !t.isInterrupted)) {
         val activeThreads = threads.filter(t => t.isAlive && !t.isInterrupted)
@@ -53,14 +53,14 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
           s", active threads: ${activeThreads.size} (${activeThreads.map(_.getName).mkString(", ")})")
       } else {
         changeStatusAndFire(de, Status.Running)
-        val newThread = new DownloadingThread(de)
+        val newThread = new DownloadingThread(de, timeoutSec)
         threads = newThread +: threads
         newThread.start()
         log.info(s"Download started: ${de.uri} (${de.id}) as ${newThread.getName}")
       }
     }
 
-  def stopInner(de: HttpBackend.DE): Unit = {
+  override def stopInner(de: HttpBackend.DE): Unit = {
     this.synchronized {
       val threadOption = threads find (_.de == de)
       threadOption match {
@@ -95,7 +95,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
   }
 
   // TODO: Handle partially downloaded file deleted
-  private class DownloadingThread(val de: HttpBackend#DE)
+  private class DownloadingThread(val de: HttpBackend#DE, timeoutSec: Int)
       extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
 
     this.setDaemon(true)
@@ -117,7 +117,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
         }
         addLogAndFire(de, LogEntry.info("Starting download..."))
         val cookieStore = new BasicCookieStore()
-        val connManager = createConnManager(0)
+        val connManager = createConnManager(timeoutSec * 1000)
         val httpClient = {
           val clientBuilder = HttpClients.custom()
             .setDefaultCookieStore(cookieStore)
@@ -295,7 +295,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
       val connMgr = new BasicHttpClientConnectionManager(HttpBackendDownloader.SocketFactoryRegistry, connFactory, null, null)
       connMgr.setSocketConfig(
         SocketConfig.custom()
-          .setSoTimeout(connTimeoutMs)
+          .setSoTimeout(connTimeoutMs) // TODO: Test
           .build())
       connMgr
     }

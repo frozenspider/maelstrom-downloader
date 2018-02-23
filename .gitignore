@@ -15,11 +15,11 @@ project/build.properties
 
 # Development
 /_build
+/_downloads
 buildinfo.*
 
 # Application
-application.conf
-cache.conf
+maelstrom-downloader.prefs
 
 *.class
 *.log

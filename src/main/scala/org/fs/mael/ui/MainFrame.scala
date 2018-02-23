@@ -33,6 +33,8 @@ class MainFrame(shell: Shell) extends Logging {
   )
   private val logColumnHeaders = Seq(ColumnDef("", 24), ColumnDef("Date", 80), ColumnDef("Time", 80), ColumnDef("Information", 500))
 
+  private var cfgMgr: ConfigManager = _
+
   private var mainTable: Table = _
   private var logTable: Table = _
 
@@ -43,6 +45,8 @@ class MainFrame(shell: Shell) extends Logging {
   private var lastProgressUpdateTS: Long = System.currentTimeMillis
 
   def init(): Unit = {
+    cfgMgr = new ConfigManager
+
     shell.addListener(SWT.Close, e => onWindowClose(e))
     display.addListener(SWT.Close, e => onAppClose(e))
 
@@ -85,29 +89,41 @@ class MainFrame(shell: Shell) extends Logging {
     EventManager.subscribe(subscriber)
   }
 
-  def createMenu(parent: Decorations): Unit = {
+  private def createMenu(parent: Decorations): Unit = {
     val bar = new Menu(parent, SWT.BAR)
     parent.setMenuBar(bar)
 
-    val fileItem = new MenuItem(bar, SWT.CASCADE)
-    fileItem.setText("&File")
+    new MenuItem(bar, SWT.CASCADE).withCode { menuItem =>
+      menuItem.setText("&File")
 
-    val submenu = new Menu(parent, SWT.DROP_DOWN)
-    fileItem.setMenu(submenu)
+      val submenu = new Menu(parent, SWT.DROP_DOWN)
+      menuItem.setMenu(submenu)
 
-    val itemExit = new MenuItem(submenu, SWT.PUSH)
-    itemExit.addListener(SWT.Selection, e => display.close())
-    itemExit.setText("Exit")
+      val itemExit = new MenuItem(submenu, SWT.PUSH)
+      itemExit.setText("Exit")
+      itemExit.addListener(SWT.Selection, e => display.close())
+    }
+
+    new MenuItem(bar, SWT.CASCADE).withCode { menuItem =>
+      menuItem.setText("&Service")
+
+      val submenu = new Menu(parent, SWT.DROP_DOWN)
+      menuItem.setMenu(submenu)
+
+      val itemOptions = new MenuItem(submenu, SWT.PUSH)
+      itemOptions.setText("Options")
+      itemOptions.addListener(SWT.Selection, e => cfgMgr.showDialog(shell))
+    }
   }
 
-  def createToolbar(parent: Composite): Unit = {
+  private def createToolbar(parent: Composite): Unit = {
     val toolbar = new ToolBar(parent, SWT.FLAT)
 
     val btnAdd = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnAdd =>
       btnAdd.setText("Add")
       btnAdd.addListener(SWT.Selection, e => {
         val dialog = new Shell(shell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL)
-        new AddDownloadFrame(dialog)
+        new AddDownloadFrame(dialog, cfgMgr)
         dialog.open()
       })
     }
@@ -118,7 +134,7 @@ class MainFrame(shell: Shell) extends Logging {
       btnStart.addListener(SWT.Selection, e => {
         getSelectedDownloadEntries map { de =>
           val pair = BackendManager.findFor(de)
-          pair.backend.downloader.start(pair.de)
+          pair.backend.downloader.start(pair.de, cfgMgr.getProperty(ConfigOptions.NetworkTimeout))
         }
       })
     }
@@ -359,6 +375,9 @@ class MainFrame(shell: Shell) extends Logging {
       if (!shell.isDisposed) {
         val newRow = new TableItem(mainTable, SWT.NONE)
         fillDownloadRow(newRow, de)
+        mainTable.deselectAll()
+        mainTable.select(mainTable.getItems.indexOf(newRow))
+        mainTable.showItem(newRow)
       }
     }
 
@@ -416,7 +435,6 @@ class MainFrame(shell: Shell) extends Logging {
 }
 
 object MainFrame {
-  val ProgressUpdatesPerSecond = 10
   val ProgressUpdateThresholdMs = 100
 
   val DateFmt = DateTimeFormat.forPattern("yyyy-MM-dd")

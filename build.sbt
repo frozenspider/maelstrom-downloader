@@ -20,9 +20,9 @@ lazy val root = (project in file("."))
   )
 
 resolvers += "jitpack"  at "https://jitpack.io"
-resolvers += "swt-repo" at "http://maven-eclipse.github.io/maven"
 
-val swtArtifact = {
+val swtBaseArtifact = "org.eclipse.swt"
+val swtOsArtifact = {
   val osDependentPart = (sys.props("os.name"), sys.props("os.arch")) match {
     case ("Linux", _) => "gtk.linux.x86"
     case ("Mac OS X", "amd64" | "x86_64") => "cocoa.macosx.x86_64"
@@ -31,11 +31,13 @@ val swtArtifact = {
     case (os, _) if os.startsWith("Windows") => "win32.win32.x86"
     case (os, arch) => sys.error("Cannot obtain lib for OS '" + os + "' and architecture '" + arch + "'")
   }
-  "org.eclipse.swt." + osDependentPart
+  swtBaseArtifact + "." + osDependentPart
 }
 libraryDependencies ++= Seq(
   // UI
-  "org.eclipse.swt"           % swtArtifact             % "4.6.1",
+  "org.eclipse.platform"      %  swtBaseArtifact        % "3.106.2" exclude("org.eclipse.platform", "org.eclipse.swt.${osgi.platform}"),
+  "org.eclipse.platform"      %  swtOsArtifact          % "3.106.2" exclude("org.eclipse.platform", swtBaseArtifact),
+  "org.eclipse.platform"      %  "org.eclipse.jface"    % "3.13.2"  exclude("org.eclipse.platform", swtBaseArtifact),
   // Network
   "org.apache.httpcomponents" %  "httpclient"           % "4.5.5",
   // Logging
