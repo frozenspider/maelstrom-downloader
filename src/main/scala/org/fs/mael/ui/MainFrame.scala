@@ -134,7 +134,7 @@ class MainFrame(shell: Shell) extends Logging {
       btnStart.addListener(SWT.Selection, e => {
         getSelectedDownloadEntries map { de =>
           val pair = BackendManager.findFor(de)
-          pair.backend.downloader.start(pair.de)
+          pair.backend.downloader.start(pair.de, cfgMgr.getIntProperty(ConfigOptions.NetworkTimeout))
         }
       })
     }

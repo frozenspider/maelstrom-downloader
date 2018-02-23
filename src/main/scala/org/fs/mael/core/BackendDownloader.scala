@@ -7,12 +7,12 @@ import org.fs.mael.core.event.EventManager
 trait BackendDownloader[DE <: DownloadEntry] {
   import Status._
 
-  def start(de: DE): Unit = de.status match {
-    case s if s.canBeStarted => startInner(de)
+  def start(de: DE, timeoutSec: Int): Unit = de.status match {
+    case s if s.canBeStarted => startInner(de, timeoutSec)
     case _                   => // NOOP
   }
 
-  def startInner(de: DE): Unit
+  def startInner(de: DE, timeoutSec: Int): Unit
 
   def stop(de: DE): Unit = de.status match {
     case s if s.canBeStopped => stopInner(de)

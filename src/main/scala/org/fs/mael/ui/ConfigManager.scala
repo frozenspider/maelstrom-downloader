@@ -32,6 +32,7 @@ class ConfigManager {
         case _                             => sys.props("user.home") + "/downloads"
       }
     })
+    store.setDefault(ConfigOptions.NetworkTimeout, 0)
     try {
       store.load()
     } catch {
@@ -60,13 +61,22 @@ class ConfigManager {
   def getStringProperty(id: ConfigOptions.Id) = {
     store.getString(id)
   }
+
+  def getIntProperty(id: ConfigOptions.Id) = {
+    store.getInt(id)
+  }
 }
 
 object ConfigManager {
   class MainPage extends FieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
     def createFieldEditors(): Unit = {
-      new DirectoryFieldEditor(ConfigOptions.DownloadPath, "Download path:", getFieldEditorParent).withCode { dfe =>
-        addField(dfe)
+      new DirectoryFieldEditor(ConfigOptions.DownloadPath, "Download path:", getFieldEditorParent).withCode { field =>
+        addField(field)
+      }
+
+      new IntegerFieldEditor(ConfigOptions.NetworkTimeout, "Network timeout (seconds, 0 means no timeout):", getFieldEditorParent()).withCode { field =>
+        field.setValidRange(0, 7 * 24 * 60 * 60) // Up to one week
+        addField(field)
       }
     }
   }
@@ -105,10 +115,8 @@ object ConfigManager {
           Array("First Value", "first"),
           Array("Second Value", "second"),
           Array("Third Value", "third"),
-          Array("Fourth Value", "fourth")
-        ), getFieldEditorParent(),
-        true
-      );
+          Array("Fourth Value", "fourth")), getFieldEditorParent(),
+        true);
       addField(rfe);
 
       // Add a path field
