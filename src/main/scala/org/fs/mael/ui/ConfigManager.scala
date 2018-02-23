@@ -20,19 +20,20 @@ import org.eclipse.jface.preference.StringFieldEditor
 import org.eclipse.swt.widgets.Shell
 import org.fs.mael.BuildInfo
 import org.fs.mael.core.CoreUtils._
+import scala.reflect.runtime.universe._
 
 class ConfigManager {
   import ConfigManager._
 
   val store = new PreferenceStore().withCode { store => // TODO: Link to file
     store.setFilename(BuildInfo.name + ".prefs")
-    store.setDefault(ConfigOptions.DownloadPath, {
+    store.setDefault(ConfigOptions.DownloadPath.id, {
       sys.props("os.name") match {
         case os if os startsWith "Windows" => sys.env("USERPROFILE") + "\\Downloads"
         case _                             => sys.props("user.home") + "/downloads"
       }
     })
-    store.setDefault(ConfigOptions.NetworkTimeout, 0)
+    store.setDefault(ConfigOptions.NetworkTimeout.id, 0)
     try {
       store.load()
     } catch {
@@ -58,23 +59,26 @@ class ConfigManager {
     dlg.open()
   }
 
-  def getStringProperty(id: ConfigOptions.Id) = {
-    store.getString(id)
-  }
-
-  def getIntProperty(id: ConfigOptions.Id) = {
-    store.getInt(id)
+  def getProperty[T: TypeTag](option: ConfigOptions.ConfigOption[T]): T = {
+    // Somewhat dirty hack to overcome type erasure
+    (typeOf[T] match {
+      case t if t =:= typeOf[Boolean] => store.getBoolean(option.id)
+      case t if t =:= typeOf[Int]     => store.getInt(option.id)
+      case t if t =:= typeOf[Long]    => store.getLong(option.id)
+      case t if t =:= typeOf[Double]  => store.getDouble(option.id)
+      case t if t =:= typeOf[String]  => store.getString(option.id)
+    }).asInstanceOf[T]
   }
 }
 
 object ConfigManager {
   class MainPage extends FieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
     def createFieldEditors(): Unit = {
-      new DirectoryFieldEditor(ConfigOptions.DownloadPath, "Download path:", getFieldEditorParent).withCode { field =>
+      new DirectoryFieldEditor(ConfigOptions.DownloadPath.id, "Download path:", getFieldEditorParent).withCode { field =>
         addField(field)
       }
 
-      new IntegerFieldEditor(ConfigOptions.NetworkTimeout, "Network timeout (seconds, 0 means no timeout):", getFieldEditorParent()).withCode { field =>
+      new IntegerFieldEditor(ConfigOptions.NetworkTimeout.id, "Network timeout (seconds, 0 means no timeout):", getFieldEditorParent()).withCode { field =>
         field.setValidRange(0, 7 * 24 * 60 * 60) // Up to one week
         addField(field)
       }
