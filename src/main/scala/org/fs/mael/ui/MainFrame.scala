@@ -29,8 +29,7 @@ class MainFrame(shell: Shell) extends Logging {
     ColumnDefExt("Downloaded", downloadEntityFormat.downloadedSize),
     ColumnDefExt("Size", downloadEntityFormat.size, 80),
     ColumnDefExt("Comment", de => de.comment, 200),
-    ColumnDefExt("Added", de => de.dateCreated.toString(MainFrame.DateTimeFmt), 120)
-  )
+    ColumnDefExt("Added", de => de.dateCreated.toString(MainFrame.DateTimeFmt), 120))
   private val logColumnHeaders = Seq(ColumnDef("", 24), ColumnDef("Date", 80), ColumnDef("Time", 80), ColumnDef("Information", 500))
 
   private var cfgMgr: ConfigManager = _
@@ -101,7 +100,7 @@ class MainFrame(shell: Shell) extends Logging {
 
       val itemExit = new MenuItem(submenu, SWT.PUSH)
       itemExit.setText("Exit")
-      itemExit.addListener(SWT.Selection, e => display.close())
+      itemExit.addListener(SWT.Selection, e => tryExit())
     }
 
     new MenuItem(bar, SWT.CASCADE).withCode { menuItem =>
@@ -206,12 +205,29 @@ class MainFrame(shell: Shell) extends Logging {
     logTable.getColumns.filter(_.getWidth == 0).map(_.pack())
   }
 
-  private def onWindowClose(e: Event) {
-    log.info("Window closed")
+  private def onWindowClose(e: Event): Unit = {
+    import ConfigOptions.OnWindowClose._
+    cfgMgr.getProperty(ConfigOptions.ActionOnWindowClose) match {
+      case Undefined => promptWindowClose()
+      case Close     => tryExit()
+      case Minimize  => minimize()
+    }
+  }
+
+  private def tryExit(): Unit = {
+    // TODO: Check for active downloads
     display.close()
   }
 
-  private def onAppClose(e: Event) {
+  private def promptWindowClose(): Unit = {
+    ???
+  }
+
+  private def minimize(): Unit = {
+    ???
+  }
+
+  private def onAppClose(e: Event): Unit = {
   }
 
   private def adjustColumnWidths(table: Table): Unit = {
