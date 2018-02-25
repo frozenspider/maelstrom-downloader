@@ -50,8 +50,8 @@ class MainFrame(shell: Shell) extends Logging {
   def init(): Unit = {
     cfgMgr = new ConfigManager
 
-    shell.addListener(SWT.Close, e => onWindowClose(e))
-    display.addListener(SWT.Close, e => onAppClose(e))
+    shell.addListener(SWT.Close, onWindowClose)
+    display.addListener(SWT.Close, onAppClose)
 
     // Layout
 
@@ -218,11 +218,6 @@ class MainFrame(shell: Shell) extends Logging {
     }
   }
 
-  private def tryExit(closeEvent: Event): Unit = {
-    // TODO: Check for active downloads
-    display.close()
-  }
-
   private def promptWindowClose(closeEvent: Event): Unit = {
     import ConfigOptions._
     val lhm = new LinkedHashMap[String, Integer].withCode { lhm =>
@@ -258,6 +253,11 @@ class MainFrame(shell: Shell) extends Logging {
   private def minimize(closeEventOption: Option[Event]): Unit = {
     closeEventOption foreach (_.doit = false)
     shell.setMinimized(true)
+  }
+
+  private def tryExit(closeEvent: Event): Unit = {
+    // TODO: Check for active downloads
+    display.close()
   }
 
   private def onAppClose(e: Event): Unit = {
