@@ -4,7 +4,6 @@ object ConfigOptions {
   sealed trait ConfigOption[T] { def id: String }
   case class SimpleConfigOption[T](id: String) extends ConfigOption[T]
   abstract class CustomConfigOption[T, Repr](val id: String) extends ConfigOption[T] {
-    //    type Repr
     def asReprOption: SimpleConfigOption[Repr] = SimpleConfigOption(id)
     def toRepr(v: T): Repr
     def fromRepr(v: Repr): T

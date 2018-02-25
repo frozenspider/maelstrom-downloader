@@ -11,6 +11,7 @@ object DownloadListManager {
   /** Called initially upon application start, no event is fired */
   def init(entries: Iterable[DownloadEntry]): Unit = {
     this.synchronized {
+      // TODO: Move running entities to stopped state
       this.entries = entries.toSet
     }
   }

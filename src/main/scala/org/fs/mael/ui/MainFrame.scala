@@ -256,8 +256,29 @@ class MainFrame(shell: Shell) extends Logging {
   }
 
   private def tryExit(closeEvent: Event): Unit = {
-    // TODO: Check for active downloads
-    display.close()
+    def getRunningEntities(): Set[_ <: DownloadEntryView] = {
+      DownloadListManager.list().filter(_.status == Status.Running)
+    }
+    val running = getRunningEntities()
+    if (running.size > 0) {
+      val confirmed = MessageDialog.openConfirm(shell, "What to do?",
+        s"You have ${running.size} active download(s). Are you sure you wish to quit?")
+
+      if (!confirmed) {
+        closeEvent.doit = false
+      } else {
+        running foreach { de =>
+          val pair = BackendManager.findFor(de)
+          pair.backend.downloader.stop(pair.de)
+        }
+        shell.setVisible(false)
+        val terminatedNormally = waitUntil(() => getRunningEntities().size == 0, 2000)
+        if (!terminatedNormally) {
+          log.error("Couldn't stop all downloads before exiting")
+        }
+        display.close()
+      }
+    }
   }
 
   private def onAppClose(e: Event): Unit = {
@@ -463,7 +484,7 @@ class MainFrame(shell: Shell) extends Logging {
 
     /** Execute code in UI thread iff UI is not disposed yet */
     private def syncExecSafely(code: => Unit): Unit =
-      display.syncExec { () =>
+      if (!shell.isDisposed) display.syncExec { () =>
         if (!shell.isDisposed) code
       }
   }
