@@ -26,14 +26,16 @@ class ConfigManager {
   import ConfigManager._
 
   val store = new PreferenceStore().withCode { store => // TODO: Link to file
+    import ConfigOptions._
     store.setFilename(BuildInfo.name + ".prefs")
-    store.setDefault(ConfigOptions.DownloadPath.id, {
+    store.setDefault(DownloadPath.id, {
       sys.props("os.name") match {
         case os if os startsWith "Windows" => sys.env("USERPROFILE") + "\\Downloads"
         case _                             => sys.props("user.home") + "/downloads"
       }
     })
-    store.setDefault(ConfigOptions.NetworkTimeout.id, 0)
+    store.setDefault(NetworkTimeout.id, 0)
+    store.setDefault(ActionOnWindowClose.id, OnWindowClose.Undefined.id)
     try {
       store.load()
     } catch {
@@ -55,7 +57,7 @@ class ConfigManager {
     dlg.open()
   }
 
-  def getProperty[T: TypeTag](option: ConfigOptions.ConfigOption[T]): T = {
+  def getProperty[T: TypeTag](option: ConfigOptions.SimpleConfigOption[T]): T = {
     // Somewhat dirty hack to overcome type erasure
     (typeOf[T] match {
       case t if t =:= typeOf[Boolean] => store.getBoolean(option.id)
@@ -64,6 +66,27 @@ class ConfigManager {
       case t if t =:= typeOf[Double]  => store.getDouble(option.id)
       case t if t =:= typeOf[String]  => store.getString(option.id)
     }).asInstanceOf[T]
+  }
+
+  def getProperty[T, Repr: TypeTag](option: ConfigOptions.CustomConfigOption[T, Repr]): T = {
+    val repr = getProperty[Repr](option.asReprOption)
+    option.fromRepr(repr)
+  }
+
+  def setProperty[T: TypeTag](option: ConfigOptions.SimpleConfigOption[T], value: T): Unit = {
+    // Somewhat dirty hack to overcome type erasure
+    (typeOf[T] match {
+      case t if t =:= typeOf[Boolean] => store.setValue(option.id, value.asInstanceOf[Boolean])
+      case t if t =:= typeOf[Int]     => store.setValue(option.id, value.asInstanceOf[Int])
+      case t if t =:= typeOf[Long]    => store.setValue(option.id, value.asInstanceOf[Long])
+      case t if t =:= typeOf[Double]  => store.setValue(option.id, value.asInstanceOf[Double])
+      case t if t =:= typeOf[String]  => store.setValue(option.id, value.asInstanceOf[String])
+    }).asInstanceOf[T]
+    store.save()
+  }
+
+  def setProperty[T, Repr: TypeTag](option: ConfigOptions.CustomConfigOption[T, Repr], value: T): Unit = {
+    setProperty[Repr](option.asReprOption, option.toRepr(value))
   }
 }
 
@@ -76,6 +99,17 @@ object ConfigManager {
 
       new IntegerFieldEditor(ConfigOptions.NetworkTimeout.id, "Network timeout (seconds, 0 means no timeout):", getFieldEditorParent()).withCode { field =>
         field.setValidRange(0, 7 * 24 * 60 * 60) // Up to one week
+        addField(field)
+      }
+
+      // Add a radio group field
+      new RadioGroupFieldEditor(
+        ConfigOptions.ActionOnWindowClose.id,
+        "Action on window close:", 5,
+        ConfigOptions.OnWindowClose.values.map { o =>
+          Array(o.prettyName, o.id)
+        }.toArray,
+        getFieldEditorParent(), true).withCode { field =>
         addField(field)
       }
     }

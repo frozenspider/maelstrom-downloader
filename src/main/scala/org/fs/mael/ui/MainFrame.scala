@@ -1,5 +1,9 @@
 package org.fs.mael.ui
 
+import java.util.LinkedHashMap
+
+import org.eclipse.jface.dialogs.MessageDialog
+import org.eclipse.jface.dialogs.MessageDialogWithToggle
 import org.eclipse.swt._
 import org.eclipse.swt.custom.SashForm
 import org.eclipse.swt.events._
@@ -29,8 +33,7 @@ class MainFrame(shell: Shell) extends Logging {
     ColumnDefExt("Downloaded", downloadEntityFormat.downloadedSize),
     ColumnDefExt("Size", downloadEntityFormat.size, 80),
     ColumnDefExt("Comment", de => de.comment, 200),
-    ColumnDefExt("Added", de => de.dateCreated.toString(MainFrame.DateTimeFmt), 120)
-  )
+    ColumnDefExt("Added", de => de.dateCreated.toString(MainFrame.DateTimeFmt), 120))
   private val logColumnHeaders = Seq(ColumnDef("", 24), ColumnDef("Date", 80), ColumnDef("Time", 80), ColumnDef("Information", 500))
 
   private var cfgMgr: ConfigManager = _
@@ -47,8 +50,8 @@ class MainFrame(shell: Shell) extends Logging {
   def init(): Unit = {
     cfgMgr = new ConfigManager
 
-    shell.addListener(SWT.Close, e => onWindowClose(e))
-    display.addListener(SWT.Close, e => onAppClose(e))
+    shell.addListener(SWT.Close, onWindowClose)
+    display.addListener(SWT.Close, onAppClose)
 
     // Layout
 
@@ -101,7 +104,7 @@ class MainFrame(shell: Shell) extends Logging {
 
       val itemExit = new MenuItem(submenu, SWT.PUSH)
       itemExit.setText("Exit")
-      itemExit.addListener(SWT.Selection, e => display.close())
+      itemExit.addListener(SWT.Selection, tryExit)
     }
 
     new MenuItem(bar, SWT.CASCADE).withCode { menuItem =>
@@ -206,12 +209,58 @@ class MainFrame(shell: Shell) extends Logging {
     logTable.getColumns.filter(_.getWidth == 0).map(_.pack())
   }
 
-  private def onWindowClose(e: Event) {
-    log.info("Window closed")
+  private def onWindowClose(closeEvent: Event): Unit = {
+    import ConfigOptions.OnWindowClose._
+    cfgMgr.getProperty(ConfigOptions.ActionOnWindowClose) match {
+      case Undefined => promptWindowClose(closeEvent)
+      case Close     => tryExit(closeEvent)
+      case Minimize  => minimize(Some(closeEvent))
+    }
+  }
+
+  private def promptWindowClose(closeEvent: Event): Unit = {
+    import ConfigOptions._
+    val lhm = new LinkedHashMap[String, Integer].withCode { lhm =>
+      lhm.put(OnWindowClose.Minimize.prettyName, 1)
+      lhm.put(OnWindowClose.Close.prettyName, 2)
+      lhm.put("Cancel", -1)
+    }
+    // TODO: Extract into helper?
+    val result = MessageDialogWithToggle.open(MessageDialog.CONFIRM, shell,
+      "What to do?",
+      "Choose an action on window close",
+      "Remember my decision",
+      true, null, null, SWT.NONE, lhm)
+    val actionOption: Option[OnWindowClose] = result.getReturnCode match {
+      case -1 => None
+      case 1  => Some(OnWindowClose.Minimize)
+      case 2  => Some(OnWindowClose.Close)
+    }
+    if (actionOption == None) {
+      closeEvent.doit = false
+    } else {
+      val Some(action) = actionOption
+      if (result.getToggleState) {
+        cfgMgr.setProperty(ConfigOptions.ActionOnWindowClose, action)
+      }
+      (action: @unchecked) match {
+        case OnWindowClose.Close    => tryExit(closeEvent)
+        case OnWindowClose.Minimize => minimize(Some(closeEvent))
+      }
+    }
+  }
+
+  private def minimize(closeEventOption: Option[Event]): Unit = {
+    closeEventOption foreach (_.doit = false)
+    shell.setMinimized(true)
+  }
+
+  private def tryExit(closeEvent: Event): Unit = {
+    // TODO: Check for active downloads
     display.close()
   }
 
-  private def onAppClose(e: Event) {
+  private def onAppClose(e: Event): Unit = {
   }
 
   private def adjustColumnWidths(table: Table): Unit = {
