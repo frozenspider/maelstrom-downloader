@@ -82,6 +82,7 @@ class ConfigManager {
       case t if t =:= typeOf[Double]  => store.setValue(option.id, value.asInstanceOf[Double])
       case t if t =:= typeOf[String]  => store.setValue(option.id, value.asInstanceOf[String])
     }).asInstanceOf[T]
+    store.save()
   }
 
   def setProperty[T, Repr: TypeTag](option: ConfigOptions.CustomConfigOption[T, Repr], value: T): Unit = {

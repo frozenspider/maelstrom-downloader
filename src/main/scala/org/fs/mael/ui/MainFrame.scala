@@ -1,5 +1,9 @@
 package org.fs.mael.ui
 
+import java.util.LinkedHashMap
+
+import org.eclipse.jface.dialogs.MessageDialog
+import org.eclipse.jface.dialogs.MessageDialogWithToggle
 import org.eclipse.swt._
 import org.eclipse.swt.custom.SashForm
 import org.eclipse.swt.events._
@@ -208,7 +212,7 @@ class MainFrame(shell: Shell) extends Logging {
   private def onWindowClose(e: Event): Unit = {
     import ConfigOptions.OnWindowClose._
     cfgMgr.getProperty(ConfigOptions.ActionOnWindowClose) match {
-      case Undefined => promptWindowClose()
+      case Undefined => promptWindowClose(e)
       case Close     => tryExit()
       case Minimize  => minimize()
     }
@@ -219,8 +223,36 @@ class MainFrame(shell: Shell) extends Logging {
     display.close()
   }
 
-  private def promptWindowClose(): Unit = {
-    ???
+  private def promptWindowClose(e: Event): Unit = {
+    import ConfigOptions._
+    val lhm = new LinkedHashMap[String, Integer].withCode { lhm =>
+      lhm.put(OnWindowClose.Minimize.prettyName, 1)
+      lhm.put(OnWindowClose.Close.prettyName, 2)
+      lhm.put("Cancel", -1)
+    }
+    // TODO: Extract into helper?
+    val result = MessageDialogWithToggle.open(MessageDialog.CONFIRM, shell,
+      "TITLE",
+      "Choose an action on window close",
+      "Remember my decision",
+      true, null, null, SWT.NONE, lhm)
+    val actionOption: Option[OnWindowClose] = result.getReturnCode match {
+      case -1 => None
+      case 1  => Some(OnWindowClose.Minimize)
+      case 2  => Some(OnWindowClose.Close)
+    }
+    if (actionOption == None) {
+      e.doit = false
+    } else {
+      val Some(action) = actionOption
+      if (result.getToggleState) {
+        cfgMgr.setProperty(ConfigOptions.ActionOnWindowClose, action)
+      }
+      action match {
+        case OnWindowClose.Close    => tryExit()
+        case OnWindowClose.Minimize => minimize()
+      }
+    }
   }
 
   private def minimize(): Unit = {
