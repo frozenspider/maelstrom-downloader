@@ -104,7 +104,7 @@ class MainFrame(shell: Shell) extends Logging {
 
       val itemExit = new MenuItem(submenu, SWT.PUSH)
       itemExit.setText("Exit")
-      itemExit.addListener(SWT.Selection, e => tryExit())
+      itemExit.addListener(SWT.Selection, tryExit)
     }
 
     new MenuItem(bar, SWT.CASCADE).withCode { menuItem =>
@@ -209,21 +209,21 @@ class MainFrame(shell: Shell) extends Logging {
     logTable.getColumns.filter(_.getWidth == 0).map(_.pack())
   }
 
-  private def onWindowClose(e: Event): Unit = {
+  private def onWindowClose(closeEvent: Event): Unit = {
     import ConfigOptions.OnWindowClose._
     cfgMgr.getProperty(ConfigOptions.ActionOnWindowClose) match {
-      case Undefined => promptWindowClose(e)
-      case Close     => tryExit()
-      case Minimize  => minimize()
+      case Undefined => promptWindowClose(closeEvent)
+      case Close     => tryExit(closeEvent)
+      case Minimize  => minimize(Some(closeEvent))
     }
   }
 
-  private def tryExit(): Unit = {
+  private def tryExit(closeEvent: Event): Unit = {
     // TODO: Check for active downloads
     display.close()
   }
 
-  private def promptWindowClose(e: Event): Unit = {
+  private def promptWindowClose(closeEvent: Event): Unit = {
     import ConfigOptions._
     val lhm = new LinkedHashMap[String, Integer].withCode { lhm =>
       lhm.put(OnWindowClose.Minimize.prettyName, 1)
@@ -232,7 +232,7 @@ class MainFrame(shell: Shell) extends Logging {
     }
     // TODO: Extract into helper?
     val result = MessageDialogWithToggle.open(MessageDialog.CONFIRM, shell,
-      "TITLE",
+      "What to do?",
       "Choose an action on window close",
       "Remember my decision",
       true, null, null, SWT.NONE, lhm)
@@ -242,21 +242,22 @@ class MainFrame(shell: Shell) extends Logging {
       case 2  => Some(OnWindowClose.Close)
     }
     if (actionOption == None) {
-      e.doit = false
+      closeEvent.doit = false
     } else {
       val Some(action) = actionOption
       if (result.getToggleState) {
         cfgMgr.setProperty(ConfigOptions.ActionOnWindowClose, action)
       }
-      action match {
-        case OnWindowClose.Close    => tryExit()
-        case OnWindowClose.Minimize => minimize()
+      (action: @unchecked) match {
+        case OnWindowClose.Close    => tryExit(closeEvent)
+        case OnWindowClose.Minimize => minimize(Some(closeEvent))
       }
     }
   }
 
-  private def minimize(): Unit = {
-    ???
+  private def minimize(closeEventOption: Option[Event]): Unit = {
+    closeEventOption foreach (_.doit = false)
+    shell.setMinimized(true)
   }
 
   private def onAppClose(e: Event): Unit = {
