@@ -1,9 +1,9 @@
-package org.fs.mael.core
+package org.fs.mael.core.backend
 
+import java.io.File
 import java.net.URI
 
 import org.fs.mael.core.entry.DownloadEntry
-import java.io.File
 
 /*
  * Backend needs to know

@@ -7,9 +7,9 @@ import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 import org.fs.mael.backend.StubBackend
 import org.fs.mael.backend.http.HttpBackend
-import org.fs.mael.core.BackendManager
 import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.Status
+import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.list.DownloadListManager

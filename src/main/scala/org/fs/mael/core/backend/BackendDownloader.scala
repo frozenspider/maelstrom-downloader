@@ -1,12 +1,11 @@
-package org.fs.mael.core
+package org.fs.mael.core.backend
 
+import org.fs.mael.core.Status
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 
 trait BackendDownloader[DE <: DownloadEntry] {
-  import Status._
-
   def start(de: DE, timeoutSec: Int): Unit = de.status match {
     case s if s.canBeStarted => startInner(de, timeoutSec)
     case _                   => // NOOP
