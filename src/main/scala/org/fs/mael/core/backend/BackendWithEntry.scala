@@ -1,4 +1,4 @@
-package org.fs.mael.core
+package org.fs.mael.core.backend
 
 import org.fs.mael.core.entry.DownloadEntryView
 

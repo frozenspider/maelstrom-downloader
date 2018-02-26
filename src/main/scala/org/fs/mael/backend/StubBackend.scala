@@ -1,10 +1,11 @@
 package org.fs.mael.backend
 
-import org.fs.mael.core.Backend
-import org.fs.mael.core.entry.DownloadEntry
-import java.net.URI
-import org.fs.mael.core.BackendDownloader
 import java.io.File
+import java.net.URI
+
+import org.fs.mael.core.backend.Backend
+import org.fs.mael.core.backend.BackendDownloader
+import org.fs.mael.core.entry.DownloadEntry
 
 class StubBackend extends Backend {
   override type DE = DownloadEntry

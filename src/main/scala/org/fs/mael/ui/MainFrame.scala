@@ -11,9 +11,9 @@ import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.BuildInfo
-import org.fs.mael.core.BackendManager
 import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.Status
+import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager

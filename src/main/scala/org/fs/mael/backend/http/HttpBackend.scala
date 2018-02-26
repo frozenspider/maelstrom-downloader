@@ -1,10 +1,10 @@
 package org.fs.mael.backend.http
 
+import java.io.File
 import java.net.URI
 
-import org.fs.mael.core.Backend
+import org.fs.mael.core.backend.Backend
 import org.fs.mael.core.entry.DownloadEntry
-import java.io.File
 
 class HttpBackend extends Backend {
   override type DE = HttpBackend.DE
