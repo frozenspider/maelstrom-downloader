@@ -1,7 +1,6 @@
 package org.fs.mael.core.list
 
-import java.util.UUID
-
+import org.fs.mael.core.Status
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.EventManager
 
@@ -12,7 +11,14 @@ object DownloadListManager {
   def init(entries: Iterable[DownloadEntry]): Unit = {
     this.synchronized {
       // TODO: Move running entities to stopped state
-      this.entries = entries.toSet
+      this.entries = entries.collect {
+        case de if de.status == Status.Running =>
+          // Note: mutation! Avoid?
+          de.status = Status.Stopped
+          de
+        case de =>
+          de
+      }.toSet
     }
   }
 
