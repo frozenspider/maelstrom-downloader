@@ -42,6 +42,9 @@ object MaelstromDownloaderMain extends App with Logging {
   //
 
   def initServices(): Unit = {
+    // Eagerly init reflection universe
+    val universe = scala.reflect.runtime.universe
+
     BackendManager += (new HttpBackend, 0)
     BackendManager += (new StubBackend, Int.MinValue)
   }
@@ -71,7 +74,7 @@ object MaelstromDownloaderMain extends App with Logging {
     add("https://www.facebook.com/test") { de =>
       de.supportsResumingOption = Some(false)
     }
-    add("https://stackoverflow.com/questions/48859244/javafx-turn-off-font-smoothing"){ de =>
+    add("https://stackoverflow.com/questions/48859244/javafx-turn-off-font-smoothing") { de =>
       de.status = Status.Complete
     }
     add("http://ipv4.download.thinkbroadband.com/5MB.zip") { de =>
