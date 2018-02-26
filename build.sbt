@@ -16,7 +16,8 @@ lazy val root = (project in file("."))
       version,
       "fullPrettyName" -> (prettyName + " v" + version.value),
       buildInfoBuildNumber),
-    buildInfoPackage := "org.fs.mael"
+    buildInfoPackage := "org.fs.mael",
+    buildInfoUsePackageAsPath := true
   )
 
 resolvers += "jitpack"  at "https://jitpack.io"

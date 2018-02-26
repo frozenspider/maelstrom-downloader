@@ -1,5 +1,6 @@
 package org.fs.mael
 
+import java.io.File
 import java.net.URI
 
 import org.eclipse.swt.widgets.Display
@@ -13,11 +14,12 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.ui.MainFrame
+import org.fs.mael.ui.resources.Resources
+import org.fs.mael.ui.resources.ResourcesImpl
 import org.fs.utility.StopWatch
 import org.slf4s.Logging
 
 import com.github.nscala_time.time.Imports._
-import java.io.File
 
 object MaelstromDownloaderMain extends App with Logging {
 
@@ -29,9 +31,13 @@ object MaelstromDownloaderMain extends App with Logging {
   log.info("Application started, initializing...")
 
   val shell = StopWatch.measureAndCall {
+    val display = new Display()
+    // TODO: Show minimal splash screen
+    val resources = new ResourcesImpl(display)
+    preloadClasses()
     initServices()
     addTestData()
-    initUi()
+    initUi(display, resources)
   }((_, ms) =>
     log.info(s"Init done in ${ms} ms"))
 
@@ -40,6 +46,16 @@ object MaelstromDownloaderMain extends App with Logging {
   //
   // Methods
   //
+
+  /** Asynchronously reach out to some classes to force them to init eagerly */
+  def preloadClasses(): Unit = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    import scala.concurrent.Future
+    Future {
+      val nscalaTimeImports = com.github.nscala_time.time.Imports
+      val universe = scala.reflect.runtime.universe
+    }
+  }
 
   def initServices(): Unit = {
     BackendManager += (new HttpBackend, 0)
@@ -71,7 +87,7 @@ object MaelstromDownloaderMain extends App with Logging {
     add("https://www.facebook.com/test") { de =>
       de.supportsResumingOption = Some(false)
     }
-    add("https://stackoverflow.com/questions/48859244/javafx-turn-off-font-smoothing"){ de =>
+    add("https://stackoverflow.com/questions/48859244/javafx-turn-off-font-smoothing") { de =>
       de.status = Status.Complete
     }
     add("http://ipv4.download.thinkbroadband.com/5MB.zip") { de =>
@@ -95,16 +111,15 @@ object MaelstromDownloaderMain extends App with Logging {
     DownloadListManager.init(entries)
   }
 
-  def initUi(): Shell = {
-    // https://www.eclipse.org/swt/snippets/
-    val display = new Display()
+  def initUi(display: Display, resources: Resources): Shell = {
     new Shell(display).withCode { shell =>
-      (new MainFrame(shell)).init()
+      (new MainFrame(shell, resources)).init()
     }
   }
 
   def uiLoop(): Unit = {
     shell.open()
+    shell.forceActive()
     val display = shell.getDisplay
     while (!shell.isDisposed()) {
       if (!display.readAndDispatch()) display.sleep()
