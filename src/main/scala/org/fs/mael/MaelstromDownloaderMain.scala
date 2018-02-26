@@ -29,9 +29,11 @@ object MaelstromDownloaderMain extends App with Logging {
   log.info("Application started, initializing...")
 
   val shell = StopWatch.measureAndCall {
+    val display = new Display()
+    preloadClasses()
     initServices()
     addTestData()
-    initUi()
+    initUi(display)
   }((_, ms) =>
     log.info(s"Init done in ${ms} ms"))
 
@@ -41,10 +43,17 @@ object MaelstromDownloaderMain extends App with Logging {
   // Methods
   //
 
-  def initServices(): Unit = {
-    // Eagerly init reflection universe
-    val universe = scala.reflect.runtime.universe
+  /** Asynchronously reach out to some classes to force them to init eagerly */
+  def preloadClasses(): Unit = {
+    import scala.concurrent.Future
+    import scala.concurrent.ExecutionContext.Implicits.global
+    Future {
+      val nscalaTimeImports = com.github.nscala_time.time.Imports
+      val universe = scala.reflect.runtime.universe
+    }
+  }
 
+  def initServices(): Unit = {
     BackendManager += (new HttpBackend, 0)
     BackendManager += (new StubBackend, Int.MinValue)
   }
@@ -98,9 +107,7 @@ object MaelstromDownloaderMain extends App with Logging {
     DownloadListManager.init(entries)
   }
 
-  def initUi(): Shell = {
-    // https://www.eclipse.org/swt/snippets/
-    val display = new Display()
+  def initUi(display: Display): Shell = {
     new Shell(display).withCode { shell =>
       (new MainFrame(shell)).init()
     }
@@ -108,6 +115,7 @@ object MaelstromDownloaderMain extends App with Logging {
 
   def uiLoop(): Unit = {
     shell.open()
+    shell.forceActive()
     val display = shell.getDisplay
     while (!shell.isDisposed()) {
       if (!display.readAndDispatch()) display.sleep()
