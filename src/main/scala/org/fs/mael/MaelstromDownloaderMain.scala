@@ -10,6 +10,7 @@ import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.BackendManager
+import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.list.DownloadListManager
@@ -63,9 +64,9 @@ object MaelstromDownloaderMain extends App with Logging {
   }
 
   def addTestData(): Unit = {
-    var entries: Seq[DownloadEntry] = Seq.empty
+    var entries: Seq[DownloadEntry[_ <: BackendSpecificEntryData]] = Seq.empty
 
-    def add(uriString: String)(code: (DownloadEntry => Unit) = (de => ())): Unit = {
+    def add(uriString: String)(code: (DownloadEntry[_] => Unit) = (de => ())): Unit = {
       val loc = new File(System.getProperty("java.io.tmpdir"))
       val uri = new URI(uriString)
       val backend = BackendManager.findFor(uri).get

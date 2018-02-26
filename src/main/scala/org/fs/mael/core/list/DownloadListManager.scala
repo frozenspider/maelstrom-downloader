@@ -1,16 +1,16 @@
 package org.fs.mael.core.list
 
 import org.fs.mael.core.Status
+import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.EventManager
 
 object DownloadListManager {
-  private var entries: Set[DownloadEntry] = Set.empty
+  private var entries: Set[DownloadEntry[_]] = Set.empty
 
   /** Called initially upon application start, no event is fired */
-  def init(entries: Iterable[DownloadEntry]): Unit = {
+  def init(entries: Iterable[DownloadEntry[_ <: BackendSpecificEntryData]]): Unit = {
     this.synchronized {
-      // TODO: Move running entities to stopped state
       this.entries = entries.collect {
         case de if de.status == Status.Running =>
           // Note: mutation! Avoid?
@@ -23,7 +23,7 @@ object DownloadListManager {
   }
 
   /** Add a new entry to a download list, firing an event */
-  def add(de: DownloadEntry): Unit = {
+  def add(de: DownloadEntry[_]): Unit = {
     this.synchronized {
       entries += de
       EventManager.fireAdded(de)
@@ -31,14 +31,14 @@ object DownloadListManager {
   }
 
   /** Remove an existing entry from a download list, firing an event */
-  def remove(de: DownloadEntry): Unit = {
+  def remove(de: DownloadEntry[_]): Unit = {
     this.synchronized {
       entries -= de
       EventManager.fireRemoved(de)
     }
   }
 
-  def list(): Set[DownloadEntry] = {
+  def list(): Set[DownloadEntry[_]] = {
     this.synchronized {
       entries
     }

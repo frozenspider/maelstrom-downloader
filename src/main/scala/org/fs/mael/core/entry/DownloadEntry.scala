@@ -4,10 +4,11 @@ import java.io.File
 import java.net.URI
 import java.util.UUID
 
+import scala.collection.mutable
+
 import org.fs.mael.core.Status
 
 import com.github.nscala_time.time.Imports._
-import scala.collection.mutable.Map
 
 /**
  * Entry for a specific download processor, implementation details may vary.
@@ -16,9 +17,10 @@ import scala.collection.mutable.Map
  *
  * @author FS
  */
-abstract class DownloadEntry(
+class DownloadEntry[ED <: BackendSpecificEntryData](
+  val backendId:      String,
   var uri:            URI,
-  _location:          File,
+  var location:       File,
   var filenameOption: Option[String],
   var comment:        String
 ) extends DownloadEntryView with DownloadEntryLoggableView {
@@ -26,8 +28,6 @@ abstract class DownloadEntry(
   override val id: UUID = UUID.randomUUID()
 
   override val dateCreated: DateTime = DateTime.now()
-
-  def location: File = _location
 
   var status: Status = Status.Stopped
 
@@ -37,11 +37,13 @@ abstract class DownloadEntry(
 
   var speedOption: Option[Long] = None
 
-  val sections: Map[Start, Downloaded] = Map.empty
+  val sections: mutable.Map[Start, Downloaded] = mutable.Map.empty
 
   var downloadLog: IndexedSeq[LogEntry] = IndexedSeq.empty
 
   override def addDownloadLogEntry(entry: LogEntry): Unit = {
     this.downloadLog = this.downloadLog :+ entry
   }
+
+  var backendSpecificDataOption: Option[ED] = None
 }

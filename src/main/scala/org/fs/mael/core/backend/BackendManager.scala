@@ -4,6 +4,7 @@ import java.net.URI
 
 import scala.collection.SortedSet
 
+import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.DownloadEntryView
 
 object BackendManager {
@@ -31,8 +32,8 @@ object BackendManager {
 
   def findFor(de: DownloadEntryView): BackendWithEntry = {
     this.synchronized {
-      val backend = (_backends map (_._1) find (_.entryClass isInstance de)).get
-      BackendWithEntry(backend, de)
+      val backend = (_backends map (_._1) find (_.id == de.backendId)).get
+      BackendWithEntry.apply(backend, de.asInstanceOf[DownloadEntry[_]])
     }
   }
 }

@@ -19,6 +19,8 @@ trait DownloadEntryView {
   type Start = Long
   type Downloaded = Long
 
+  def backendId: String
+
   def id: UUID
 
   def dateCreated: DateTime

@@ -3,6 +3,7 @@ package org.fs.mael.core.backend
 import java.io.File
 import java.net.URI
 
+import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 
 /*
@@ -12,21 +13,21 @@ import org.fs.mael.core.entry.DownloadEntry
  * - backend-specific UI
  */
 trait Backend {
-  type DE <: DownloadEntry
+  type BSED <: BackendSpecificEntryData
 
-  def entryClass: Class[DE]
+  def dataClass: Class[BSED]
 
   val id: String
 
   def isSupported(uri: URI): Boolean
 
   /** Create a {@code DownloadEntry} from an URI */
-  def create(uri: URI, location: File): DE = {
+  def create(uri: URI, location: File): DownloadEntry[BSED] = {
     require(isSupported(uri), "URI not supported")
     createInner(uri, location)
   }
 
-  val downloader: BackendDownloader[DE]
+  val downloader: BackendDownloader[BSED]
 
-  protected def createInner(uri: URI, location: File): DE
+  protected def createInner(uri: URI, location: File): DownloadEntry[BSED]
 }

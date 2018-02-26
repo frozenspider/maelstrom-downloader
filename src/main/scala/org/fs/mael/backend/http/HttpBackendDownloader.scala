@@ -33,11 +33,13 @@ import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.Status
 import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.core.backend.BackendDownloader
+import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.slf4s.Logging
 
-class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Logging {
+class HttpBackendDownloader extends BackendDownloader[HttpEntryData] with Logging {
+  private type DE = DownloadEntry[HttpEntryData]
 
   private val dlThreadGroup = new ThreadGroup(HttpBackend.Id + "_download").withCode { tg =>
     tg.setDaemon(true)
@@ -45,7 +47,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
 
   private var threads: Seq[DownloadingThread] = Seq.empty
 
-  override def startInner(de: HttpBackend.DE, timeoutSec: Int): Unit =
+  override def startInner(de: DE, timeoutSec: Int): Unit =
     this.synchronized {
       if (threads exists (t => t.de == de && t.isAlive && !t.isInterrupted)) {
         val activeThreads = threads.filter(t => t.isAlive && !t.isInterrupted)
@@ -60,7 +62,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
       }
     }
 
-  override def stopInner(de: HttpBackend.DE): Unit = {
+  override def stopInner(de: DE): Unit = {
     this.synchronized {
       val threadOption = threads find (_.de == de)
       threadOption match {
@@ -73,7 +75,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
     }
   }
 
-  private def stopLogAndFire(de: HttpBackend.DE, threadOption: Option[Thread]): Unit = {
+  private def stopLogAndFire(de: DE, threadOption: Option[Thread]): Unit = {
     changeStatusAndFire(de, Status.Stopped)
     addLogAndFire(de, LogEntry.info("Download stopped"))
     threadOption match {
@@ -82,7 +84,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
     }
   }
 
-  private def errorLogAndFire(de: HttpBackend.DE, msg: String): Unit = {
+  private def errorLogAndFire(de: DE, msg: String): Unit = {
     changeStatusAndFire(de, Status.Error)
     addLogAndFire(de, LogEntry.error(msg))
     log.info(s"Download error - $msg: ${de.uri} (${de.id})")
@@ -95,8 +97,8 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
   }
 
   // TODO: Handle partially downloaded file deleted
-  private class DownloadingThread(val de: HttpBackend#DE, timeoutSec: Int)
-      extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
+  private class DownloadingThread(val de: DE, timeoutSec: Int)
+    extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
 
     this.setDaemon(true)
 
@@ -178,7 +180,8 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
               if (partial && responseCode == HttpStatus.SC_PARTIAL_CONTENT)
                 true
               else
-                Option(res.getFirstHeader(HttpHeaders.ACCEPT_RANGES)) map (_.getValue == "bytes") getOrElse false)
+                Option(res.getFirstHeader(HttpHeaders.ACCEPT_RANGES)) map (_.getValue == "bytes") getOrElse false
+            )
             EventManager.fireDetailsChanged(de)
             if (!de.supportsResumingOption.get) {
               addLogAndFire(de, LogEntry.info("Server doesn't support resuming"))
@@ -217,7 +220,8 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
             for {
               el <- h.getElements.toSeq
               param <- el.getParameters
-            } yield (param.getName -> param.getValue)).toMap
+            } yield (param.getName -> param.getValue)
+          ).toMap
           // As per RFC-6266
           headerParts.get("filename*") orElse headerParts.get("filename")
         })
@@ -288,15 +292,19 @@ class HttpBackendDownloader extends BackendDownloader[HttpBackend.DE] with Loggi
         new ManagedHttpClientConnectionFactory(
           new HttpMessageWriterProxyFactory(
             DefaultHttpRequestWriterFactory.INSTANCE,
-            msg => doChecked(addLogAndFire(de, LogEntry.request(msg)))),
+            msg => doChecked(addLogAndFire(de, LogEntry.request(msg)))
+          ),
           new HttpMessageParserProxyFactory(
             DefaultHttpResponseParserFactory.INSTANCE,
-            msg => doChecked(addLogAndFire(de, LogEntry.response(msg)))))
+            msg => doChecked(addLogAndFire(de, LogEntry.response(msg)))
+          )
+        )
       val connMgr = new BasicHttpClientConnectionManager(HttpBackendDownloader.SocketFactoryRegistry, connFactory, null, null)
       connMgr.setSocketConfig(
         SocketConfig.custom()
           .setSoTimeout(connTimeoutMs) // TODO: Test
-          .build())
+          .build()
+      )
       connMgr
     }
 
