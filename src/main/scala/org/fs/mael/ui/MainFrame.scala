@@ -8,8 +8,6 @@ import org.eclipse.swt._
 import org.eclipse.swt.custom.SashForm
 import org.eclipse.swt.events._
 import org.eclipse.swt.graphics.Color
-import org.eclipse.swt.graphics.Image
-import org.eclipse.swt.graphics.ImageData
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.BuildInfo
@@ -21,12 +19,13 @@ import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.event.UiSubscriber
 import org.fs.mael.core.list.DownloadListManager
+import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
 
 import com.github.nscala_time.time.Imports._
 
-class MainFrame(shell: Shell) extends Logging {
+class MainFrame(shell: Shell, resources: Resources) extends Logging {
   private val display = shell.getDisplay
   private val mainColumnDefs = new Columns[DownloadEntryView](
     ColumnDefExt("File Name", de => de.displayName),
@@ -197,7 +196,7 @@ class MainFrame(shell: Shell) extends Logging {
       val row = e.item.asInstanceOf[TableItem]
       row.getData match {
         case entry: LogEntry =>
-          val icon = icons(entry.tpe)
+          val icon = resources.icon(entry.tpe)
           val rowBounds = row.getBounds
           val iconBounds = icon.getBounds
           val offset = (rowBounds.height - iconBounds.height) / 2
@@ -298,7 +297,7 @@ class MainFrame(shell: Shell) extends Logging {
 
   private def fillDownloadRow(row: TableItem, de: DownloadEntryView): Unit = {
     row.setData(de)
-    row.setImage(0, icons(de.status))
+    row.setImage(0, resources.icon(de.status))
     mainColumnDefs.content.zipWithIndex.foreach {
       case (cd, i) => row.setText(i, cd.fmt(de))
     }
@@ -389,48 +388,6 @@ class MainFrame(shell: Shell) extends Logging {
     private def fmtSizePretty(size: Long): String = {
       val groups = size.toString.reverse.grouped(3).map(_.reverse).toSeq.reverse
       groups.mkString("", " ", " B")
-    }
-  }
-
-  object icons {
-    val play: Image = loadIcon("play.png")
-    val stop: Image = loadIcon("stop.png")
-    val error: Image = loadIcon("error.png")
-    val check: Image = loadIcon("check.png")
-
-    val info: Image = loadIcon("info.png")
-    val request: Image = loadIcon("request.png")
-    val response: Image = loadIcon("response.png")
-    val errorCircle: Image = loadIcon("error-circle.png")
-
-    val empty: Image = {
-      new Image(display, new Image(display, 1, 1).getImageData.withCode { idt =>
-        idt.setAlpha(0, 0, 0)
-      })
-    }
-
-    def apply(status: Status): Image = status match {
-      case Status.Running  => play
-      case Status.Stopped  => stop
-      case Status.Error    => error
-      case Status.Complete => check
-    }
-
-    def apply(logType: LogEntry.Type): Image = logType match {
-      case LogEntry.Info     => info
-      case LogEntry.Request  => request
-      case LogEntry.Response => response
-      case LogEntry.Error    => errorCircle
-    }
-
-    private def loadIcon(name: String): Image = {
-      val stream = this.getClass.getResourceAsStream("/icons/" + name)
-      try {
-        val loaded = new ImageData(stream)
-        new Image(display, loaded.scaledTo(16, 16))
-      } finally {
-        stream.close()
-      }
     }
   }
 
