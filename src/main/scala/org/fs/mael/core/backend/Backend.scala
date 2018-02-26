@@ -29,5 +29,7 @@ trait Backend {
 
   val downloader: BackendDownloader[BSED]
 
+  val dataSerializer: BackendDataSerializer[BSED]
+
   protected def createInner(uri: URI, location: File): DownloadEntry[BSED]
 }

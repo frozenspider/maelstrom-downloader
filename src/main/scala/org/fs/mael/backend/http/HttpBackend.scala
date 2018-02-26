@@ -27,6 +27,8 @@ class HttpBackend extends Backend {
   }
 
   override val downloader = new HttpBackendDownloader
+
+  override val dataSerializer = new HttpDataSerializer
 }
 
 object HttpBackend {

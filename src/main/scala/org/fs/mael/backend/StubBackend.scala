@@ -4,6 +4,7 @@ import java.io.File
 import java.net.URI
 
 import org.fs.mael.core.backend.Backend
+import org.fs.mael.core.backend.BackendDataSerializer
 import org.fs.mael.core.backend.BackendDownloader
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
@@ -23,8 +24,16 @@ class StubBackend extends Backend {
   }
 
   override val dataSerializer: BackendDataSerializer[BSED] = StubBackend.StubDataSerializer
+
+  override protected def createInner(uri: URI, location: File): DownloadEntry[BSED] = {
+    new DownloadEntry[BSED](id, uri, location, None, "Stub comment")
+  }
 }
 
 object StubBackend {
   class StubEntryData extends BackendSpecificEntryData
+  object StubDataSerializer extends BackendDataSerializer[StubEntryData] {
+    def serialize(bsed: StubEntryData): String = ""
+    def deserialize(bsedString: String): StubEntryData = new StubEntryData
+  }
 }
