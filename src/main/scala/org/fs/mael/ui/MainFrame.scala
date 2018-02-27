@@ -161,13 +161,14 @@ class MainFrame(
   }
 
   private def createMainTable(parent: Composite): Unit = {
+    // TODO: Make table sortable
     mainTable = new Table(parent, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION)
     mainTable.setLinesVisible(true)
     mainTable.setHeaderVisible(true)
     mainTable.addKeyListener(keyPressed {
       case e if e.keyCode == SWT.DEL && mainTable.getSelectionCount > 0 =>
         println("Delete")
-      // TODO: Implement
+      // TODO: Implement deletion
     })
     mainTable.addListener(SWT.Selection, e => {
       getSelectedDownloadEntryOption map renderDownloadLog getOrElse { logTable.removeAll() }
