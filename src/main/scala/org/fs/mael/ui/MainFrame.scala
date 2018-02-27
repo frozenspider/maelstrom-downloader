@@ -34,6 +34,7 @@ class MainFrame(
   private val display = shell.getDisplay
   private val mainColumnDefs = new Columns[DownloadEntryView](
     ColumnDefExt("File Name", de => de.displayName),
+    ColumnDefExt("%", downloadEntityFormat.downloadedPercent, 45, false),
     ColumnDefExt("Downloaded", downloadEntityFormat.downloadedSize),
     ColumnDefExt("Size", downloadEntityFormat.size, 80),
     ColumnDefExt("Comment", de => de.comment, 200),
@@ -186,10 +187,11 @@ class MainFrame(
     }
     mainTable.setMenu(menu)
 
-    mainColumnDefs.content.map(_.toColumnDef).foreach { cd =>
+    mainColumnDefs.content.foreach { cd =>
       val c = new TableColumn(mainTable, SWT.NONE)
       c.setText(cd.name)
       c.setWidth(cd.width)
+      c.setResizable(cd.resizable)
     }
   }
 
@@ -400,14 +402,19 @@ class MainFrame(
     }
 
     def downloadedSize(de: DownloadEntryView): String = {
+      if (!de.sections.isEmpty) {
+        fmtSizePretty(de.downloadedSize)
+      } else {
+        ""
+      }
+    }
+
+    def downloadedPercent(de: DownloadEntryView): String = {
       val downloadedSize = de.downloadedSize
-      val prettyDownloadedSize = fmtSizePretty(downloadedSize)
       de.sizeOption match {
         case Some(totalSize) =>
           val percent = downloadedSize * 100 / totalSize
-          percent + "% [" + prettyDownloadedSize + "]"
-        case None if downloadedSize > 0 =>
-          "[" + prettyDownloadedSize + "]"
+          percent + "%"
         case _ =>
           ""
       }
@@ -482,7 +489,7 @@ class MainFrame(
 
   case class ColumnDef(name: String, width: Int = 0)
 
-  case class ColumnDefExt[A](name: String, fmt: A => String, width: Int = 0) {
+  case class ColumnDefExt[A](name: String, fmt: A => String, width: Int = 0, resizable: Boolean = true) {
     def toColumnDef = ColumnDef(name, width)
   }
 
