@@ -19,7 +19,14 @@ class DownloadListSerializer {
     val deSerializer = {
       import FieldSerializer._
       FieldSerializer[DownloadEntry[_]](
-        serializer = ignore("hashCode") orElse ignore("speedOption")
+        serializer   = ignore("hashCode") orElse ignore("speedOption"),
+        deserializer = {
+          // Coerce erased sections type from BigInt to Long
+          case JField("sections", x: JObject) if !x.obj.isEmpty =>
+            JField("sections", JObject(x.obj.map {
+              case JField(k, JInt(v)) => JField(k, JLong(v.toLong))
+            }: _*))
+        }
       )
     }
     import DownloadListSerializer._
@@ -34,10 +41,10 @@ class DownloadListSerializer {
   }
 
   def serialize(entries: Iterable[DownloadEntry[_]]): String = {
-    Serialization.writePretty(entries)
+    Serialization.writePretty(entries).replaceAllLiterally("\r\n", "\n")
   }
 
-  def deserialize(entriesString: String): Seq[DownloadEntry[_]] = {
+  def deserialize(entriesString: String): Seq[DownloadEntry[_ <: BackendSpecificEntryData]] = {
     Serialization.read[Seq[DownloadEntry[_ <: BackendSpecificEntryData]]](entriesString)
   }
 }

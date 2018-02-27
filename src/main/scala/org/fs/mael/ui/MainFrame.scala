@@ -24,18 +24,23 @@ import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
 
 import com.github.nscala_time.time.Imports._
+import org.fs.mael.core.UserFriendlyException
 
-class MainFrame(shell: Shell, resources: Resources) extends Logging {
+class MainFrame(
+  shell:           Shell,
+  resources:       Resources,
+  cfgMgr:          ConfigManager,
+  downloadListMgr: DownloadListManager
+) extends Logging {
   private val display = shell.getDisplay
   private val mainColumnDefs = new Columns[DownloadEntryView](
     ColumnDefExt("File Name", de => de.displayName),
     ColumnDefExt("Downloaded", downloadEntityFormat.downloadedSize),
     ColumnDefExt("Size", downloadEntityFormat.size, 80),
     ColumnDefExt("Comment", de => de.comment, 200),
-    ColumnDefExt("Added", de => de.dateCreated.toString(MainFrame.DateTimeFmt), 120))
+    ColumnDefExt("Added", de => de.dateCreated.toString(MainFrame.DateTimeFmt), 120)
+  )
   private val logColumnHeaders = Seq(ColumnDef("", 24), ColumnDef("Date", 80), ColumnDef("Time", 80), ColumnDef("Information", 500))
-
-  private var cfgMgr: ConfigManager = _
 
   private var mainTable: Table = _
   private var logTable: Table = _
@@ -47,10 +52,7 @@ class MainFrame(shell: Shell, resources: Resources) extends Logging {
   private var lastProgressUpdateTS: Long = System.currentTimeMillis
 
   def init(): Unit = {
-    cfgMgr = new ConfigManager
-
     shell.addListener(SWT.Close, onWindowClose)
-    display.addListener(SWT.Close, onAppClose)
 
     // Layout
 
@@ -80,7 +82,7 @@ class MainFrame(shell: Shell, resources: Resources) extends Logging {
 
     // Init
 
-    renderDownloads(DownloadListManager.list())
+    renderDownloads(downloadListMgr.list())
 
     adjustColumnWidths(mainTable)
     mainTable.setFocus()
@@ -125,7 +127,7 @@ class MainFrame(shell: Shell, resources: Resources) extends Logging {
       btnAdd.setText("Add")
       btnAdd.addListener(SWT.Selection, e => {
         val dialog = new Shell(shell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL)
-        new AddDownloadFrame(dialog, cfgMgr)
+        new AddDownloadFrame(dialog, cfgMgr, downloadListMgr)
         dialog.open()
       })
     }
@@ -256,31 +258,36 @@ class MainFrame(shell: Shell, resources: Resources) extends Logging {
 
   private def tryExit(closeEvent: Event): Unit = {
     def getRunningEntities(): Set[_ <: DownloadEntryView] = {
-      DownloadListManager.list().filter(_.status == Status.Running)
+      downloadListMgr.list().filter(_.status == Status.Running)
     }
-    val running = getRunningEntities()
-    if (running.size > 0) {
-      val confirmed = MessageDialog.openConfirm(shell, "What to do?",
-        s"You have ${running.size} active download(s). Are you sure you wish to quit?")
+    try {
+      val running = getRunningEntities()
+      if (running.size > 0) {
+        val confirmed = MessageDialog.openConfirm(shell, "What to do?",
+          s"You have ${running.size} active download(s). Are you sure you wish to quit?")
 
-      if (!confirmed) {
-        closeEvent.doit = false
-      } else {
-        running foreach { de =>
-          val pair = BackendManager.getCastedPair(de)
-          pair.backend.downloader.stop(pair.de)
+        if (!confirmed) {
+          closeEvent.doit = false
+        } else {
+          running foreach { de =>
+            val pair = BackendManager.getCastedPair(de)
+            pair.backend.downloader.stop(pair.de)
+          }
+          shell.setVisible(false)
+          val terminatedNormally = waitUntil(() => getRunningEntities().size == 0, 2000)
+          if (!terminatedNormally) {
+            log.error("Couldn't stop all downloads before exiting")
+          }
         }
-        shell.setVisible(false)
-        val terminatedNormally = waitUntil(() => getRunningEntities().size == 0, 2000)
-        if (!terminatedNormally) {
-          log.error("Couldn't stop all downloads before exiting")
-        }
-        display.close()
       }
+      if (closeEvent.doit) {
+        downloadListMgr.save()
+      }
+    } catch {
+      case ex: Exception =>
+        log.error("Error terminating an application", ex)
+        showError(shell, message = ex.getMessage)
     }
-  }
-
-  private def onAppClose(e: Event): Unit = {
   }
 
   private def adjustColumnWidths(table: Table): Unit = {

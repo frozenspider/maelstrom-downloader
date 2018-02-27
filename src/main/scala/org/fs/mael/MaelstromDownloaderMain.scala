@@ -20,6 +20,10 @@ import org.fs.utility.StopWatch
 import org.slf4s.Logging
 
 import com.github.nscala_time.time.Imports._
+import org.fs.mael.core.list.DownloadListSerializer
+import org.fs.mael.ui.ConfigManager
+import org.fs.mael.ui.ConfigOptions.ConfigOption
+import org.fs.mael.ui.ConfigOptions
 
 object MaelstromDownloaderMain extends App with Logging {
 
@@ -30,14 +34,21 @@ object MaelstromDownloaderMain extends App with Logging {
   log.info(BuildInfo.fullPrettyName)
   log.info("Application started, initializing...")
 
+  val downloadListFile = new File("downloads.json")
+
   val shell = StopWatch.measureAndCall {
-    val display = new Display()
     // TODO: Show minimal splash screen
+    val display = new Display()
+    val cfgMgr = new ConfigManager
     val resources = new ResourcesImpl(display)
+    val downloadListMgr = {
+      val serializer = new DownloadListSerializer
+      new DownloadListManager(serializer, downloadListFile)
+    }
     preloadClasses()
     initServices()
-    addTestData()
-    initUi(display, resources)
+    downloadListMgr.load()
+    initUi(display, resources, cfgMgr, downloadListMgr)
   }((_, ms) =>
     log.info(s"Init done in ${ms} ms"))
 
@@ -61,58 +72,14 @@ object MaelstromDownloaderMain extends App with Logging {
     BackendManager += (new HttpBackend, 0)
   }
 
-  def addTestData(): Unit = {
-    var entries: Seq[DownloadEntry[_ <: BackendSpecificEntryData]] = Seq.empty
-
-    def add(uriString: String)(code: (DownloadEntry[_] => Unit) = (de => ())): Unit = {
-      val loc = new File(System.getProperty("java.io.tmpdir"))
-      val uri = new URI(uriString)
-      val backend = BackendManager.findFor(uri).get
-      entries = entries :+ backend.create(uri, loc, None, "").withCode(code)
-    }
-    add("http://www.example.com") { de =>
-      de.comment = "info on example"
-      de.status = Status.Error
-    }
-    add("https://www.google.com") { de =>
-      de.comment = "info on google"
-      de.addDownloadLogEntry(LogEntry(LogEntry.Info, DateTime.parse("2000-01-01T00:00:00"), "Started"))
-      de.addDownloadLogEntry(LogEntry(LogEntry.Request, DateTime.parse("2000-01-02T00:12:34"), "Hey, you!"))
-      de.addDownloadLogEntry(LogEntry(LogEntry.Response, DateTime.parse("2000-01-03T01:23:45"), "What?"))
-      de.addDownloadLogEntry(LogEntry(LogEntry.Request, DateTime.parse("2000-01-03T01:23:45"), "Take\nthat\nmulti\nline!"))
-      de.addDownloadLogEntry(LogEntry(LogEntry.Error, DateTime.now(), "The end"))
-      de.status = Status.Running
-    }
-    add("https://www.facebook.com/test") { de =>
-      de.supportsResumingOption = Some(false)
-    }
-    add("https://stackoverflow.com/questions/48859244/javafx-turn-off-font-smoothing") { de =>
-      de.status = Status.Complete
-    }
-    add("http://ipv4.download.thinkbroadband.com/5MB.zip") { de =>
-      de.comment = "5MB file"
-    }
-    add("http://ipv4.download.thinkbroadband.com/20MB.zip") { de =>
-      de.comment = "20MB file"
-    }
-    add("http://www.ovh.net/files/10Mb.dat") { de =>
-      de.comment = "1.25 MB file"
-      //MD5 62501d556539559fb422943553cd235a
-    }
-    add("http://mirror.filearena.net/pub/speed/SpeedTest_16MB.dat") { de =>
-      de.comment = "16MB file"
-      //MD5 2c7ab85a893283e98c931e9511add182
-    }
-    add("https://www.blender.org/wp-content/uploads/2015/04/foryou.png?x34953") { de =>
-      de.comment = "Image"
-    }
-
-    DownloadListManager.init(entries)
-  }
-
-  def initUi(display: Display, resources: Resources): Shell = {
+  def initUi(
+    display:         Display,
+    resources:       Resources,
+    cfgMgr:          ConfigManager,
+    downloadListMgr: DownloadListManager
+  ): Shell = {
     new Shell(display).withCode { shell =>
-      (new MainFrame(shell, resources)).init()
+      (new MainFrame(shell, resources, cfgMgr, downloadListMgr)).init()
     }
   }
 

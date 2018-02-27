@@ -16,7 +16,11 @@ import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.ui.utils.SwtUtils._
 
-class AddDownloadFrame(dialog: Shell, cfgMgr: ConfigManager) {
+class AddDownloadFrame(
+  dialog:          Shell,
+  cfgMgr:          ConfigManager,
+  downloadListMgr: DownloadListManager
+) {
   init()
 
   var uriInput: Text = _
@@ -85,7 +89,7 @@ class AddDownloadFrame(dialog: Shell, cfgMgr: ConfigManager) {
             None,
             ""
           )
-          DownloadListManager.add(entry)
+          downloadListMgr.add(entry)
           dialog.dispose()
         case other => throw new UserFriendlyException(s"Unsupported scheme: $other")
       }
