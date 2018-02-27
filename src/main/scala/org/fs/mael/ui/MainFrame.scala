@@ -341,10 +341,11 @@ class MainFrame(
 
   private def renderDownloadLog(de: DownloadEntryView): Unit = {
     logTable.removeAll()
-    de.downloadLog.foreach(appendDownloadLogEntry)
+    de.downloadLog.foreach(appendDownloadLogEntry(_, true))
+    scrollTableToBottom(logTable)
   }
 
-  private def appendDownloadLogEntry(entry: LogEntry): Unit = {
+  private def appendDownloadLogEntry(entry: LogEntry, dontScroll: Boolean): Unit = {
     val lines = entry.details.trim.split("\n")
     val wasShowingLastRow =
       if (logTable.getItemCount > 0) {
@@ -364,7 +365,7 @@ class MainFrame(
         row.setBackground(MainFrame.getLogColor(entry.tpe, display))
       }
     }
-    if (wasShowingLastRow) scrollTableToBottom(logTable)
+    if (!dontScroll && wasShowingLastRow) scrollTableToBottom(logTable)
   }
 
   private def updateButtonsEnabledState(): Unit = {
@@ -441,7 +442,7 @@ class MainFrame(
 
     override def logged(de: DownloadEntryView, entry: LogEntry): Unit = syncExecSafely {
       if (getSelectedDownloadEntryOption == Some(de)) {
-        appendDownloadLogEntry(entry)
+        appendDownloadLogEntry(entry, false)
       }
     }
 
