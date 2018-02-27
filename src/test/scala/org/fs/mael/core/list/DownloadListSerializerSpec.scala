@@ -3,7 +3,6 @@ package org.fs.mael.core.list
 import java.io.File
 import java.net.URI
 
-import org.fs.mael.backend.StubBackend
 import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.backend.http.HttpEntryData
 import org.fs.mael.core.CoreUtils._
@@ -12,10 +11,12 @@ import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
+import org.fs.mael.test.StubBackend
 import org.fs.mael.test.TestUtils._
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
 import org.scalatest.FunSuite
+import org.scalatest.exceptions.TestFailedException
 import org.scalatest.prop.TableDrivenPropertyChecks
 
 import com.github.nscala_time.time.Imports._
@@ -82,6 +83,34 @@ class DownloadListSerializerSpec
         de.sections += (0L -> 10L)
         de.sections += (200L -> 300L)
     })
+  }
+
+  test("stub + http") {
+    val de1 = createDE("all-simple-fields") {
+      case de: DownloadEntry[StubBackend.StubEntryData] @unchecked =>
+        assert(de.backendId === StubBackend.Id)
+        de.comment = "comment 1"
+        de.backendSpecificData.myParam = "Hey there!"
+    }
+    val de2 = createDE("http://www.example.com/subresource?a=b&c=d") {
+      case de: DownloadEntry[HttpEntryData] @unchecked =>
+        assert(de.backendId === HttpBackend.Id)
+        de.sizeOption = Some(12345678)
+        de.comment = "comment 2"
+        de.sections += (0L -> 10L)
+        de.sections += (200L -> 300L)
+    }
+    val serialized = serializer.serialize(Seq(de1, de2))
+    val deserialized = serializer.deserialize(serialized)
+    assert(deserialized.size === 2)
+    assertDownloadEntriesEqual(de1, deserialized(0))
+    assertDownloadEntriesEqual(de2, deserialized(1))
+    intercept[TestFailedException] {
+      assertDownloadEntriesEqual(de1, deserialized(1))
+    }
+    intercept[TestFailedException] {
+      assertDownloadEntriesEqual(de2, deserialized(0))
+    }
   }
 
   def assertSingularSerializationWorks(de1: DownloadEntry[_ <: BackendSpecificEntryData]): Unit = {

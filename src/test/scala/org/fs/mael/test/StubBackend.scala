@@ -1,4 +1,4 @@
-package org.fs.mael.backend
+package org.fs.mael.test
 
 import java.io.File
 import java.net.URI
