@@ -24,7 +24,6 @@ import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
 
 import com.github.nscala_time.time.Imports._
-import org.fs.mael.core.UserFriendlyException
 
 class MainFrame(
   shell:           Shell,

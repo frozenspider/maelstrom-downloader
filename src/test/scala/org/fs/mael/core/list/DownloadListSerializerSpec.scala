@@ -17,15 +17,13 @@ import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
 import org.scalatest.FunSuite
 import org.scalatest.exceptions.TestFailedException
-import org.scalatest.prop.TableDrivenPropertyChecks
 
 import com.github.nscala_time.time.Imports._
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class DownloadListSerializerSpec
   extends FunSuite
-  with BeforeAndAfter
-  with TableDrivenPropertyChecks {
+  with BeforeAndAfter {
 
   before {
     BackendManager += (new StubBackend, Int.MinValue)

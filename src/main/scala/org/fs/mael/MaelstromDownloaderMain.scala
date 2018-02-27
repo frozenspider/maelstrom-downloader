@@ -1,29 +1,20 @@
 package org.fs.mael
 
 import java.io.File
-import java.net.URI
 
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.core.CoreUtils._
-import org.fs.mael.core.Status
 import org.fs.mael.core.backend.BackendManager
-import org.fs.mael.core.entry.BackendSpecificEntryData
-import org.fs.mael.core.entry.DownloadEntry
-import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.list.DownloadListManager
+import org.fs.mael.core.list.DownloadListSerializer
+import org.fs.mael.ui.ConfigManager
 import org.fs.mael.ui.MainFrame
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.resources.ResourcesImpl
 import org.fs.utility.StopWatch
 import org.slf4s.Logging
-
-import com.github.nscala_time.time.Imports._
-import org.fs.mael.core.list.DownloadListSerializer
-import org.fs.mael.ui.ConfigManager
-import org.fs.mael.ui.ConfigOptions.ConfigOption
-import org.fs.mael.ui.ConfigOptions
 
 object MaelstromDownloaderMain extends App with Logging {
 
