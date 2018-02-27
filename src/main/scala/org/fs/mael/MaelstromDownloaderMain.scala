@@ -27,23 +27,29 @@ object MaelstromDownloaderMain extends App with Logging {
 
   val downloadListFile = new File("downloads.json")
 
-  val shell = StopWatch.measureAndCall {
-    // TODO: Show minimal splash screen
-    val display = new Display()
-    val cfgMgr = new ConfigManager
-    val resources = new ResourcesImpl(display)
-    val downloadListMgr = {
-      val serializer = new DownloadListSerializer
-      new DownloadListManager(serializer, downloadListFile)
-    }
-    preloadClasses()
-    initServices()
-    downloadListMgr.load()
-    initUi(display, resources, cfgMgr, downloadListMgr)
-  }((_, ms) =>
-    log.info(s"Init done in ${ms} ms"))
+  try {
+    val shell: Shell = StopWatch.measureAndCall {
+      // TODO: Show minimal splash screen
+      val display = new Display()
+      val cfgMgr = new ConfigManager
+      val resources = new ResourcesImpl(display)
+      val downloadListMgr = {
+        val serializer = new DownloadListSerializer
+        new DownloadListManager(serializer, downloadListFile)
+      }
+      preloadClasses()
+      initServices()
+      downloadListMgr.load()
+      initUi(display, resources, cfgMgr, downloadListMgr)
+    }((_, ms) =>
+      log.info(s"Init done in ${ms} ms"))
 
-  uiLoop()
+    uiLoop(shell)
+  } catch {
+    case ex: Exception =>
+      log.error("Uncaught error!", ex)
+      sys.exit()
+  }
 
   //
   // Methods
@@ -74,7 +80,7 @@ object MaelstromDownloaderMain extends App with Logging {
     }
   }
 
-  def uiLoop(): Unit = {
+  def uiLoop(shell: Shell): Unit = {
     shell.open()
     shell.forceActive()
     val display = shell.getDisplay
