@@ -1,9 +1,17 @@
 package org.fs.mael.core.backend
 
 import org.fs.mael.core.entry.BackendSpecificEntryData
+import org.json4s._
 
 trait BackendDataSerializer[BSED <: BackendSpecificEntryData] {
-  def serialize(bsed: BSED): String
+  final def serialize(bsed: BSED): JObject = {
+    val backendIdField = JField("backendId", JString(bsed.backendId))
+    val addedFields = serializeFields(bsed)
+    JObject((Seq(backendIdField) ++ addedFields): _*)
+  }
 
-  def deserialize(bsedString: String): BSED
+  protected def serializeFields(bsed: BSED): Seq[JField]
+
+  def deserialize(jObj: JObject): BSED
 }
+

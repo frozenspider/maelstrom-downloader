@@ -5,7 +5,6 @@ import java.net.URI
 
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
-import org.fs.mael.backend.StubBackend
 import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.Status
@@ -60,7 +59,6 @@ object MaelstromDownloaderMain extends App with Logging {
 
   def initServices(): Unit = {
     BackendManager += (new HttpBackend, 0)
-    BackendManager += (new StubBackend, Int.MinValue)
   }
 
   def addTestData(): Unit = {
@@ -70,7 +68,7 @@ object MaelstromDownloaderMain extends App with Logging {
       val loc = new File(System.getProperty("java.io.tmpdir"))
       val uri = new URI(uriString)
       val backend = BackendManager.findFor(uri).get
-      entries = entries :+ backend.create(uri, loc).withCode(code)
+      entries = entries :+ backend.create(uri, loc, None, "").withCode(code)
     }
     add("http://www.example.com") { de =>
       de.comment = "info on example"

@@ -135,7 +135,7 @@ class MainFrame(shell: Shell, resources: Resources) extends Logging {
       btnStart.setEnabled(false)
       btnStart.addListener(SWT.Selection, e => {
         getSelectedDownloadEntries map { de =>
-          val pair = BackendManager.findFor(de)
+          val pair = BackendManager.getCastedPair(de)
           pair.backend.downloader.start(pair.de, cfgMgr.getProperty(ConfigOptions.NetworkTimeout))
         }
       })
@@ -146,7 +146,7 @@ class MainFrame(shell: Shell, resources: Resources) extends Logging {
       btnStop.setEnabled(false)
       btnStop.addListener(SWT.Selection, e => {
         getSelectedDownloadEntries map { de =>
-          val pair = BackendManager.findFor(de)
+          val pair = BackendManager.getCastedPair(de)
           pair.backend.downloader.stop(pair.de)
         }
       })
@@ -267,7 +267,7 @@ class MainFrame(shell: Shell, resources: Resources) extends Logging {
         closeEvent.doit = false
       } else {
         running foreach { de =>
-          val pair = BackendManager.findFor(de)
+          val pair = BackendManager.getCastedPair(de)
           pair.backend.downloader.stop(pair.de)
         }
         shell.setVisible(false)

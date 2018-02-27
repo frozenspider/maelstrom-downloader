@@ -1,13 +1,14 @@
 package org.fs.mael.backend.http
 
 import org.fs.mael.core.backend.BackendDataSerializer
+import org.json4s._
 
 class HttpDataSerializer extends BackendDataSerializer[HttpEntryData] {
-  def serialize(bsed: HttpEntryData): String = {
-    ???
+  override def serializeFields(bsed: HttpEntryData): Seq[JField] = {
+    Seq.empty
   }
 
-  def deserialize(bsedString: String): HttpEntryData = {
-    ???
+  override def deserialize(jObj: JObject): HttpEntryData = {
+    new HttpEntryData
   }
 }

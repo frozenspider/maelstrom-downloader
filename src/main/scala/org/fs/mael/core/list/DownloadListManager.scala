@@ -11,9 +11,10 @@ object DownloadListManager {
   /** Called initially upon application start, no event is fired */
   def init(entries: Iterable[DownloadEntry[_ <: BackendSpecificEntryData]]): Unit = {
     this.synchronized {
+      // Mutating code!
+      entries.foreach { _.speedOption = None }
       this.entries = entries.collect {
         case de if de.status == Status.Running =>
-          // Note: mutation! Avoid?
           de.status = Status.Stopped
           de
         case de =>

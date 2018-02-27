@@ -18,7 +18,7 @@ object BackendWithEntry {
   def apply(b: Backend, de: DownloadEntry[_]): BackendWithEntry = {
     require(de.backendId == b.id)
     require(b.isSupported(de.uri))
-    require(de.backendSpecificDataOption forall (b.dataClass.isInstance))
+    require(b.dataClass isInstance de.backendSpecificData)
     val result = new BackendWithEntry(b)
     result._de = de.asInstanceOf[DownloadEntry[result.backend.BSED]]
     result

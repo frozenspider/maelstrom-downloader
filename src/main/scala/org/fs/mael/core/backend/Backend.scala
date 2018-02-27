@@ -22,14 +22,14 @@ trait Backend {
   def isSupported(uri: URI): Boolean
 
   /** Create a {@code DownloadEntry} from an URI */
-  def create(uri: URI, location: File): DownloadEntry[BSED] = {
+  def create(uri: URI, location: File, filenameOption: Option[String], comment: String): DownloadEntry[BSED] = {
     require(isSupported(uri), "URI not supported")
-    createInner(uri, location)
+    createInner(uri, location, filenameOption, comment)
   }
 
   val downloader: BackendDownloader[BSED]
 
   val dataSerializer: BackendDataSerializer[BSED]
 
-  protected def createInner(uri: URI, location: File): DownloadEntry[BSED]
+  protected def createInner(uri: URI, location: File, filenameOption: Option[String], comment: String): DownloadEntry[BSED]
 }

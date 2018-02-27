@@ -17,17 +17,16 @@ import com.github.nscala_time.time.Imports._
  *
  * @author FS
  */
-class DownloadEntry[ED <: BackendSpecificEntryData](
-  val backendId:      String,
-  var uri:            URI,
-  var location:       File,
-  var filenameOption: Option[String],
-  var comment:        String
+class DownloadEntry[ED <: BackendSpecificEntryData] private (
+  override val id:          UUID,
+  override val dateCreated: DateTime,
+  val backendId:            String,
+  var uri:                  URI,
+  var location:             File,
+  var filenameOption:       Option[String],
+  var comment:              String,
+  val backendSpecificData:  ED
 ) extends DownloadEntryView with DownloadEntryLoggableView {
-
-  override val id: UUID = UUID.randomUUID()
-
-  override val dateCreated: DateTime = DateTime.now()
 
   var status: Status = Status.Stopped
 
@@ -44,6 +43,30 @@ class DownloadEntry[ED <: BackendSpecificEntryData](
   override def addDownloadLogEntry(entry: LogEntry): Unit = {
     this.downloadLog = this.downloadLog :+ entry
   }
+}
 
-  var backendSpecificDataOption: Option[ED] = None
+object DownloadEntry {
+  def apply[ED <: BackendSpecificEntryData](
+    backendId:           String,
+    uri:                 URI,
+    location:            File,
+    filenameOption:      Option[String],
+    comment:             String,
+    backendSpecificData: ED
+  ) = {
+    new DownloadEntry[ED](UUID.randomUUID(), DateTime.now(), backendId, uri, location, filenameOption, comment, backendSpecificData)
+  }
+
+  def load[ED <: BackendSpecificEntryData](
+    id:                  UUID,
+    dateCreated:         DateTime,
+    backendId:           String,
+    uri:                 URI,
+    location:            File,
+    filenameOption:      Option[String],
+    comment:             String,
+    backendSpecificData: ED
+  ) = {
+    new DownloadEntry[ED](id, dateCreated, backendId, uri, location, filenameOption, comment, backendSpecificData)
+  }
 }

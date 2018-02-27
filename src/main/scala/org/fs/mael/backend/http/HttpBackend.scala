@@ -22,8 +22,13 @@ class HttpBackend extends Backend {
     }
   }
 
-  override protected def createInner(uri: URI, location: File): DownloadEntry[HttpEntryData] = {
-    new DownloadEntry[HttpEntryData](id, uri, location, None, "HTTP!11")
+  override protected def createInner(
+    uri:            URI,
+    location:       File,
+    filenameOption: Option[String],
+    comment:        String
+  ): DownloadEntry[HttpEntryData] = {
+    DownloadEntry(id, uri, location, filenameOption, comment, new HttpEntryData)
   }
 
   override val downloader = new HttpBackendDownloader

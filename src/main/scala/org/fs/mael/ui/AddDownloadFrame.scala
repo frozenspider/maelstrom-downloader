@@ -78,7 +78,13 @@ class AddDownloadFrame(dialog: Shell, cfgMgr: ConfigManager) {
       url.getProtocol match {
         case "http" | "https" =>
           val backend = BackendManager.findFor(url.toURI).get
-          val entry = backend.create(url.toURI, new File(cfgMgr.getProperty(ConfigOptions.DownloadPath)))
+          // TODO: Filename and comment
+          val entry = backend.create(
+            url.toURI,
+            new File(cfgMgr.getProperty(ConfigOptions.DownloadPath)),
+            None,
+            ""
+          )
           DownloadListManager.add(entry)
           dialog.dispose()
         case other => throw new UserFriendlyException(s"Unsupported scheme: $other")

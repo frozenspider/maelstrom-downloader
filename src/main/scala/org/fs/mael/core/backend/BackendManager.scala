@@ -24,13 +24,23 @@ object BackendManager {
     }
   }
 
+  def list: Seq[Backend] = {
+    _backends.toSeq.map(_._1)
+  }
+
   def findFor(uri: URI): Option[Backend] = {
     this.synchronized {
       _backends map (_._1) find (_.isSupported(uri))
     }
   }
 
-  def findFor(de: DownloadEntryView): BackendWithEntry = {
+  def apply(id: String): Backend = {
+    this.synchronized {
+      (_backends map (_._1) find (_.id == id)).get
+    }
+  }
+
+  def getCastedPair(de: DownloadEntryView): BackendWithEntry = {
     this.synchronized {
       val backend = (_backends map (_._1) find (_.id == de.backendId)).get
       BackendWithEntry.apply(backend, de.asInstanceOf[DownloadEntry[_]])
