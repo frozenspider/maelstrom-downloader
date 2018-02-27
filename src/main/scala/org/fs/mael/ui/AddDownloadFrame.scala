@@ -4,6 +4,7 @@ import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
 import java.io.File
 import java.net.MalformedURLException
+import java.net.URI
 import java.net.URL
 
 import org.eclipse.swt._
@@ -24,42 +25,73 @@ class AddDownloadFrame(
   init()
 
   var uriInput: Text = _
+  var locationInput: Text = _
+  var commentInput: Text = _
 
   def init(): Unit = {
     dialog.setText("Add Download")
 
     dialog.setLayout(new GridLayout())
 
-    val label = new Label(dialog, SWT.NONE)
-    label.setText("URI:")
+    new Label(dialog, SWT.NONE).withCode { label =>
+      label.setText("URI:")
+    }
 
-    uriInput = new Text(dialog, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL)
-    uriInput.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_FILL).withCode { d =>
-      d.heightHint = 50
-      d.widthHint = 500
-    })
-    uriInput.addVerifyListener(e => {
-      // Remove all line breaks
-      e.text = e.text.replaceAll("[\r\n]+", "")
-    })
-    installDefaultHotkeys(uriInput)
+    uriInput = new Text(dialog, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL).withCode { input =>
+      input.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_FILL).withCode { d =>
+        d.heightHint = 50
+        d.widthHint = 500
+      })
+      input.addVerifyListener(e => {
+        // Remove all line breaks
+        e.text = e.text.replaceAll("[\r\n]+", "")
+      })
+      installDefaultHotkeys(input)
+    }
 
-    val bottomButtonRow = new Composite(dialog, SWT.NONE)
-    bottomButtonRow.setLayout(new RowLayout().withCode { layout =>
-      layout.marginTop = 0
-      layout.marginBottom = 0
-    })
-    bottomButtonRow.setLayoutData(new GridData(GridData.CENTER, GridData.FILL, true, true))
+    new Label(dialog, SWT.NONE).withCode { label =>
+      label.setText("Location:")
+    }
 
-    val okButton = new Button(bottomButtonRow, SWT.PUSH)
-    okButton.setText("&OK")
-    okButton.setLayoutData(new RowData(100, SWT.DEFAULT))
-    okButton.addListener(SWT.Selection, e => okClicked(dialog))
+    // TODO: Browse button
+    locationInput = new Text(dialog, SWT.SINGLE | SWT.BORDER).withCode { input =>
+      input.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_FILL))
+      input.setText(cfgMgr.getProperty(ConfigOptions.DownloadPath))
+      installDefaultHotkeys(input)
+    }
 
-    val cancelButton = new Button(bottomButtonRow, SWT.PUSH)
-    cancelButton.setText("&Cancel")
-    cancelButton.setLayoutData(new RowData(100, SWT.DEFAULT))
-    cancelButton.addListener(SWT.Selection, e => dialog.dispose())
+    new Label(dialog, SWT.NONE).withCode { label =>
+      label.setText("Comment:")
+    }
+
+    commentInput = new Text(dialog, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL).withCode { input =>
+      input.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_FILL).withCode { d =>
+        d.heightHint = 50
+        d.widthHint = 500
+      })
+      installDefaultHotkeys(input)
+    }
+
+    val bottomButtonRow = new Composite(dialog, SWT.NONE).withCode { composite =>
+      composite.setLayout(new RowLayout().withCode { layout =>
+        layout.marginTop = 0
+        layout.marginBottom = 0
+      })
+      composite.setLayoutData(new GridData(GridData.CENTER, GridData.FILL, true, true))
+    }
+
+    val okButton = new Button(bottomButtonRow, SWT.PUSH).withCode { btn =>
+      btn.setText("&OK")
+      btn.setLayoutData(new RowData(100, SWT.DEFAULT))
+      btn.addListener(SWT.Selection, e => okClicked(dialog))
+      dialog.setDefaultButton(btn)
+    }
+
+    val cancelButton = new Button(bottomButtonRow, SWT.PUSH).withCode { btn =>
+      btn.setText("&Cancel")
+      btn.setLayoutData(new RowData(100, SWT.DEFAULT))
+      btn.addListener(SWT.Selection, e => dialog.dispose())
+    }
 
     dialog.pack()
     centerOnScreen(dialog)
@@ -73,22 +105,21 @@ class AddDownloadFrame(
     } catch {
       case ex: Exception => // Ignore
     }
+
+    uriInput.setFocus()
   }
 
   private def okClicked(dialog: Shell): Unit = {
     try {
       val uriString = uriInput.getText.trim
-      val url = new URL(uriString)
-      url.getProtocol match {
-        case "http" | "https" =>
-          val backend = BackendManager.findFor(url.toURI).get
-          // TODO: Filename and comment
-          val entry = backend.create(
-            url.toURI,
-            new File(cfgMgr.getProperty(ConfigOptions.DownloadPath)),
-            None,
-            ""
-          )
+      val locationString = locationInput.getText.trim
+      val location = new File(locationString)
+      val comment = commentInput.getText.trim
+      val uri = new URI(uriString)
+      val backendOption = BackendManager.findFor(uri)
+      backendOption match {
+        case Some(backend) =>
+          val entry = backend.create(uri, location, None, comment)
           downloadListMgr.add(entry)
           dialog.dispose()
         case other => throw new UserFriendlyException(s"Unsupported scheme: $other")
