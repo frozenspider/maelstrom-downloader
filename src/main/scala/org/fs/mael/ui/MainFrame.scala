@@ -179,6 +179,10 @@ class MainFrame(
       val itemDelete = new MenuItem(menu, SWT.NONE)
       itemDelete.setText("Delete")
       itemDelete.addListener(SWT.Selection, e => tryDeleteSelectedDownloads())
+
+      // TODO: Delete with file
+      // TODO: Restart
+      // TODO: Properties
     }
     mainTable.setMenu(menu)
 
@@ -427,13 +431,15 @@ class MainFrame(
         val newRow = new TableItem(mainTable, SWT.NONE)
         fillDownloadRow(newRow, de)
         mainTable.deselectAll()
-        mainTable.select(mainTable.getItems.indexOf(newRow))
         mainTable.showItem(newRow)
+        mainTable.select(mainTable.getItems.indexOf(newRow)) // Why no event fired?
+        updateButtonsEnabledState()
       }
     }
 
     override def removed(de: DownloadEntryView): Unit = syncExecSafely {
       findDownloadRowIdxOption(de) map (mainTable.remove)
+      updateButtonsEnabledState()
     }
 
     override def statusChanged(de: DownloadEntryView, prevStatus: Status): Unit = syncExecSafely {
