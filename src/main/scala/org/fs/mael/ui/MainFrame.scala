@@ -162,18 +162,25 @@ class MainFrame(
 
   private def createMainTable(parent: Composite): Unit = {
     // TODO: Make table sortable
-    mainTable = new Table(parent, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION)
-    mainTable.setLinesVisible(true)
-    mainTable.setHeaderVisible(true)
-    mainTable.addKeyListener(keyPressed {
-      case e if e.keyCode == SWT.DEL && mainTable.getSelectionCount > 0 =>
-        println("Delete")
-      // TODO: Implement deletion
-    })
-    mainTable.addListener(SWT.Selection, e => {
-      getSelectedDownloadEntryOption map renderDownloadLog getOrElse { logTable.removeAll() }
-    })
-    mainTable.addListener(SWT.Selection, e => updateButtonsEnabledState())
+    mainTable = new Table(parent, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION).withCode { table =>
+      table.setLinesVisible(true)
+      table.setHeaderVisible(true)
+      table.addKeyListener(keyPressed {
+        case e if e.keyCode == SWT.DEL && table.getSelectionCount > 0 =>
+          tryDeleteSelectedDownloads()
+      })
+      table.addListener(SWT.Selection, e => {
+        getSelectedDownloadEntryOption map renderDownloadLog getOrElse { logTable.removeAll() }
+      })
+      table.addListener(SWT.Selection, e => updateButtonsEnabledState())
+    }
+
+    val menu = new Menu(mainTable).withCode { menu =>
+      val itemDelete = new MenuItem(menu, SWT.NONE)
+      itemDelete.setText("Delete")
+      itemDelete.addListener(SWT.Selection, e => tryDeleteSelectedDownloads())
+    }
+    mainTable.setMenu(menu)
 
     mainColumnDefs.content.map(_.toColumnDef).foreach { cd =>
       val c = new TableColumn(mainTable, SWT.NONE)
@@ -263,7 +270,7 @@ class MainFrame(
     try {
       val running = getRunningEntities()
       if (running.size > 0) {
-        val confirmed = MessageDialog.openConfirm(shell, "What to do?",
+        val confirmed = MessageDialog.openConfirm(shell, "Confirmation",
           s"You have ${running.size} active download(s). Are you sure you wish to quit?")
 
         if (!confirmed) {
@@ -287,6 +294,15 @@ class MainFrame(
       case ex: Exception =>
         log.error("Error terminating an application", ex)
         showError(shell, message = ex.getMessage)
+    }
+  }
+
+  private def tryDeleteSelectedDownloads(): Unit = {
+    val confirmed = MessageDialog.openConfirm(shell, "Confirmation",
+      s"Are you sure you wish to delete selected downloads?")
+    if (confirmed) {
+      val selected = getSelectedDownloadEntries
+      downloadListMgr.removeAll(selected)
     }
   }
 

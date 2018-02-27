@@ -9,6 +9,7 @@ import scala.io.Source
 import org.fs.mael.core.Status
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
+import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.event.EventManager
 
 class DownloadListManager(serializer: DownloadListSerializer, val file: File) {
@@ -62,10 +63,23 @@ class DownloadListManager(serializer: DownloadListSerializer, val file: File) {
   }
 
   /** Remove an existing entry from a download list, firing an event */
-  def remove(de: DownloadEntry[_]): Unit = {
+  def remove(de: DownloadEntryView): Unit = {
     this.synchronized {
-      entries -= de
-      EventManager.fireRemoved(de)
+      de match {
+        case de: DownloadEntry[_] =>
+          entries -= de
+          EventManager.fireRemoved(de)
+      }
+    }
+  }
+
+  /** Remove an existing entry from a download list, firing an event */
+  def removeAll(des: Seq[DownloadEntryView]): Unit = {
+    this.synchronized {
+      des.foreach {
+        case de: DownloadEntry[_] => entries -= de
+      }
+      des foreach EventManager.fireRemoved
     }
   }
 
