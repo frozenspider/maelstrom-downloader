@@ -1,6 +1,6 @@
 package org.fs.mael.core.backend
 
-import org.fs.mael.core.entry.DownloadEntryView
+import org.fs.mael.core.entry.DownloadEntry
 
 /**
  * Dirty hack for scala type system which allows coercing DownloadEntry
@@ -9,16 +9,18 @@ import org.fs.mael.core.entry.DownloadEntryView
  * @author FS
  */
 class BackendWithEntry(val backend: Backend) {
-  private var _de: backend.DE = _
+  private var _de: DownloadEntry[backend.BSED] = _
 
-  def de: backend.DE = _de
+  def de: DownloadEntry[backend.BSED] = _de
 }
 
 object BackendWithEntry {
-  def apply(b: Backend, de: DownloadEntryView): BackendWithEntry = {
-    require(b.entryClass isInstance de)
+  def apply(b: Backend, de: DownloadEntry[_]): BackendWithEntry = {
+    require(de.backendId == b.id)
+    require(b.isSupported(de.uri))
+    require(b.dataClass isInstance de.backendSpecificData)
     val result = new BackendWithEntry(b)
-    result._de = de.asInstanceOf[result.backend.DE]
+    result._de = de.asInstanceOf[DownloadEntry[result.backend.BSED]]
     result
   }
 }

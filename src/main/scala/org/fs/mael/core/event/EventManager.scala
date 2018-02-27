@@ -95,7 +95,7 @@ object EventManager extends Logging {
   }
 
   /** Download entry configuration changed */
-  def fireConfigChanged(de: DownloadEntry): Unit = {
+  def fireConfigChanged(de: DownloadEntry[_]): Unit = {
     enqueue(event.ConfigChanged(
       "config changed",
       () => subscribers collect { case bck: BackendSubscriber => bck.configChanged(de) }

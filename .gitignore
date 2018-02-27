@@ -20,6 +20,7 @@ buildinfo.*
 
 # Application
 maelstrom-downloader.prefs
+downloads.json
 
 *.class
 *.log

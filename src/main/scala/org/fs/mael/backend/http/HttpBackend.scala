@@ -4,12 +4,13 @@ import java.io.File
 import java.net.URI
 
 import org.fs.mael.core.backend.Backend
+import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 
 class HttpBackend extends Backend {
-  override type DE = HttpBackend.DE
+  override type BSED = HttpEntryData
 
-  override val entryClass: Class[DE] = classOf[DE]
+  override val dataClass: Class[BSED] = classOf[BSED]
 
   override val id: String = HttpBackend.Id
 
@@ -21,15 +22,20 @@ class HttpBackend extends Backend {
     }
   }
 
-  override protected def createInner(uri: URI, location: File): DE = {
-    new DownloadEntry(uri, location, None, "HTTP!11") {}
+  override protected def createInner(
+    uri:            URI,
+    location:       File,
+    filenameOption: Option[String],
+    comment:        String
+  ): DownloadEntry[HttpEntryData] = {
+    DownloadEntry(id, uri, location, filenameOption, comment, new HttpEntryData)
   }
 
   override val downloader = new HttpBackendDownloader
+
+  override val dataSerializer = new HttpDataSerializer
 }
 
 object HttpBackend {
-  type DE = DownloadEntry
-
   val Id = "http-https"
 }

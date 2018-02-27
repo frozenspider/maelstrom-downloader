@@ -2,25 +2,19 @@ package org.fs.mael.ui
 
 import java.io.FileNotFoundException
 
-import org.eclipse.jface.preference.BooleanFieldEditor
-import org.eclipse.jface.preference.ColorFieldEditor
+import scala.reflect.runtime.universe._
+
 import org.eclipse.jface.preference.DirectoryFieldEditor
 import org.eclipse.jface.preference.FieldEditorPreferencePage
-import org.eclipse.jface.preference.FileFieldEditor
-import org.eclipse.jface.preference.FontFieldEditor
 import org.eclipse.jface.preference.IntegerFieldEditor
-import org.eclipse.jface.preference.PathEditor
 import org.eclipse.jface.preference.PreferenceDialog
 import org.eclipse.jface.preference.PreferenceManager
 import org.eclipse.jface.preference.PreferenceNode
 import org.eclipse.jface.preference.PreferenceStore
 import org.eclipse.jface.preference.RadioGroupFieldEditor
-import org.eclipse.jface.preference.ScaleFieldEditor
-import org.eclipse.jface.preference.StringFieldEditor
 import org.eclipse.swt.widgets.Shell
 import org.fs.mael.BuildInfo
 import org.fs.mael.core.CoreUtils._
-import scala.reflect.runtime.universe._
 
 class ConfigManager {
   import ConfigManager._

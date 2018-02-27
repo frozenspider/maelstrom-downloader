@@ -4,10 +4,11 @@ import java.io.File
 import java.net.URI
 import java.util.UUID
 
+import scala.collection.MapLike
+
 import org.fs.mael.core.Status
 
 import com.github.nscala_time.time.Imports._
-import scala.collection.MapLike
 
 /**
  * Backend-agnostic mutable download details, common for all download types.
@@ -18,6 +19,8 @@ import scala.collection.MapLike
 trait DownloadEntryView {
   type Start = Long
   type Downloaded = Long
+
+  def backendId: String
 
   def id: UUID
 
