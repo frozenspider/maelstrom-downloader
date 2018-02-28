@@ -46,9 +46,8 @@ object MaelstromDownloaderMain extends App with Logging {
 
     uiLoop(shell)
   } catch {
-    case ex: Exception =>
-      log.error("Uncaught error!", ex)
-      sys.exit()
+    case th: Throwable =>
+      log.error("Uncaught error!", th)
   }
 
   //
