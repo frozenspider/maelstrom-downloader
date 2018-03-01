@@ -1,5 +1,9 @@
 maelstrom-downloader
 =======================
+
+[![Build Status](https://travis-ci.org/frozenspider/maelstrom-downloader.svg?branch=master)](https://travis-ci.org/frozenspider/maelstrom-downloader)
+[![codecov.io](http://codecov.io/github/frozenspider/maelstrom-downloader/coverage.svg?branch=master)](http://codecov.io/github/frozenspider/maelstrom-downloader?branch=master)
+
 Advanced cross-platform download manager.
 
 Requires Java (at least version 8).
