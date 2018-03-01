@@ -91,13 +91,31 @@ launch4j := {
 
 
 //
+// shellScript task
+//
+
+val shellScript = taskKey[Unit](s"Generates a Linux runnable shell script")
+
+shellScript := {
+  val file = buildOutputPath / (name.value + ".sh")
+  val cp = Seq(
+    (assemblyJarName in assembly).value,
+    swtLibRelativeOutputDirString + "/" + swtOsArtifacts("linux")
+  ).mkString(":")
+  val command = s"java -cp '$cp' ${(mainClass in assembly).value.get}"
+  IO.write(file, command + "\n")
+}
+
+
+//
 // buildDistr task
 //
 
-val buildDistr = taskKey[Unit](s"Complete build: assemble a runnable .jar, copy SWT libs, generate Windows executables")
+val buildDistr = taskKey[Unit](s"Complete build: assemble a runnable .jar, copy SWT libs, generate Windows executables and Linux shell script")
 
 buildDistr := {
   assembly.value
   launch4j.value
+  shellScript.value
   copySwtLibs.value
 }

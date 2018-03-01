@@ -49,7 +49,7 @@ object MaelstromDownloaderMain extends App with Logging {
     uiLoop(shell)
   } catch {
     case th: Throwable =>
-      JOptionPane.showMessageDialog(null, "An error occurred: " + th.getMessage, "Error", JOptionPane.ERROR_MESSAGE)
+      JOptionPane.showMessageDialog(null, th.getMessage, "Error", JOptionPane.ERROR_MESSAGE)
       log.error("Uncaught error!", th)
   }
 
