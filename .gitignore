@@ -17,8 +17,8 @@ project/target/
 /_downloads
 
 # Application
-config.properties
-downloads.json
+/log
+/cfg
 
 *.class
 *.log

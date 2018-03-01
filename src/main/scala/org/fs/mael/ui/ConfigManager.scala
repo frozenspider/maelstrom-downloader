@@ -1,5 +1,6 @@
 package org.fs.mael.ui
 
+import java.io.File
 import java.io.FileNotFoundException
 
 import scala.reflect.runtime.universe._
@@ -13,15 +14,15 @@ import org.eclipse.jface.preference.PreferenceNode
 import org.eclipse.jface.preference.PreferenceStore
 import org.eclipse.jface.preference.RadioGroupFieldEditor
 import org.eclipse.swt.widgets.Shell
-import org.fs.mael.BuildInfo
 import org.fs.mael.core.CoreUtils._
 
-class ConfigManager {
+class ConfigManager(val file: File) {
   import ConfigManager._
 
   val store = new PreferenceStore().withCode { store => // TODO: Link to file
     import ConfigOptions._
-    store.setFilename("config.properties")
+    file.getParentFile.mkdirs()
+    store.setFilename(file.getAbsolutePath)
     store.setDefault(DownloadPath.id, {
       sys.props("os.name") match {
         case os if os startsWith "Windows" => sys.env("USERPROFILE") + "\\Downloads"

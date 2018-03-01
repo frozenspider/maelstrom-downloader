@@ -32,6 +32,7 @@ class DownloadListManager(serializer: DownloadListSerializer, val file: File) {
     this.synchronized {
       require(!file.exists || file.canWrite, "Can't write to this file")
       val serialized = serializer.serialize(entries)
+      file.getParentFile.mkdirs()
       Files.write(file.toPath(), serialized.getBytes(StandardCharsets.UTF_8))
     }
   }
