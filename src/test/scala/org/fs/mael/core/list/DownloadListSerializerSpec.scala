@@ -38,7 +38,7 @@ class DownloadListSerializerSpec
 
   test("stub - with all simple fields") {
     assertSingularSerializationWorks(createDE("all-simple-fields") { de =>
-      de.location = new File("c:/ewq\\:c")
+      de.location = new File("c:/ewq\\:c").getAbsoluteFile
       de.filenameOption = Some("c:/ewq\\:c")
       de.comment = "My\nmulti-line\ncomment"
       de.status = Status.Error
