@@ -16,6 +16,8 @@ import org.fs.mael.ui.resources.ResourcesImpl
 import org.fs.utility.StopWatch
 import org.slf4s.Logging
 
+import javax.swing.JOptionPane
+
 object MaelstromDownloaderMain extends App with Logging {
 
   //
@@ -47,6 +49,7 @@ object MaelstromDownloaderMain extends App with Logging {
     uiLoop(shell)
   } catch {
     case th: Throwable =>
+      JOptionPane.showMessageDialog(null, "An error occurred: " + th.getMessage, "Error", JOptionPane.ERROR_MESSAGE)
       log.error("Uncaught error!", th)
   }
 
