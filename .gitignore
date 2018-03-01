@@ -15,10 +15,9 @@ project/target/
 # Development
 /_build
 /_downloads
-buildinfo.*
 
 # Application
-maelstrom-downloader.prefs
+config.properties
 downloads.json
 
 *.class

@@ -21,7 +21,7 @@ class ConfigManager {
 
   val store = new PreferenceStore().withCode { store => // TODO: Link to file
     import ConfigOptions._
-    store.setFilename(BuildInfo.name + ".prefs")
+    store.setFilename("config.properties")
     store.setDefault(DownloadPath.id, {
       sys.props("os.name") match {
         case os if os startsWith "Windows" => sys.env("USERPROFILE") + "\\Downloads"

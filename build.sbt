@@ -18,7 +18,10 @@ lazy val root = (project in file("."))
       "prettyName" -> prettyName,
       version,
       "fullPrettyName" -> (prettyName + " v" + version.value),
-      buildInfoBuildNumber),
+    ),
+    buildInfoOptions ++= Seq(
+      BuildInfoOption.BuildTime
+    ),
     buildInfoPackage := "org.fs.mael",
     buildInfoUsePackageAsPath := true
   )
