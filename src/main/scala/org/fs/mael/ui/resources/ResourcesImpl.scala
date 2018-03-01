@@ -8,6 +8,8 @@ import org.fs.mael.core.Status
 import org.fs.mael.core.entry.LogEntry
 
 class ResourcesImpl(display: Display) extends Resources {
+  override def mainIcon: Image = icons.main
+
   override def icon(status: Status): Image = status match {
     case Status.Running  => icons.play
     case Status.Stopped  => icons.stop
@@ -22,26 +24,31 @@ class ResourcesImpl(display: Display) extends Resources {
     case LogEntry.Error    => icons.errorCircle
   }
 
-  private def loadIcon(name: String): Image = {
+  private def loadImage(name: String): Image = {
     val stream = this.getClass.getResourceAsStream("/icons/" + name)
     try {
-      val loaded = new ImageData(stream)
-      new Image(display, loaded.scaledTo(16, 16))
+      new Image(display, new ImageData(stream))
     } finally {
       stream.close()
     }
   }
 
-  object icons {
-    val play: Image = loadIcon("play.png")
-    val stop: Image = loadIcon("stop.png")
-    val error: Image = loadIcon("error.png")
-    val check: Image = loadIcon("check.png")
+  private def rescale(image: Image, sizes: (Int, Int) = (16, 16)): Image = {
+    new Image(display, image.getImageData.scaledTo(16, 16))
+  }
 
-    val info: Image = loadIcon("info.png")
-    val request: Image = loadIcon("request.png")
-    val response: Image = loadIcon("response.png")
-    val errorCircle: Image = loadIcon("error-circle.png")
+  object icons {
+    val main: Image = loadImage("main.ico")
+
+    val play: Image = rescale(loadImage("play.png"))
+    val stop: Image = rescale(loadImage("stop.png"))
+    val error: Image = rescale(loadImage("error.png"))
+    val check: Image = rescale(loadImage("check.png"))
+
+    val info: Image = rescale(loadImage("info.png"))
+    val request: Image = rescale(loadImage("request.png"))
+    val response: Image = rescale(loadImage("response.png"))
+    val errorCircle: Image = rescale(loadImage("error-circle.png"))
 
     val empty: Image = {
       new Image(display, new Image(display, 1, 1).getImageData.withCode { idt =>
