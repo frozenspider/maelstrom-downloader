@@ -7,7 +7,10 @@ sourceManaged            := baseDirectory.value / "src_managed"
 sourceManaged in Compile := baseDirectory.value / "src_managed" / "main" / "scala"
 sourceManaged in Test    := baseDirectory.value / "src_managed" / "test" / "scala"
 
+import SwtDependencies._
+
 lazy val root = (project in file("."))
+  .configs(SwtConfig)
   .enablePlugins(BuildInfoPlugin)
   .settings(
     buildInfoKeys := Seq[BuildInfoKey](
@@ -22,12 +25,11 @@ lazy val root = (project in file("."))
 
 resolvers += "jitpack"  at "https://jitpack.io"
 
-import SwtDependencies._
-libraryDependencies ++= Seq(
-  // UI
-  swtBaseDep,
-  swtCurrOsDep,
-  "org.eclipse.platform"      %  "org.eclipse.jface"    % "3.13.2"  exclude("org.eclipse.platform", swtBaseArtifact),
+libraryDependencies ++=
+// Intricate SWT dependencies
+Seq(swtBaseDep, swtCurrOsDep, jfaceDep) ++ getSwtOsDeps(SwtConfig) ++ 
+// Regular dependencies
+Seq(
   // Network
   "org.apache.httpcomponents" %  "httpclient"           % "4.5.5",
   // Logging
@@ -44,4 +46,4 @@ libraryDependencies ++= Seq(
   "junit"                     %  "junit"                % "4.12"  % "test",
   "org.scalactic"             %% "scalactic"            % "3.0.4" % "test",
   "org.scalatest"             %% "scalatest"            % "3.0.4" % "test"
-)
+) ++ getSwtOsDeps(SwtConfig)
