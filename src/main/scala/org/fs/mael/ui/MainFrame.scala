@@ -86,6 +86,7 @@ class MainFrame(
 
     adjustColumnWidths(mainTable)
     mainTable.setFocus()
+    shell.setImage(resources.mainIcon)
     shell.setText(BuildInfo.fullPrettyName)
     shell.setSize(1000, 600)
     centerOnScreen(shell)

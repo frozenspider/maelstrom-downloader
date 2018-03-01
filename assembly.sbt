@@ -61,6 +61,7 @@ launch4j := {
   ConfigPersister.getInstance.createBlank()
   val conf: Config = ConfigPersister.getInstance.getConfig
   conf.setHeaderType("gui")
+  conf.setIcon(file("./src/main/resources/icons/main.ico"))
   conf.setJar(new File((assemblyJarName in assembly).value))
   conf.setDontWrapJar(true)
   conf.setDownloadUrl("http://java.com/download")
