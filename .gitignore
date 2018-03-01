@@ -11,15 +11,14 @@ src_managed/
 lib_managed/
 project/project/
 project/target/
-project/build.properties
 
 # Development
 /_build
-buildinfo.*
+/_downloads
 
 # Application
-application.conf
-cache.conf
+/log
+/cfg
 
 *.class
 *.log
