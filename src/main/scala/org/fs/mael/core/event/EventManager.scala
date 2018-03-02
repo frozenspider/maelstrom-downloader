@@ -1,15 +1,14 @@
 package org.fs.mael.core.event
 
-import java.util.UUID
-
 import scala.collection.Seq
 import scala.collection.mutable.PriorityQueue
 import scala.math.Ordering
 
 import org.fs.mael.core.Status
-import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.entry.DownloadEntry
+import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.entry.LogEntry
+import org.fs.mael.core.event.Events._
 import org.slf4s.Logging
 
 class EventManager extends Logging {
@@ -50,22 +49,31 @@ class EventManager extends Logging {
   // Client methods: events firing
   //
 
+  def fire(event: PriorityEvent): Unit = {
+    this.synchronized {
+      log.trace(event.msg)
+      event.order = 1 + (if (lastAssignedOrder < Long.MaxValue) lastAssignedOrder else 0)
+      pq.enqueue(event)
+      lastAssignedOrder = event.order
+    }
+  }
+
   def fireAdded(de: DownloadEntryView): Unit = {
-    enqueue(event.Added(
+    fire(Added(
       "added " + de.uri,
       () => subscribers collect { case ui: UiSubscriber => ui.added(de) }
     ))
   }
 
   def fireRemoved(de: DownloadEntryView): Unit = {
-    enqueue(event.Removed(
+    fire(Removed(
       "removed " + de.uri,
       () => subscribers collect { case ui: UiSubscriber => ui.removed(de) }
     ))
   }
 
   def fireStatusChanged(de: DownloadEntryView, prevStatus: Status): Unit = {
-    enqueue(event.StatusChanged(
+    fire(StatusChanged(
       "status of " + de.uri + " changed from " + prevStatus + " to " + de.status,
       () => subscribers collect { case ui: UiSubscriber => ui.statusChanged(de, prevStatus) }
     ))
@@ -73,7 +81,7 @@ class EventManager extends Logging {
 
   /** Download progress changed */
   def fireProgress(de: DownloadEntryView): Unit = {
-    enqueue(event.Progress(
+    fire(Progress(
       "progress",
       () => subscribers collect { case ui: UiSubscriber => ui.progress(de) }
     ))
@@ -81,14 +89,14 @@ class EventManager extends Logging {
 
   /** Any displayed download detail (other than download progress) changed */
   def fireDetailsChanged(de: DownloadEntryView): Unit = {
-    enqueue(event.DetailsChanged(
+    fire(DetailsChanged(
       "details changed",
       () => subscribers collect { case ui: UiSubscriber => ui.detailsChanged(de) }
     ))
   }
 
   def fireLogged(de: DownloadEntryView, entry: LogEntry): Unit = {
-    enqueue(event.Logged(
+    fire(Logged(
       "logged",
       () => subscribers collect { case ui: UiSubscriber => ui.logged(de, entry) }
     ))
@@ -96,7 +104,7 @@ class EventManager extends Logging {
 
   /** Download entry configuration changed */
   def fireConfigChanged(de: DownloadEntry[_]): Unit = {
-    enqueue(event.ConfigChanged(
+    fire(ConfigChanged(
       "config changed",
       () => subscribers collect { case bck: BackendSubscriber => bck.configChanged(de) }
     ))
@@ -107,15 +115,6 @@ class EventManager extends Logging {
   //
 
   private var lastAssignedOrder: Long = 0
-
-  private def enqueue(event: PriorityEvent): Unit = {
-    this.synchronized {
-      log.trace(event.msg)
-      event.order = 1 + (if (lastAssignedOrder < Long.MaxValue) lastAssignedOrder else 0)
-      pq.enqueue(event)
-      lastAssignedOrder = event.order
-    }
-  }
 
   private def dequeueAll(): Seq[PriorityEvent] = {
     // Avoid unnecessary synchronization
@@ -170,40 +169,5 @@ class EventManager extends Logging {
     thread.setDaemon(true)
     thread.start()
     thread
-  }
-
-  private sealed abstract class PriorityEvent(val priority: Int) {
-    var order: Long = -1
-    val msg: String
-    val eventFunc: () => Unit
-
-    override def toString(): String = {
-      val fullName = this.getClass.getName
-      val lastSepIdx = fullName.lastIndexWhere(c => c == '.' || c == '$')
-      s"${fullName.drop(lastSepIdx + 1)}($priority, $order, $msg)"
-    }
-  }
-
-  private object event {
-    case class ConfigChanged(msg: String, eventFunc: () => Unit)
-      extends PriorityEvent(Int.MaxValue)
-
-    case class Added(msg: String, eventFunc: () => Unit)
-      extends PriorityEvent(100)
-
-    case class Removed(msg: String, eventFunc: () => Unit)
-      extends PriorityEvent(100)
-
-    case class StatusChanged(msg: String, eventFunc: () => Unit)
-      extends PriorityEvent(100)
-
-    case class DetailsChanged(msg: String, eventFunc: () => Unit)
-      extends PriorityEvent(50)
-
-    case class Logged(msg: String, eventFunc: () => Unit)
-      extends PriorityEvent(20)
-
-    case class Progress(msg: String, eventFunc: () => Unit)
-      extends PriorityEvent(Int.MinValue)
   }
 }
