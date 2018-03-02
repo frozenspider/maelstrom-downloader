@@ -1,5 +1,6 @@
 package org.fs.mael.ui
 
+import java.awt.Desktop
 import java.util.LinkedHashMap
 
 import org.eclipse.jface.dialogs.MessageDialog
@@ -182,6 +183,10 @@ class MainFrame(
       itemDelete.setText("Delete")
       itemDelete.addListener(SWT.Selection, e => tryDeleteSelectedDownloads())
 
+      val itemOpenFolder = new MenuItem(menu, SWT.NONE)
+      itemOpenFolder.setText("Open folder")
+      itemOpenFolder.addListener(SWT.Selection, e => openFolders())
+
       // TODO: Delete with file
       // TODO: Restart
       // TODO: Properties
@@ -311,6 +316,12 @@ class MainFrame(
       val selected = getSelectedDownloadEntries
       downloadListMgr.removeAll(selected)
     }
+  }
+
+  private def openFolders(): Unit = {
+    val selected = getSelectedDownloadEntries
+    val locations = selected.map(_.location).distinct
+    locations foreach Desktop.getDesktop.open
   }
 
   private def adjustColumnWidths(table: Table): Unit = {
