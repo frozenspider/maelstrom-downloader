@@ -2,30 +2,19 @@ package org.fs.mael.core.list
 
 import java.io.File
 import java.net.URI
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 
-import org.fs.mael.backend.http.HttpBackend
-import org.fs.mael.backend.http.HttpEntryData
-import org.fs.mael.core.CoreUtils._
-import org.fs.mael.core.Status
-import org.fs.mael.core.backend.BackendManager
+import scala.io.Source
+
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
-import org.fs.mael.core.entry.LogEntry
-import org.fs.mael.core.event.EventManager
-import org.fs.mael.test.StubBackend
-import org.fs.mael.test.TestUtils._
-import org.junit.runner.RunWith
-import org.scalatest.BeforeAndAfter
-import org.scalatest.FunSuite
-import org.scalatest.exceptions.TestFailedException
-
-import com.github.nscala_time.time.Imports._
-import org.fs.mael.test.StubEventManager
-import java.nio.file.Files
-import java.nio.charset.StandardCharsets
-import scala.io.Source
-import org.fs.mael.test.StubDownloadListSerializer
 import org.fs.mael.core.event.Events._
+import org.fs.mael.test.StubBackend
+import org.fs.mael.test.StubDownloadListSerializer
+import org.fs.mael.test.StubEventManager
+import org.junit.runner.RunWith
+import org.scalatest.FunSuite
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class DownloadListManagerSpec

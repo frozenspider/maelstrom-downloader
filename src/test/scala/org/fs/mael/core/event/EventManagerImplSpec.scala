@@ -8,10 +8,10 @@ import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.Events._
 import org.fs.mael.test.StubBackend
 import org.junit.runner.RunWith
+import org.scalatest.BeforeAndAfter
 import org.scalatest.FunSuite
 
 import com.github.nscala_time.time.Imports._
-import org.scalatest.BeforeAndAfter
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class EventManagerImplSpec
@@ -103,12 +103,12 @@ class EventManagerImplSpec
     }
   }
 
-  class TestUiSubscriber(override val subscriberId: String) extends UiSubscriber {
+  private class TestUiSubscriber(override val subscriberId: String) extends UiSubscriber {
     override def fired(event: EventForUi): Unit =
       firedEvents = firedEvents :+ event.asInstanceOf[PriorityEvent]
   }
 
-  class TestBackendSubscriber(override val subscriberId: String) extends BackendSubscriber {
+  private class TestBackendSubscriber(override val subscriberId: String) extends BackendSubscriber {
     override def fired(event: EventForBackend): Unit =
       firedEvents = firedEvents :+ event.asInstanceOf[PriorityEvent]
   }

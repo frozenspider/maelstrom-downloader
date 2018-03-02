@@ -1,8 +1,8 @@
 package org.fs.mael.core
 
+import org.fs.utility.StopWatch
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
-import org.fs.utility.StopWatch
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class CoreUtilsSpec

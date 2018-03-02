@@ -1,8 +1,8 @@
 package org.fs.mael.test
 
-import org.fs.mael.core.list.DownloadListSerializer
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
+import org.fs.mael.core.list.DownloadListSerializer
 
 /** DownloadListSerializer that does nothing, returning empty values */
 class StubDownloadListSerializer extends DownloadListSerializer {

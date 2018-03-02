@@ -24,14 +24,14 @@ import com.github.nscala_time.time.Imports._
 class DownloadListSerializerImplSpec
   extends FunSuite {
 
-  val eventMgr = new StubEventManager
+  private val eventMgr = new StubEventManager
 
-  val backendMgr = (new BackendManager).withCode { backendMgr =>
+  private val backendMgr = (new BackendManager).withCode { backendMgr =>
     backendMgr += (new StubBackend, Int.MinValue)
     backendMgr += (new HttpBackend(eventMgr), 0)
   }
 
-  val serializer = new DownloadListSerializerImpl(backendMgr)
+  private val serializer = new DownloadListSerializerImpl(backendMgr)
 
   test("stub - simple") {
     assertSingularSerializationWorks(createDE("simple")())
@@ -112,14 +112,14 @@ class DownloadListSerializerImplSpec
     }
   }
 
-  def assertSingularSerializationWorks(de1: DownloadEntry[_ <: BackendSpecificEntryData]): Unit = {
+  private def assertSingularSerializationWorks(de1: DownloadEntry[_ <: BackendSpecificEntryData]): Unit = {
     val serialized = serializer.serialize(Seq(de1))
     val deserialized = serializer.deserialize(serialized)
     assert(deserialized.size === 1)
     assertDownloadEntriesEqual(de1, deserialized.head)
   }
 
-  def createDE(uriString: String)(code: (DownloadEntry[_] => Unit) = (de => ())): DownloadEntry[_ <: BackendSpecificEntryData] = {
+  private def createDE(uriString: String)(code: (DownloadEntry[_] => Unit) = (de => ())): DownloadEntry[_ <: BackendSpecificEntryData] = {
     val loc = new File(System.getProperty("java.io.tmpdir"))
     val uri = new URI(uriString)
     val backend = backendMgr.findFor(uri).get
