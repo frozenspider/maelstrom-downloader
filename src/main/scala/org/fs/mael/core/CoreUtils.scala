@@ -14,7 +14,7 @@ trait CoreUtils {
       } else if (sw.peek >= timeoutMs) {
         false
       } else {
-        Thread.sleep(30)
+        Thread.sleep(10)
         waitInner()
       }
     }
