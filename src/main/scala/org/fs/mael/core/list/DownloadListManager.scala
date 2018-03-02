@@ -79,7 +79,7 @@ class DownloadListManager(
     }
   }
 
-  /** Remove an existing entry from a download list, firing an event */
+  /** Remove existing entries from a download list, firing events */
   def removeAll(des: Seq[DownloadEntryView]): Unit = {
     this.synchronized {
       des.foreach {

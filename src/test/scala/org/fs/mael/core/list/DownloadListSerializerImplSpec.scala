@@ -21,7 +21,7 @@ import org.scalatest.exceptions.TestFailedException
 import com.github.nscala_time.time.Imports._
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
-class DownloadListSerializerSpec
+class DownloadListSerializerImplSpec
   extends FunSuite {
 
   val eventMgr = new StubEventManager
@@ -31,7 +31,7 @@ class DownloadListSerializerSpec
     backendMgr += (new HttpBackend(eventMgr), 0)
   }
 
-  val serializer = new DownloadListSerializer(backendMgr)
+  val serializer = new DownloadListSerializerImpl(backendMgr)
 
   test("stub - simple") {
     assertSingularSerializationWorks(createDE("simple")())
