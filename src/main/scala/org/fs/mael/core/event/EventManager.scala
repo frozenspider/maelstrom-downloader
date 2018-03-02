@@ -5,6 +5,7 @@ import scala.collection.mutable.PriorityQueue
 import scala.math.Ordering
 
 import org.fs.mael.core.Status
+import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.entry.LogEntry
@@ -58,56 +59,35 @@ class EventManager extends Logging {
     }
   }
 
+  /** Download entry configuration changed */
+  def fireConfigChanged(de: DownloadEntry[_ <: BackendSpecificEntryData]): Unit = {
+    fire(ConfigChanged(de))
+  }
+
   def fireAdded(de: DownloadEntryView): Unit = {
-    fire(Added(
-      "added " + de.uri,
-      () => subscribers collect { case ui: UiSubscriber => ui.added(de) }
-    ))
+    fire(Added(de))
   }
 
   def fireRemoved(de: DownloadEntryView): Unit = {
-    fire(Removed(
-      "removed " + de.uri,
-      () => subscribers collect { case ui: UiSubscriber => ui.removed(de) }
-    ))
+    fire(Removed(de))
   }
 
   def fireStatusChanged(de: DownloadEntryView, prevStatus: Status): Unit = {
-    fire(StatusChanged(
-      "status of " + de.uri + " changed from " + prevStatus + " to " + de.status,
-      () => subscribers collect { case ui: UiSubscriber => ui.statusChanged(de, prevStatus) }
-    ))
-  }
-
-  /** Download progress changed */
-  def fireProgress(de: DownloadEntryView): Unit = {
-    fire(Progress(
-      "progress",
-      () => subscribers collect { case ui: UiSubscriber => ui.progress(de) }
-    ))
+    fire(StatusChanged(de, prevStatus))
   }
 
   /** Any displayed download detail (other than download progress) changed */
   def fireDetailsChanged(de: DownloadEntryView): Unit = {
-    fire(DetailsChanged(
-      "details changed",
-      () => subscribers collect { case ui: UiSubscriber => ui.detailsChanged(de) }
-    ))
+    fire(DetailsChanged(de))
   }
 
   def fireLogged(de: DownloadEntryView, entry: LogEntry): Unit = {
-    fire(Logged(
-      "logged",
-      () => subscribers collect { case ui: UiSubscriber => ui.logged(de, entry) }
-    ))
+    fire(Logged(de, entry))
   }
 
-  /** Download entry configuration changed */
-  def fireConfigChanged(de: DownloadEntry[_]): Unit = {
-    fire(ConfigChanged(
-      "config changed",
-      () => subscribers collect { case bck: BackendSubscriber => bck.configChanged(de) }
-    ))
+  /** Download progress changed */
+  def fireProgress(de: DownloadEntryView): Unit = {
+    fire(Progress(de))
   }
 
   //
@@ -160,7 +140,10 @@ class EventManager extends Logging {
       def loop(): Unit = {
         val events = dequeueAll()
         events foreach { e =>
-          e.eventFunc.apply()
+          e match {
+            case e: EventForUi      => subscribers collect { case s: UiSubscriber => s.fired(e) }
+            case e: EventForBackend => subscribers collect { case s: BackendSubscriber => s.fired(e) }
+          }
           log.trace("Event processed: " + e)
         }
       }
