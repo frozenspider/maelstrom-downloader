@@ -24,6 +24,9 @@ class EventManager extends Logging {
     }
   }
 
+  /** Whether event processing should be paused, needed for tests */
+  private var paused: Boolean = false
+
   /** Event subscribers who will receive firing events, notified from worker thread */
   private var subscribers: Set[EventSubscriber] = Set.empty
 
@@ -91,6 +94,19 @@ class EventManager extends Logging {
   }
 
   //
+  // Test methods
+  //
+
+  /** For test usage only! */
+  def test_getSubscribers = subscribers
+
+  /** For test usage only! */
+  def test_pause(): Unit = paused = true
+
+  /** For test usage only! */
+  def test_resume(): Unit = paused = false
+
+  //
   // Helpers
   //
 
@@ -118,7 +134,7 @@ class EventManager extends Logging {
       override def run(): Unit = {
         while (true) {
           try {
-            if (log.underlying.isTraceEnabled) {
+            if (log.underlying.isTraceEnabled && !paused) {
               val copy = copyQueue()
               if (!copy.isEmpty) {
                 log.trace(copy.size.toString + " events queued")
@@ -128,7 +144,9 @@ class EventManager extends Logging {
               }
             }
 
-            loop()
+            if (!paused) {
+              loop()
+            }
             Thread.sleep(20)
           } catch {
             case ex: Exception =>
