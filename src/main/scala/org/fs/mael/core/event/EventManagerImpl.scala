@@ -19,6 +19,7 @@ class EventManagerImpl extends EventManager with Logging {
   }
 
   /** Whether event processing should be paused, needed for tests */
+  @volatile
   private var paused: Boolean = false
 
   /** Event subscribers who will receive firing events, notified from worker thread */
