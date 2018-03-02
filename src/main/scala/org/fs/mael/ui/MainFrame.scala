@@ -1,14 +1,12 @@
 package org.fs.mael.ui
 
 import java.awt.Desktop
-import java.util.LinkedHashMap
 
 import org.eclipse.jface.dialogs.MessageDialog
 import org.eclipse.jface.dialogs.MessageDialogWithToggle
 import org.eclipse.swt._
 import org.eclipse.swt.custom.SashForm
 import org.eclipse.swt.events._
-import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.BuildInfo
@@ -20,12 +18,10 @@ import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.event.UiSubscriber
 import org.fs.mael.core.list.DownloadListManager
-import org.fs.mael.ui.components.DownloadsTable
+import org.fs.mael.ui.components._
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
-
-import com.github.nscala_time.time.Imports._
 
 class MainFrame(
   shell:           Shell,
@@ -36,10 +32,9 @@ class MainFrame(
   eventMgr:        EventManager
 ) extends Logging {
   private val display = shell.getDisplay
-  private val logColumnHeaders = Seq(ColumnDef("", 24), ColumnDef("Date", 80), ColumnDef("Time", 80), ColumnDef("Information", 500))
 
   private var mainTable: DownloadsTable = _
-  private var logTable: Table = _
+  private var logTable: LogTable = _
 
   private var btnStart: ToolItem = _
   private var btnStop: ToolItem = _
@@ -80,8 +75,8 @@ class MainFrame(
 
     mainTable.renderDownloads(downloadListMgr.list())
 
-    adjustColumnWidths(mainTable.component)
-    mainTable.component.setFocus()
+    adjustColumnWidths(mainTable.peer)
+    mainTable.peer.setFocus()
     shell.setImage(resources.mainIcon)
     shell.setText(BuildInfo.fullPrettyName)
     shell.setSize(1000, 600)
@@ -159,9 +154,9 @@ class MainFrame(
   }
 
   private def createMainTable(parent: Composite): Unit = {
-    mainTable = new DownloadsTable(parent, resources, MainFrame.DateTimeFmt)
+    mainTable = new DownloadsTable(parent, resources)
 
-    val menu = new Menu(mainTable.component).withCode { menu =>
+    val menu = new Menu(mainTable.peer).withCode { menu =>
       val itemDelete = new MenuItem(menu, SWT.NONE)
       itemDelete.setText("Delete")
       itemDelete.addListener(SWT.Selection, e => tryDeleteSelectedDownloads())
@@ -174,44 +169,20 @@ class MainFrame(
       // TODO: Restart
       // TODO: Properties
     }
-    mainTable.component.setMenu(menu)
+    mainTable.peer.setMenu(menu)
 
-    mainTable.component.addKeyListener(keyPressed {
-      case e if e.keyCode == SWT.DEL && mainTable.component.getSelectionCount > 0 =>
+    mainTable.peer.addKeyListener(keyPressed {
+      case e if e.keyCode == SWT.DEL && mainTable.peer.getSelectionCount > 0 =>
         tryDeleteSelectedDownloads()
     })
-    mainTable.component.addListener(SWT.Selection, e => {
-      mainTable.selectedEntryOption map renderDownloadLog getOrElse { logTable.removeAll() }
+    mainTable.peer.addListener(SWT.Selection, e => {
+      logTable.render(mainTable.selectedEntryOption)
     })
-    mainTable.component.addListener(SWT.Selection, e => updateButtonsEnabledState())
+    mainTable.peer.addListener(SWT.Selection, e => updateButtonsEnabledState())
   }
 
   private def createDetailsPanel(parent: Composite): Unit = {
-    logTable = new Table(parent, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION)
-    logTable.setLinesVisible(true)
-    logTable.setHeaderVisible(true)
-
-    logColumnHeaders.foreach { h =>
-      val c = new TableColumn(logTable, SWT.NONE)
-      c.setText(h.name)
-      c.setWidth(h.width)
-    }
-
-    // Since standard images in table remove background, we have to draw them manually instead
-    logTable.addListener(SWT.PaintItem, e => {
-      val row = e.item.asInstanceOf[TableItem]
-      row.getData match {
-        case entry: LogEntry =>
-          val icon = resources.icon(entry.tpe)
-          val rowBounds = row.getBounds
-          val iconBounds = icon.getBounds
-          val offset = (rowBounds.height - iconBounds.height) / 2
-          e.gc.drawImage(icon, rowBounds.x + offset, rowBounds.y + offset)
-        case _ => // NOOP
-      }
-    })
-
-    logTable.getColumns.filter(_.getWidth == 0).map(_.pack())
+    logTable = new LogTable(parent, resources)
   }
 
   private def onWindowClose(closeEvent: Event): Unit = {
@@ -225,6 +196,7 @@ class MainFrame(
 
   private def promptWindowClose(closeEvent: Event): Unit = {
     import ConfigOptions._
+    import java.util.LinkedHashMap
     val lhm = new LinkedHashMap[String, Integer].withCode { lhm =>
       lhm.put(OnWindowClose.Minimize.prettyName, 1)
       lhm.put(OnWindowClose.Close.prettyName, 2)
@@ -313,35 +285,6 @@ class MainFrame(
     table.getColumns.filter(_.getWidth == 0).map(_.pack())
   }
 
-  private def renderDownloadLog(de: DownloadEntryView): Unit = {
-    logTable.removeAll()
-    de.downloadLog.foreach(appendDownloadLogEntry(_, true))
-    scrollTableToBottom(logTable)
-  }
-
-  private def appendDownloadLogEntry(entry: LogEntry, dontScroll: Boolean): Unit = {
-    val lines = entry.details.trim.split("\n")
-    val wasShowingLastRow =
-      if (logTable.getItemCount > 0) {
-        val prevLastRow = logTable.getItem(logTable.getItemCount - 1)
-        isRowVisible(prevLastRow)
-      } else true
-    new TableItem(logTable, SWT.NONE).withCode { row =>
-      row.setData(entry)
-      row.setText(1, entry.date.toString(MainFrame.DateFmt))
-      row.setText(2, entry.date.toString(MainFrame.TimeFmt))
-      row.setText(3, lines.head.trim)
-      row.setBackground(MainFrame.getLogColor(entry.tpe, display))
-    }
-    lines.tail.foreach { line =>
-      new TableItem(logTable, SWT.NONE).withCode { row =>
-        row.setText(3, line.trim)
-        row.setBackground(MainFrame.getLogColor(entry.tpe, display))
-      }
-    }
-    if (!dontScroll && wasShowingLastRow) scrollTableToBottom(logTable)
-  }
-
   private def updateButtonsEnabledState(): Unit = {
     btnStart.setEnabled(mainTable.selectedEntries exists (_.status.canBeStarted))
     btnStop.setEnabled(mainTable.selectedEntries exists (_.status.canBeStopped))
@@ -357,7 +300,7 @@ class MainFrame(
     override def added(de: DownloadEntryView): Unit = syncExecSafely {
       if (!shell.isDisposed) {
         mainTable.add(de)
-        mainTable.selectedEntryOption map renderDownloadLog getOrElse { logTable.removeAll() }
+        logTable.render(mainTable.selectedEntryOption)
         updateButtonsEnabledState()
       }
     }
@@ -390,7 +333,7 @@ class MainFrame(
 
     override def logged(de: DownloadEntryView, entry: LogEntry): Unit = syncExecSafely {
       if (mainTable.selectedEntryOption == Some(de)) {
-        appendDownloadLogEntry(entry, false)
+        logTable.append(entry, false)
       }
     }
 
@@ -400,25 +343,8 @@ class MainFrame(
         if (!shell.isDisposed) code
       }
   }
-
-  //
-  // Helper classes
-  //
-
-  case class ColumnDef(name: String, width: Int = 0)
 }
 
 object MainFrame {
   val ProgressUpdateThresholdMs = 100
-
-  val DateFmt = DateTimeFormat.forPattern("yyyy-MM-dd")
-  val TimeFmt = DateTimeFormat.forPattern("HH:mm:ss")
-  val DateTimeFmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
-
-  def getLogColor(tpe: LogEntry.Type, display: Display): Color = tpe match {
-    case LogEntry.Info     => new Color(display, 0xE4, 0xF1, 0xFF)
-    case LogEntry.Request  => new Color(display, 0xFF, 0xFF, 0xDD)
-    case LogEntry.Response => new Color(display, 0xEB, 0xFD, 0xEB)
-    case LogEntry.Error    => new Color(display, 0xFF, 0xDD, 0xDD)
-  }
 }

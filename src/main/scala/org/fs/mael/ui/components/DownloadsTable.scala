@@ -7,19 +7,15 @@ import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.SwtUtils._
-import org.joda.time.format.DateTimeFormatter
 
 import com.github.nscala_time.time.Imports._
 
 class DownloadsTable(
   parent:      Composite,
   resources:   Resources,
-  dateTimeFmt: DateTimeFormatter
-) {
+) extends MUiComponent[Table](parent) {
 
-  private val display = parent.getDisplay
-
-  private lazy val columnDefs: IndexedSeq[DownloadsTable.DownloadColumnDef] = {
+  private val columnDefs: IndexedSeq[DownloadsTable.DownloadColumnDef] = {
     import DownloadsTable.{ DownloadColumnDef => CD, _ => _ }
     IndexedSeq(
       CD("File Name", de => de.displayName),
@@ -27,11 +23,11 @@ class DownloadsTable(
       CD("Downloaded", downloadEntityFormat.downloadedSize),
       CD("Size", downloadEntityFormat.size, 80),
       CD("Comment", de => de.comment, 200),
-      CD("Added", de => de.dateCreated.toString(dateTimeFmt), 120)
+      CD("Added", de => de.dateCreated.toString(resources.dateTimeFmt), 120)
     )
   }
 
-  lazy val component: Table = {
+   override val peer: Table = {
     // TODO: Make table sortable
     val table = new Table(parent, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION).withCode { table =>
       table.setLinesVisible(true)
@@ -51,14 +47,14 @@ class DownloadsTable(
 
   /** Return all selected entries */
   def selectedEntries: Seq[DownloadEntryView] = {
-    component.getSelection map (_.getData match {
+    peer.getSelection map (_.getData match {
       case de: DownloadEntryView => de
     })
   }
 
   /** Return a singular selected entry. If multiple entries are selected, returns {@code None}. */
   def selectedEntryOption: Option[DownloadEntryView] = {
-    if (component.getSelectionCount == 1) {
+    if (peer.getSelectionCount == 1) {
       selectedEntries.headOption
     } else {
       None
@@ -66,7 +62,7 @@ class DownloadsTable(
   }
 
   def indexOfOption(de: DownloadEntryView): Option[Int] = {
-    component.getItems.indexWhere(_.getData match {
+    peer.getItems.indexWhere(_.getData match {
       case de2: DownloadEntryView if de2.id == de.id => true
       case _                                         => false
     }) match {
@@ -78,25 +74,25 @@ class DownloadsTable(
   def renderDownloads(entries: Iterable[DownloadEntryView]): Unit = {
     val sorted = entries.toSeq.sortBy(_.dateCreated)
     sorted.foreach { de =>
-      val newRow = new TableItem(component, SWT.NONE)
+      val newRow = new TableItem(peer, SWT.NONE)
       fillRow(newRow, de)
     }
   }
 
   def add(de: DownloadEntryView): Unit = {
-    val newRow = new TableItem(component, SWT.NONE)
+    val newRow = new TableItem(peer, SWT.NONE)
     fillRow(newRow, de)
-    component.deselectAll()
-    component.showItem(newRow)
-    component.select(component.getItems.indexOf(newRow)) // Why no event fired?
+    peer.deselectAll()
+    peer.showItem(newRow)
+    peer.select(peer.getItems.indexOf(newRow)) // Why no event fired?
   }
 
   def remove(de: DownloadEntryView): Unit = {
-    indexOfOption(de) map (component.remove)
+    indexOfOption(de) map (peer.remove)
   }
 
   def update(de: DownloadEntryView): Unit = {
-    indexOfOption(de) map (component.getItem) map (row => fillRow(row, de))
+    indexOfOption(de) map (peer.getItem) map (row => fillRow(row, de))
   }
 
   private def fillRow(row: TableItem, de: DownloadEntryView): Unit = {
