@@ -6,8 +6,9 @@ import java.net.URI
 import org.fs.mael.core.backend.Backend
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
+import org.fs.mael.core.event.EventManager
 
-class HttpBackend extends Backend {
+class HttpBackend(eventMgr: EventManager) extends Backend {
   override type BSED = HttpEntryData
 
   override val dataClass: Class[BSED] = classOf[BSED]
@@ -31,7 +32,7 @@ class HttpBackend extends Backend {
     DownloadEntry(id, uri, location, filenameOption, comment, new HttpEntryData)
   }
 
-  override val downloader = new HttpBackendDownloader
+  override val downloader = new HttpBackendDownloader(eventMgr)
 
   override val dataSerializer = new HttpDataSerializer
 }

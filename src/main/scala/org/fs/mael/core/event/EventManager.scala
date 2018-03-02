@@ -12,7 +12,7 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.slf4s.Logging
 
-object EventManager extends Logging {
+class EventManager extends Logging {
   /** "Greatest" event has highest priority, tiebreaker - lowest order */
   private val peOrd: Ordering[PriorityEvent] = new Ordering[PriorityEvent] {
     override def compare(x: PriorityEvent, y: PriorityEvent): Int = {

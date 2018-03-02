@@ -7,6 +7,7 @@ import org.eclipse.swt.widgets.Shell
 import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.backend.BackendManager
+import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.list.DownloadListSerializer
 import org.fs.mael.ui.ConfigManager
@@ -37,14 +38,15 @@ object MaelstromDownloaderMain extends App with Logging {
       val display = new Display()
       val cfgMgr = new ConfigManager(mainConfigFile)
       val resources = new ResourcesImpl(display)
+      val eventMgr = new EventManager
       val backendMgr = new BackendManager
-      initBackends(backendMgr)
+      initBackends(backendMgr, eventMgr)
       val downloadListMgr = {
         val serializer = new DownloadListSerializer(backendMgr)
-        new DownloadListManager(serializer, downloadListFile)
+        new DownloadListManager(serializer, downloadListFile, eventMgr)
       }
       downloadListMgr.load()
-      initUi(display, resources, cfgMgr, backendMgr, downloadListMgr)
+      initUi(display, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
     }((_, ms) =>
       log.info(s"Init done in ${ms} ms"))
 
@@ -69,8 +71,11 @@ object MaelstromDownloaderMain extends App with Logging {
     }
   }
 
-  def initBackends(backendMgr: BackendManager): Unit = {
-    backendMgr += (new HttpBackend, 0)
+  def initBackends(
+    backendMgr: BackendManager,
+    eventMgr:   EventManager
+  ): Unit = {
+    backendMgr += (new HttpBackend(eventMgr), 0)
   }
 
   def initUi(
@@ -78,10 +83,11 @@ object MaelstromDownloaderMain extends App with Logging {
     resources:       Resources,
     cfgMgr:          ConfigManager,
     backendMgr:      BackendManager,
-    downloadListMgr: DownloadListManager
+    downloadListMgr: DownloadListManager,
+    eventMgr:        EventManager
   ): Shell = {
     new Shell(display).withCode { shell =>
-      (new MainFrame(shell, resources, cfgMgr, backendMgr, downloadListMgr)).init()
+      (new MainFrame(shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)).init()
     }
   }
 

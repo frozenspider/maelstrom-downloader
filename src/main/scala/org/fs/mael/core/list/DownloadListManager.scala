@@ -12,7 +12,11 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.event.EventManager
 
-class DownloadListManager(serializer: DownloadListSerializer, val file: File) {
+class DownloadListManager(
+  serializer: DownloadListSerializer,
+  file:       File,
+  eventMgr:   EventManager
+) {
   private var entries: Set[DownloadEntry[_]] = Set.empty
 
   def load(): Unit = {
@@ -59,7 +63,7 @@ class DownloadListManager(serializer: DownloadListSerializer, val file: File) {
   def add(de: DownloadEntry[_]): Unit = {
     this.synchronized {
       entries += de
-      EventManager.fireAdded(de)
+      eventMgr.fireAdded(de)
     }
   }
 
@@ -69,7 +73,7 @@ class DownloadListManager(serializer: DownloadListSerializer, val file: File) {
       de match {
         case de: DownloadEntry[_] =>
           entries -= de
-          EventManager.fireRemoved(de)
+          eventMgr.fireRemoved(de)
       }
     }
   }
@@ -80,7 +84,7 @@ class DownloadListManager(serializer: DownloadListSerializer, val file: File) {
       des.foreach {
         case de: DownloadEntry[_] => entries -= de
       }
-      des foreach EventManager.fireRemoved
+      des foreach eventMgr.fireRemoved
     }
   }
 

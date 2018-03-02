@@ -25,14 +25,16 @@ trait BackendDownloader[BSED <: BackendSpecificEntryData] {
   // Helpers
   //
 
+  protected def eventMgr: EventManager
+
   protected def addLogAndFire(de: DownloadEntry[BSED], logEntry: LogEntry): Unit = {
     de.addDownloadLogEntry(logEntry)
-    EventManager.fireLogged(de, logEntry)
+    eventMgr.fireLogged(de, logEntry)
   }
 
   protected def changeStatusAndFire(de: DownloadEntry[BSED], newStatus: Status): Unit = {
     val prevStatus = de.status
     de.status = newStatus
-    EventManager.fireStatusChanged(de, prevStatus)
+    eventMgr.fireStatusChanged(de, prevStatus)
   }
 }

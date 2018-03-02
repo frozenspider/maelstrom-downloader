@@ -11,6 +11,7 @@ import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
+import org.fs.mael.core.event.EventManager
 import org.fs.mael.test.StubBackend
 import org.fs.mael.test.TestUtils._
 import org.junit.runner.RunWith
@@ -24,9 +25,11 @@ import com.github.nscala_time.time.Imports._
 class DownloadListSerializerSpec
   extends FunSuite {
 
+  val eventMgr = new EventManager
+
   val backendMgr = (new BackendManager).withCode { backendMgr =>
     backendMgr += (new StubBackend, Int.MinValue)
-    backendMgr += (new HttpBackend, 0)
+    backendMgr += (new HttpBackend(eventMgr), 0)
   }
 
   val serializer = new DownloadListSerializer(backendMgr)

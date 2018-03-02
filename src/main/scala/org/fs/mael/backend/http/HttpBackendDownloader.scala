@@ -38,7 +38,9 @@ import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.slf4s.Logging
 
-class HttpBackendDownloader extends BackendDownloader[HttpEntryData] with Logging {
+class HttpBackendDownloader(
+  override val eventMgr: EventManager
+) extends BackendDownloader[HttpEntryData] with Logging {
   private type DE = DownloadEntry[HttpEntryData]
 
   private val dlThreadGroup = new ThreadGroup(HttpBackend.Id + "_download").withCode { tg =>
@@ -152,7 +154,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpEntryData] with Loggin
             val filename = deduceFilename(res)
             doChecked {
               de.filenameOption = Some(filename)
-              EventManager.fireDetailsChanged(de)
+              eventMgr.fireDetailsChanged(de)
             }
             filename
           }
@@ -167,7 +169,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpEntryData] with Loggin
               de.sizeOption match {
                 case None =>
                   de.sizeOption = Some(reportedSize)
-                  EventManager.fireDetailsChanged(de)
+                  eventMgr.fireDetailsChanged(de)
                 case Some(prevSize) if prevSize != reportedSize =>
                   throw new UserFriendlyException("File size on server changed")
                 case _ => // NOOP
@@ -182,7 +184,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpEntryData] with Loggin
               else
                 Option(res.getFirstHeader(HttpHeaders.ACCEPT_RANGES)) map (_.getValue == "bytes") getOrElse false
             )
-            EventManager.fireDetailsChanged(de)
+            eventMgr.fireDetailsChanged(de)
             if (!de.supportsResumingOption.get) {
               addLogAndFire(de, LogEntry.info("Server doesn't support resuming"))
             }
@@ -257,7 +259,7 @@ class HttpBackendDownloader extends BackendDownloader[HttpEntryData] with Loggin
             file.write(buffer, 0, len)
             doChecked {
               de.sections += (sectionStartPos -> (file.getFilePointer - 1 - sectionStartPos))
-              EventManager.fireProgress(de)
+              eventMgr.fireProgress(de)
               len = is.read(buffer)
             }
           }

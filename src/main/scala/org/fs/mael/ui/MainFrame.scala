@@ -31,7 +31,8 @@ class MainFrame(
   resources:       Resources,
   cfgMgr:          ConfigManager,
   backendMgr:      BackendManager,
-  downloadListMgr: DownloadListManager
+  downloadListMgr: DownloadListManager,
+  eventMgr:        EventManager
 ) extends Logging {
   private val display = shell.getDisplay
   private val mainColumnDefs = new Columns[DownloadEntryView](
@@ -93,7 +94,7 @@ class MainFrame(
     shell.setSize(1000, 600)
     centerOnScreen(shell)
 
-    EventManager.subscribe(subscriber)
+    eventMgr.subscribe(subscriber)
   }
 
   private def createMenu(parent: Decorations): Unit = {

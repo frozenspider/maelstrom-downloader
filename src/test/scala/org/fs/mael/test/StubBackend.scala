@@ -19,6 +19,7 @@ class StubBackend extends Backend {
   override def isSupported(uri: URI): Boolean = true
 
   override val downloader: BackendDownloader[BSED] = new BackendDownloader[BSED] {
+    override def eventMgr = ???
     def startInner(de: DownloadEntry[BSED], timeoutSec: Int): Unit = { println("started " + de) }
     def stopInner(de: DownloadEntry[BSED]): Unit = { println("stopped " + de) }
   }
