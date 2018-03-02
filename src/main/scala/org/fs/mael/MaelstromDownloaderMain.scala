@@ -32,18 +32,19 @@ object MaelstromDownloaderMain extends App with Logging {
 
   try {
     val shell: Shell = StopWatch.measureAndCall {
+      preloadClasses()
       // TODO: Show minimal splash screen
       val display = new Display()
       val cfgMgr = new ConfigManager(mainConfigFile)
       val resources = new ResourcesImpl(display)
+      val backendMgr = new BackendManager
+      initBackends(backendMgr)
       val downloadListMgr = {
-        val serializer = new DownloadListSerializer
+        val serializer = new DownloadListSerializer(backendMgr)
         new DownloadListManager(serializer, downloadListFile)
       }
-      preloadClasses()
-      initServices()
       downloadListMgr.load()
-      initUi(display, resources, cfgMgr, downloadListMgr)
+      initUi(display, resources, cfgMgr, backendMgr, downloadListMgr)
     }((_, ms) =>
       log.info(s"Init done in ${ms} ms"))
 
@@ -68,18 +69,19 @@ object MaelstromDownloaderMain extends App with Logging {
     }
   }
 
-  def initServices(): Unit = {
-    BackendManager += (new HttpBackend, 0)
+  def initBackends(backendMgr: BackendManager): Unit = {
+    backendMgr += (new HttpBackend, 0)
   }
 
   def initUi(
     display:         Display,
     resources:       Resources,
     cfgMgr:          ConfigManager,
+    backendMgr:      BackendManager,
     downloadListMgr: DownloadListManager
   ): Shell = {
     new Shell(display).withCode { shell =>
-      (new MainFrame(shell, resources, cfgMgr, downloadListMgr)).init()
+      (new MainFrame(shell, resources, cfgMgr, backendMgr, downloadListMgr)).init()
     }
   }
 

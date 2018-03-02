@@ -22,15 +22,14 @@ import com.github.nscala_time.time.Imports._
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class DownloadListSerializerSpec
-  extends FunSuite
-  with BeforeAndAfter {
+  extends FunSuite {
 
-  before {
-    BackendManager += (new StubBackend, Int.MinValue)
-    BackendManager += (new HttpBackend, 0)
+  val backendMgr = (new BackendManager).withCode { backendMgr =>
+    backendMgr += (new StubBackend, Int.MinValue)
+    backendMgr += (new HttpBackend, 0)
   }
 
-  def serializer = new DownloadListSerializer
+  val serializer = new DownloadListSerializer(backendMgr)
 
   test("stub - simple") {
     assertSingularSerializationWorks(createDE("simple")())
@@ -121,7 +120,7 @@ class DownloadListSerializerSpec
   def createDE(uriString: String)(code: (DownloadEntry[_] => Unit) = (de => ())): DownloadEntry[_ <: BackendSpecificEntryData] = {
     val loc = new File(System.getProperty("java.io.tmpdir"))
     val uri = new URI(uriString)
-    val backend = BackendManager.findFor(uri).get
+    val backend = backendMgr.findFor(uri).get
     backend.create(uri, loc, None, "").withCode(code)
   }
 }

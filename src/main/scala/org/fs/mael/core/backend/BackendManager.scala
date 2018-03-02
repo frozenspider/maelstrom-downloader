@@ -7,7 +7,7 @@ import scala.collection.SortedSet
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.DownloadEntryView
 
-object BackendManager {
+class BackendManager {
   /** Backends with priority, ordered from highest to lowest priority */
   private var _backends: SortedSet[(Backend, Int)] =
     SortedSet.empty((x, y) => -(x._2 compareTo y._2))

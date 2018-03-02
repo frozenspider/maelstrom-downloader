@@ -20,6 +20,7 @@ import org.fs.mael.ui.utils.SwtUtils._
 class AddDownloadFrame(
   dialog:          Shell,
   cfgMgr:          ConfigManager,
+  backendMgr:      BackendManager,
   downloadListMgr: DownloadListManager
 ) {
   init()
@@ -116,7 +117,7 @@ class AddDownloadFrame(
       val location = new File(locationString)
       val comment = commentInput.getText.trim
       val uri = new URI(uriString)
-      val backendOption = BackendManager.findFor(uri)
+      val backendOption = backendMgr.findFor(uri)
       backendOption match {
         case Some(backend) =>
           val entry = backend.create(uri, location, None, comment)

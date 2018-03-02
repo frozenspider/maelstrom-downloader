@@ -13,7 +13,7 @@ import org.json4s.jackson.Serialization
 
 import com.github.nscala_time.time.Imports._
 
-class DownloadListSerializer {
+class DownloadListSerializer(backendMgr: BackendManager) {
 
   private implicit val formats = {
     val deSerializer = {
@@ -35,7 +35,7 @@ class DownloadListSerializer {
       FileSerializer,
       StatusSerializer,
       LogTypeSerializer,
-      new BackendDataSerializer
+      new BackendDataSerializer(backendMgr)
     )
     Serialization.formats(NoTypeHints) + deSerializer ++ serializers + SectionsKeySerializer ++ JavaTypesSerializers.all
   }
@@ -89,17 +89,17 @@ object DownloadListSerializer {
     }
   ))
 
-  class BackendDataSerializer
+  class BackendDataSerializer(backendMgr: BackendManager)
     extends CustomSerializer[BackendSpecificEntryData](format => (
       {
         case x: JObject =>
           implicit val formats = org.json4s.DefaultFormats
           val backendId = (x \\ "backendId").extract[String]
-          val backend = BackendManager(backendId)
+          val backend = backendMgr(backendId)
           backend.dataSerializer.deserialize(x)
       }, {
         case bsed: BackendSpecificEntryData =>
-          val backend = BackendManager(bsed.backendId)
+          val backend = backendMgr(bsed.backendId)
           backend.dataSerializer.serialize(bsed.asInstanceOf[backend.BSED])
       }
     ))

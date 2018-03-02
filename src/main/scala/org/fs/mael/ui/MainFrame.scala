@@ -30,6 +30,7 @@ class MainFrame(
   shell:           Shell,
   resources:       Resources,
   cfgMgr:          ConfigManager,
+  backendMgr:      BackendManager,
   downloadListMgr: DownloadListManager
 ) extends Logging {
   private val display = shell.getDisplay
@@ -129,7 +130,7 @@ class MainFrame(
       btnAdd.setText("Add")
       btnAdd.addListener(SWT.Selection, e => {
         val dialog = new Shell(shell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL)
-        new AddDownloadFrame(dialog, cfgMgr, downloadListMgr)
+        new AddDownloadFrame(dialog, cfgMgr, backendMgr, downloadListMgr)
         dialog.open()
       })
     }
@@ -139,7 +140,7 @@ class MainFrame(
       btnStart.setEnabled(false)
       btnStart.addListener(SWT.Selection, e => {
         getSelectedDownloadEntries map { de =>
-          val pair = BackendManager.getCastedPair(de)
+          val pair = backendMgr.getCastedPair(de)
           pair.backend.downloader.start(pair.de, cfgMgr.getProperty(ConfigOptions.NetworkTimeout))
         }
       })
@@ -150,7 +151,7 @@ class MainFrame(
       btnStop.setEnabled(false)
       btnStop.addListener(SWT.Selection, e => {
         getSelectedDownloadEntries map { de =>
-          val pair = BackendManager.getCastedPair(de)
+          val pair = backendMgr.getCastedPair(de)
           pair.backend.downloader.stop(pair.de)
         }
       })
@@ -291,7 +292,7 @@ class MainFrame(
           closeEvent.doit = false
         } else {
           running foreach { de =>
-            val pair = BackendManager.getCastedPair(de)
+            val pair = backendMgr.getCastedPair(de)
             pair.backend.downloader.stop(pair.de)
           }
           shell.setVisible(false)
