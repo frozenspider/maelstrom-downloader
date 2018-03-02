@@ -4,11 +4,15 @@ import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.event.EventSubscriber
 import org.fs.mael.core.event.PriorityEvent
 
-/** NOOP event manager */
+/** Event manager that accumulates events */
 class StubEventManager extends EventManager {
-  def subscribe(subscriber: EventSubscriber): Unit = {}
+  var events: IndexedSeq[PriorityEvent] = IndexedSeq.empty
 
-  def unsubscribe(id: String): Unit = {}
+  override def subscribe(subscriber: EventSubscriber): Unit = { /* NOOP */ }
 
-  def fire(event: PriorityEvent): Unit = {}
+  override def unsubscribe(id: String): Unit = { /* NOOP */ }
+
+  override def fire(event: PriorityEvent): Unit = {
+    events = events :+ event
+  }
 }
