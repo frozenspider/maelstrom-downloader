@@ -8,6 +8,7 @@ import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.event.EventManager
+import org.fs.mael.core.event.EventManagerImpl
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.list.DownloadListSerializer
 import org.fs.mael.ui.ConfigManager
@@ -38,7 +39,7 @@ object MaelstromDownloaderMain extends App with Logging {
       val display = new Display()
       val cfgMgr = new ConfigManager(mainConfigFile)
       val resources = new ResourcesImpl(display)
-      val eventMgr = new EventManager
+      val eventMgr = new EventManagerImpl
       val backendMgr = new BackendManager
       initBackends(backendMgr, eventMgr)
       val downloadListMgr = {

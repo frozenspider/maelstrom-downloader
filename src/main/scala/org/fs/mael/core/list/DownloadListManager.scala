@@ -41,6 +41,7 @@ class DownloadListManager(
     }
   }
 
+  /** For test usage only! */
   def test_init(entries: Iterable[DownloadEntry[_ <: BackendSpecificEntryData]]): Unit = init(entries)
 
   /** Called initially upon application start, no event is fired */

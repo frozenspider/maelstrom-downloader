@@ -13,10 +13,10 @@ import org.scalatest.FunSuite
 import com.github.nscala_time.time.Imports._
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
-class EventManagerSpec
+class EventManagerImplSpec
   extends FunSuite {
 
-  private val eventMgr = new EventManager
+  private val eventMgr = new EventManagerImpl
 
   private var firedEvents: IndexedSeq[PriorityEvent] = IndexedSeq.empty
 
