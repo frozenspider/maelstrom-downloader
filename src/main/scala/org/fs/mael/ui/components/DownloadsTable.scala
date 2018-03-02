@@ -11,8 +11,8 @@ import org.fs.mael.ui.utils.SwtUtils._
 import com.github.nscala_time.time.Imports._
 
 class DownloadsTable(
-  parent:      Composite,
-  resources:   Resources,
+  parent:    Composite,
+  resources: Resources
 ) extends MUiComponent[Table](parent) {
 
   private val columnDefs: IndexedSeq[DownloadsTable.DownloadColumnDef] = {
@@ -27,7 +27,7 @@ class DownloadsTable(
     )
   }
 
-   override val peer: Table = {
+  override val peer: Table = {
     // TODO: Make table sortable
     val table = new Table(parent, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION).withCode { table =>
       table.setLinesVisible(true)
@@ -71,12 +71,14 @@ class DownloadsTable(
     }
   }
 
-  def renderDownloads(entries: Iterable[DownloadEntryView]): Unit = {
+  def init(entries: Iterable[DownloadEntryView]): Unit = {
+    require(peer.getItemCount == 0, "Table isn't empty")
     val sorted = entries.toSeq.sortBy(_.dateCreated)
     sorted.foreach { de =>
       val newRow = new TableItem(peer, SWT.NONE)
       fillRow(newRow, de)
     }
+    adjustColumnWidths()
   }
 
   def add(de: DownloadEntryView): Unit = {
@@ -105,6 +107,10 @@ class DownloadsTable(
       // Would be better to add red-ish border, but that's non-trivial
       row.setForeground(new Color(display, 0x80, 0x00, 0x00))
     }
+  }
+
+  private def adjustColumnWidths(): Unit = {
+    peer.getColumns.filter(_.getWidth == 0).map(_.pack())
   }
 }
 

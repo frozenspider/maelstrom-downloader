@@ -73,10 +73,9 @@ class MainFrame(
 
     // Init
 
-    mainTable.renderDownloads(downloadListMgr.list())
-
-    adjustColumnWidths(mainTable.peer)
+    mainTable.init(downloadListMgr.list())
     mainTable.peer.setFocus()
+
     shell.setImage(resources.mainIcon)
     shell.setText(BuildInfo.fullPrettyName)
     shell.setSize(1000, 600)
@@ -281,10 +280,6 @@ class MainFrame(
     locations foreach Desktop.getDesktop.open
   }
 
-  private def adjustColumnWidths(table: Table): Unit = {
-    table.getColumns.filter(_.getWidth == 0).map(_.pack())
-  }
-
   private def updateButtonsEnabledState(): Unit = {
     btnStart.setEnabled(mainTable.selectedEntries exists (_.status.canBeStarted))
     btnStop.setEnabled(mainTable.selectedEntries exists (_.status.canBeStopped))
@@ -296,6 +291,9 @@ class MainFrame(
 
   object subscriber extends UiSubscriber {
     override val subscriberId: String = "swt-ui"
+
+    // TODO: Make per-download?
+    val ProgressUpdateThresholdMs = 100
 
     import org.fs.mael.core.event.EventForUi
     import org.fs.mael.core.event.Events._
@@ -322,7 +320,7 @@ class MainFrame(
 
       case Progress(de) =>
         // We assume this is only called by event manager processing thread, so no additional sync needed
-        if (System.currentTimeMillis() - lastProgressUpdateTS > MainFrame.ProgressUpdateThresholdMs) {
+        if (System.currentTimeMillis() - lastProgressUpdateTS > ProgressUpdateThresholdMs) {
           syncExecSafely {
             // TODO: Optimize
             mainTable.update(de)
@@ -347,8 +345,4 @@ class MainFrame(
         if (!shell.isDisposed) code
       }
   }
-}
-
-object MainFrame {
-  val ProgressUpdateThresholdMs = 100
 }
