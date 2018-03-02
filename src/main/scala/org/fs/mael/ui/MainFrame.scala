@@ -20,6 +20,7 @@ import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.event.UiSubscriber
 import org.fs.mael.core.list.DownloadListManager
+import org.fs.mael.ui.components.DownloadsTable
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
@@ -35,17 +36,9 @@ class MainFrame(
   eventMgr:        EventManager
 ) extends Logging {
   private val display = shell.getDisplay
-  private val mainColumnDefs = new Columns[DownloadEntryView](
-    ColumnDefExt("File Name", de => de.displayName),
-    ColumnDefExt("%", downloadEntityFormat.downloadedPercent, 45, false),
-    ColumnDefExt("Downloaded", downloadEntityFormat.downloadedSize),
-    ColumnDefExt("Size", downloadEntityFormat.size, 80),
-    ColumnDefExt("Comment", de => de.comment, 200),
-    ColumnDefExt("Added", de => de.dateCreated.toString(MainFrame.DateTimeFmt), 120)
-  )
   private val logColumnHeaders = Seq(ColumnDef("", 24), ColumnDef("Date", 80), ColumnDef("Time", 80), ColumnDef("Information", 500))
 
-  private var mainTable: Table = _
+  private var mainTable: DownloadsTable = _
   private var logTable: Table = _
 
   private var btnStart: ToolItem = _
@@ -85,10 +78,10 @@ class MainFrame(
 
     // Init
 
-    renderDownloads(downloadListMgr.list())
+    mainTable.renderDownloads(downloadListMgr.list())
 
-    adjustColumnWidths(mainTable)
-    mainTable.setFocus()
+    adjustColumnWidths(mainTable.component)
+    mainTable.component.setFocus()
     shell.setImage(resources.mainIcon)
     shell.setText(BuildInfo.fullPrettyName)
     shell.setSize(1000, 600)
@@ -140,7 +133,7 @@ class MainFrame(
       btnStart.setText("Start")
       btnStart.setEnabled(false)
       btnStart.addListener(SWT.Selection, e => {
-        getSelectedDownloadEntries map { de =>
+        mainTable.selectedEntries map { de =>
           val pair = backendMgr.getCastedPair(de)
           pair.backend.downloader.start(pair.de, cfgMgr.getProperty(ConfigOptions.NetworkTimeout))
         }
@@ -151,7 +144,7 @@ class MainFrame(
       btnStop.setText("Stop")
       btnStop.setEnabled(false)
       btnStop.addListener(SWT.Selection, e => {
-        getSelectedDownloadEntries map { de =>
+        mainTable.selectedEntries map { de =>
           val pair = backendMgr.getCastedPair(de)
           pair.backend.downloader.stop(pair.de)
         }
@@ -166,21 +159,9 @@ class MainFrame(
   }
 
   private def createMainTable(parent: Composite): Unit = {
-    // TODO: Make table sortable
-    mainTable = new Table(parent, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION).withCode { table =>
-      table.setLinesVisible(true)
-      table.setHeaderVisible(true)
-      table.addKeyListener(keyPressed {
-        case e if e.keyCode == SWT.DEL && table.getSelectionCount > 0 =>
-          tryDeleteSelectedDownloads()
-      })
-      table.addListener(SWT.Selection, e => {
-        getSelectedDownloadEntryOption map renderDownloadLog getOrElse { logTable.removeAll() }
-      })
-      table.addListener(SWT.Selection, e => updateButtonsEnabledState())
-    }
+    mainTable = new DownloadsTable(parent, resources, MainFrame.DateTimeFmt)
 
-    val menu = new Menu(mainTable).withCode { menu =>
+    val menu = new Menu(mainTable.component).withCode { menu =>
       val itemDelete = new MenuItem(menu, SWT.NONE)
       itemDelete.setText("Delete")
       itemDelete.addListener(SWT.Selection, e => tryDeleteSelectedDownloads())
@@ -193,16 +174,16 @@ class MainFrame(
       // TODO: Restart
       // TODO: Properties
     }
-    mainTable.setMenu(menu)
+    mainTable.component.setMenu(menu)
 
-    mainColumnDefs.content.foreach { cd =>
-      val c = new TableColumn(mainTable, SWT.NONE)
-      c.setText(cd.name)
-      c.setWidth(cd.width)
-      c.setResizable(cd.resizable)
-    }
-
-    installDefaultHotkeys(mainTable)
+    mainTable.component.addKeyListener(keyPressed {
+      case e if e.keyCode == SWT.DEL && mainTable.component.getSelectionCount > 0 =>
+        tryDeleteSelectedDownloads()
+    })
+    mainTable.component.addListener(SWT.Selection, e => {
+      mainTable.selectedEntryOption map renderDownloadLog getOrElse { logTable.removeAll() }
+    })
+    mainTable.component.addListener(SWT.Selection, e => updateButtonsEnabledState())
   }
 
   private def createDetailsPanel(parent: Composite): Unit = {
@@ -317,65 +298,19 @@ class MainFrame(
     val confirmed = MessageDialog.openConfirm(shell, "Confirmation",
       s"Are you sure you wish to delete selected downloads?")
     if (confirmed) {
-      val selected = getSelectedDownloadEntries
+      val selected = mainTable.selectedEntries
       downloadListMgr.removeAll(selected)
     }
   }
 
   private def openFolders(): Unit = {
-    val selected = getSelectedDownloadEntries
+    val selected = mainTable.selectedEntries
     val locations = selected.map(_.location).distinct
     locations foreach Desktop.getDesktop.open
   }
 
   private def adjustColumnWidths(table: Table): Unit = {
     table.getColumns.filter(_.getWidth == 0).map(_.pack())
-  }
-
-  private def renderDownloads(entries: Iterable[DownloadEntryView]): Unit = {
-    val sorted = entries.toSeq.sortBy(_.dateCreated)
-    sorted.foreach { de =>
-      val newRow = new TableItem(mainTable, SWT.NONE)
-      fillDownloadRow(newRow, de)
-    }
-  }
-
-  private def fillDownloadRow(row: TableItem, de: DownloadEntryView): Unit = {
-    row.setData(de)
-    row.setImage(0, resources.icon(de.status))
-    mainColumnDefs.content.zipWithIndex.foreach {
-      case (cd, i) => row.setText(i, cd.fmt(de))
-    }
-    if (de.supportsResumingOption == Some(false)) {
-      // Would be better to add red-ish border, but that's non-trivial
-      row.setForeground(new Color(display, 0x80, 0x00, 0x00))
-    }
-  }
-
-  private def findDownloadRowIdxOption(de: DownloadEntryView): Option[Int] = {
-    mainTable.getItems.indexWhere(_.getData match {
-      case de2: DownloadEntryView if de2.id == de.id => true
-      case _                                         => false
-    }) match {
-      case -1 => None
-      case x  => Some(x)
-    }
-  }
-
-  /** Return all selected entries */
-  private def getSelectedDownloadEntries: Seq[DownloadEntryView] = {
-    mainTable.getSelection map (_.getData match {
-      case de: DownloadEntryView => de
-    })
-  }
-
-  /** Return a singular selected entry. If multiple entries are selected, returns {@code None}. */
-  private def getSelectedDownloadEntryOption: Option[DownloadEntryView] = {
-    if (mainTable.getSelectionCount == 1) {
-      getSelectedDownloadEntries.headOption
-    } else {
-      None
-    }
   }
 
   private def renderDownloadLog(de: DownloadEntryView): Unit = {
@@ -408,38 +343,8 @@ class MainFrame(
   }
 
   private def updateButtonsEnabledState(): Unit = {
-    btnStart.setEnabled(getSelectedDownloadEntries exists (_.status.canBeStarted))
-    btnStop.setEnabled(getSelectedDownloadEntries exists (_.status.canBeStopped))
-  }
-
-  object downloadEntityFormat {
-    def size(de: DownloadEntryView): String = {
-      de.sizeOption map fmtSizePretty getOrElse ""
-    }
-
-    def downloadedSize(de: DownloadEntryView): String = {
-      if (!de.sections.isEmpty) {
-        fmtSizePretty(de.downloadedSize)
-      } else {
-        ""
-      }
-    }
-
-    def downloadedPercent(de: DownloadEntryView): String = {
-      val downloadedSize = de.downloadedSize
-      de.sizeOption match {
-        case Some(totalSize) =>
-          val percent = downloadedSize * 100 / totalSize
-          percent + "%"
-        case _ =>
-          ""
-      }
-    }
-
-    private def fmtSizePretty(size: Long): String = {
-      val groups = size.toString.reverse.grouped(3).map(_.reverse).toSeq.reverse
-      groups.mkString("", " ", " B")
-    }
+    btnStart.setEnabled(mainTable.selectedEntries exists (_.status.canBeStarted))
+    btnStop.setEnabled(mainTable.selectedEntries exists (_.status.canBeStopped))
   }
 
   //
@@ -451,23 +356,20 @@ class MainFrame(
 
     override def added(de: DownloadEntryView): Unit = syncExecSafely {
       if (!shell.isDisposed) {
-        val newRow = new TableItem(mainTable, SWT.NONE)
-        fillDownloadRow(newRow, de)
-        mainTable.deselectAll()
-        mainTable.showItem(newRow)
-        mainTable.select(mainTable.getItems.indexOf(newRow)) // Why no event fired?
+        mainTable.add(de)
+        mainTable.selectedEntryOption map renderDownloadLog getOrElse { logTable.removeAll() }
         updateButtonsEnabledState()
       }
     }
 
     override def removed(de: DownloadEntryView): Unit = syncExecSafely {
-      findDownloadRowIdxOption(de) map (mainTable.remove)
+      mainTable.remove(de)
       updateButtonsEnabledState()
     }
 
     override def statusChanged(de: DownloadEntryView, prevStatus: Status): Unit = syncExecSafely {
       // Full row update
-      findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
+      mainTable.update(de)
       updateButtonsEnabledState()
     }
 
@@ -476,18 +378,18 @@ class MainFrame(
       if (System.currentTimeMillis() - lastProgressUpdateTS > MainFrame.ProgressUpdateThresholdMs) {
         syncExecSafely {
           // TODO: Optimize
-          findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
+          mainTable.update(de)
         }
         lastProgressUpdateTS = System.currentTimeMillis()
       }
     }
 
     override def detailsChanged(de: DownloadEntryView): Unit = syncExecSafely {
-      findDownloadRowIdxOption(de) map (mainTable.getItem) map (row => fillDownloadRow(row, de))
+      mainTable.update(de)
     }
 
     override def logged(de: DownloadEntryView, entry: LogEntry): Unit = syncExecSafely {
-      if (getSelectedDownloadEntryOption == Some(de)) {
+      if (mainTable.selectedEntryOption == Some(de)) {
         appendDownloadLogEntry(entry, false)
       }
     }
@@ -504,14 +406,6 @@ class MainFrame(
   //
 
   case class ColumnDef(name: String, width: Int = 0)
-
-  case class ColumnDefExt[A](name: String, fmt: A => String, width: Int = 0, resizable: Boolean = true) {
-    def toColumnDef = ColumnDef(name, width)
-  }
-
-  class Columns[A](val content: ColumnDefExt[A]*) {
-    def apply(i: Int): ColumnDefExt[A] = content(i)
-  }
 }
 
 object MainFrame {
