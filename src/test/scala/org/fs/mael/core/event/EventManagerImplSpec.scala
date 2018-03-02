@@ -11,38 +11,55 @@ import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 
 import com.github.nscala_time.time.Imports._
+import org.scalatest.BeforeAndAfter
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class EventManagerImplSpec
-  extends FunSuite {
+  extends FunSuite
+  with BeforeAndAfter {
 
   private val eventMgr = new EventManagerImpl
 
-  private var firedEvents: IndexedSeq[PriorityEvent] = IndexedSeq.empty
+  private var firedEvents: IndexedSeq[PriorityEvent] = _
 
   private val uiSubscriber1 = new TestUiSubscriber("ui1")
   private val uiSubscriber2 = new TestUiSubscriber("ui2")
-  eventMgr.subscribe(uiSubscriber1)
-  eventMgr.subscribe(uiSubscriber2)
-
   private val backendSubscriber1 = new TestBackendSubscriber("backend1")
-  eventMgr.subscribe(backendSubscriber1)
 
   private val expectedSubscribers = Set(uiSubscriber1, uiSubscriber2, backendSubscriber1)
+
+  before {
+    eventMgr.test_getSubscribers.foreach { s =>
+      eventMgr.unsubscribe(s.subscriberId)
+    }
+    eventMgr.subscribe(uiSubscriber1)
+    eventMgr.subscribe(uiSubscriber2)
+    eventMgr.subscribe(backendSubscriber1)
+    firedEvents = IndexedSeq.empty
+  }
 
   test("subscribers") {
     assert(eventMgr.test_getSubscribers === expectedSubscribers)
   }
 
-  test("adding subscriber twice does nothing") {
+  test("subscribing twice does nothing") {
     eventMgr.subscribe(uiSubscriber1)
     eventMgr.subscribe(backendSubscriber1)
     assert(eventMgr.test_getSubscribers === expectedSubscribers)
   }
 
-  test("adding subscriber with duplicate ID does nothing") {
+  test("subscribing with duplicate ID does nothing") {
     eventMgr.subscribe(new TestBackendSubscriber("ui1"))
     assert(eventMgr.test_getSubscribers === expectedSubscribers)
+  }
+
+  test("unsubscribing") {
+    eventMgr.unsubscribe(uiSubscriber2.subscriberId)
+    assert(eventMgr.test_getSubscribers === Set(uiSubscriber1, backendSubscriber1))
+    expectedSubscribers.foreach { s =>
+      eventMgr.unsubscribe(s.subscriberId)
+    }
+    assert(eventMgr.test_getSubscribers.isEmpty)
   }
 
   test("events priority") {
