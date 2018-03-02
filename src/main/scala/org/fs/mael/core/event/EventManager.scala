@@ -1,15 +1,15 @@
 package org.fs.mael.core.event
 
-import java.util.UUID
-
 import scala.collection.Seq
 import scala.collection.mutable.PriorityQueue
 import scala.math.Ordering
 
 import org.fs.mael.core.Status
-import org.fs.mael.core.entry.DownloadEntryView
+import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
+import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.entry.LogEntry
+import org.fs.mael.core.event.Events._
 import org.slf4s.Logging
 
 class EventManager extends Logging {
@@ -50,65 +50,7 @@ class EventManager extends Logging {
   // Client methods: events firing
   //
 
-  def fireAdded(de: DownloadEntryView): Unit = {
-    enqueue(event.Added(
-      "added " + de.uri,
-      () => subscribers collect { case ui: UiSubscriber => ui.added(de) }
-    ))
-  }
-
-  def fireRemoved(de: DownloadEntryView): Unit = {
-    enqueue(event.Removed(
-      "removed " + de.uri,
-      () => subscribers collect { case ui: UiSubscriber => ui.removed(de) }
-    ))
-  }
-
-  def fireStatusChanged(de: DownloadEntryView, prevStatus: Status): Unit = {
-    enqueue(event.StatusChanged(
-      "status of " + de.uri + " changed from " + prevStatus + " to " + de.status,
-      () => subscribers collect { case ui: UiSubscriber => ui.statusChanged(de, prevStatus) }
-    ))
-  }
-
-  /** Download progress changed */
-  def fireProgress(de: DownloadEntryView): Unit = {
-    enqueue(event.Progress(
-      "progress",
-      () => subscribers collect { case ui: UiSubscriber => ui.progress(de) }
-    ))
-  }
-
-  /** Any displayed download detail (other than download progress) changed */
-  def fireDetailsChanged(de: DownloadEntryView): Unit = {
-    enqueue(event.DetailsChanged(
-      "details changed",
-      () => subscribers collect { case ui: UiSubscriber => ui.detailsChanged(de) }
-    ))
-  }
-
-  def fireLogged(de: DownloadEntryView, entry: LogEntry): Unit = {
-    enqueue(event.Logged(
-      "logged",
-      () => subscribers collect { case ui: UiSubscriber => ui.logged(de, entry) }
-    ))
-  }
-
-  /** Download entry configuration changed */
-  def fireConfigChanged(de: DownloadEntry[_]): Unit = {
-    enqueue(event.ConfigChanged(
-      "config changed",
-      () => subscribers collect { case bck: BackendSubscriber => bck.configChanged(de) }
-    ))
-  }
-
-  //
-  // Helpers
-  //
-
-  private var lastAssignedOrder: Long = 0
-
-  private def enqueue(event: PriorityEvent): Unit = {
+  def fire(event: PriorityEvent): Unit = {
     this.synchronized {
       log.trace(event.msg)
       event.order = 1 + (if (lastAssignedOrder < Long.MaxValue) lastAssignedOrder else 0)
@@ -116,6 +58,43 @@ class EventManager extends Logging {
       lastAssignedOrder = event.order
     }
   }
+
+  /** Download entry configuration changed */
+  def fireConfigChanged(de: DownloadEntry[_ <: BackendSpecificEntryData]): Unit = {
+    fire(ConfigChanged(de))
+  }
+
+  def fireAdded(de: DownloadEntryView): Unit = {
+    fire(Added(de))
+  }
+
+  def fireRemoved(de: DownloadEntryView): Unit = {
+    fire(Removed(de))
+  }
+
+  def fireStatusChanged(de: DownloadEntryView, prevStatus: Status): Unit = {
+    fire(StatusChanged(de, prevStatus))
+  }
+
+  /** Any displayed download detail (other than download progress) changed */
+  def fireDetailsChanged(de: DownloadEntryView): Unit = {
+    fire(DetailsChanged(de))
+  }
+
+  def fireLogged(de: DownloadEntryView, entry: LogEntry): Unit = {
+    fire(Logged(de, entry))
+  }
+
+  /** Download progress changed */
+  def fireProgress(de: DownloadEntryView): Unit = {
+    fire(Progress(de))
+  }
+
+  //
+  // Helpers
+  //
+
+  private var lastAssignedOrder: Long = 0
 
   private def dequeueAll(): Seq[PriorityEvent] = {
     // Avoid unnecessary synchronization
@@ -161,7 +140,10 @@ class EventManager extends Logging {
       def loop(): Unit = {
         val events = dequeueAll()
         events foreach { e =>
-          e.eventFunc.apply()
+          e match {
+            case e: EventForUi      => subscribers collect { case s: UiSubscriber => s.fired(e) }
+            case e: EventForBackend => subscribers collect { case s: BackendSubscriber => s.fired(e) }
+          }
           log.trace("Event processed: " + e)
         }
       }
@@ -170,40 +152,5 @@ class EventManager extends Logging {
     thread.setDaemon(true)
     thread.start()
     thread
-  }
-
-  private sealed abstract class PriorityEvent(val priority: Int) {
-    var order: Long = -1
-    val msg: String
-    val eventFunc: () => Unit
-
-    override def toString(): String = {
-      val fullName = this.getClass.getName
-      val lastSepIdx = fullName.lastIndexWhere(c => c == '.' || c == '$')
-      s"${fullName.drop(lastSepIdx + 1)}($priority, $order, $msg)"
-    }
-  }
-
-  private object event {
-    case class ConfigChanged(msg: String, eventFunc: () => Unit)
-      extends PriorityEvent(Int.MaxValue)
-
-    case class Added(msg: String, eventFunc: () => Unit)
-      extends PriorityEvent(100)
-
-    case class Removed(msg: String, eventFunc: () => Unit)
-      extends PriorityEvent(100)
-
-    case class StatusChanged(msg: String, eventFunc: () => Unit)
-      extends PriorityEvent(100)
-
-    case class DetailsChanged(msg: String, eventFunc: () => Unit)
-      extends PriorityEvent(50)
-
-    case class Logged(msg: String, eventFunc: () => Unit)
-      extends PriorityEvent(20)
-
-    case class Progress(msg: String, eventFunc: () => Unit)
-      extends PriorityEvent(Int.MinValue)
   }
 }

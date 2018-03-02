@@ -297,43 +297,47 @@ class MainFrame(
   object subscriber extends UiSubscriber {
     override val subscriberId: String = "swt-ui"
 
-    override def added(de: DownloadEntryView): Unit = syncExecSafely {
-      if (!shell.isDisposed) {
-        mainTable.add(de)
-        logTable.render(mainTable.selectedEntryOption)
+    import org.fs.mael.core.event.EventForUi
+    import org.fs.mael.core.event.Events._
+
+    def fired(event: EventForUi): Unit = event match {
+      case Added(de) => syncExecSafely {
+        if (!shell.isDisposed) {
+          mainTable.add(de)
+          logTable.render(mainTable.selectedEntryOption)
+          updateButtonsEnabledState()
+        }
+      }
+
+      case Removed(de) => syncExecSafely {
+        mainTable.remove(de)
         updateButtonsEnabledState()
       }
-    }
 
-    override def removed(de: DownloadEntryView): Unit = syncExecSafely {
-      mainTable.remove(de)
-      updateButtonsEnabledState()
-    }
-
-    override def statusChanged(de: DownloadEntryView, prevStatus: Status): Unit = syncExecSafely {
-      // Full row update
-      mainTable.update(de)
-      updateButtonsEnabledState()
-    }
-
-    override def progress(de: DownloadEntryView): Unit = {
-      // We assume this is only called by event manager processing thread, so no additional sync needed
-      if (System.currentTimeMillis() - lastProgressUpdateTS > MainFrame.ProgressUpdateThresholdMs) {
-        syncExecSafely {
-          // TODO: Optimize
-          mainTable.update(de)
-        }
-        lastProgressUpdateTS = System.currentTimeMillis()
+      case StatusChanged(de, prevStatus) => syncExecSafely {
+        // Full row update
+        mainTable.update(de)
+        updateButtonsEnabledState()
       }
-    }
 
-    override def detailsChanged(de: DownloadEntryView): Unit = syncExecSafely {
-      mainTable.update(de)
-    }
+      case Progress(de) =>
+        // We assume this is only called by event manager processing thread, so no additional sync needed
+        if (System.currentTimeMillis() - lastProgressUpdateTS > MainFrame.ProgressUpdateThresholdMs) {
+          syncExecSafely {
+            // TODO: Optimize
+            mainTable.update(de)
+          }
+          lastProgressUpdateTS = System.currentTimeMillis()
+        }
 
-    override def logged(de: DownloadEntryView, entry: LogEntry): Unit = syncExecSafely {
-      if (mainTable.selectedEntryOption == Some(de)) {
-        logTable.append(entry, false)
+      case DetailsChanged(de) => syncExecSafely {
+        mainTable.update(de)
+      }
+
+      case Logged(de, entry) => syncExecSafely {
+        if (mainTable.selectedEntryOption == Some(de)) {
+          logTable.append(entry, false)
+        }
       }
     }
 

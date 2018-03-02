@@ -9,6 +9,5 @@ import org.fs.mael.core.entry.DownloadEntry
  * @author FS
  */
 trait BackendSubscriber extends EventSubscriber {
-  /** Download entry configuration changed */
-  def configChanged(de: DownloadEntry[_]): Unit
+  def fired(event: EventForBackend): Unit
 }
