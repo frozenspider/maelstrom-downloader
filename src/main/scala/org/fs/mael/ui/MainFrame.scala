@@ -199,6 +199,8 @@ class MainFrame(
       c.setWidth(cd.width)
       c.setResizable(cd.resizable)
     }
+
+    installDefaultHotkeys(mainTable)
   }
 
   private def createDetailsPanel(parent: Composite): Unit = {

@@ -35,6 +35,15 @@ object SwtUtils {
     })
   }
 
+  def installDefaultHotkeys(t: Table): Unit = {
+    // Ctrl+A
+    t.addKeyListener(keyPressed {
+      case e if e.stateMask == SWT.CTRL && e.keyCode == 'a' =>
+        t.selectAll()
+        e.doit = false
+    })
+  }
+
   def getArea(r: Rectangle): Int = r.height * r.width
 
   def showError(shell: Shell, title: String = "Error", message: String): Unit = {
