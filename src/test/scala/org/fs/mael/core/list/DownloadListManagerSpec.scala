@@ -7,6 +7,8 @@ import java.nio.file.Files
 
 import scala.io.Source
 
+import org.fs.mael.core.CoreUtils._
+import org.fs.mael.core.Status
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.Events._
@@ -53,18 +55,42 @@ class DownloadListManagerSpec
     assert(Source.fromFile(file).mkString === "mySerializedString")
   }
 
-  test("add/remove") {
-    val file: File = new File("")
+  test("init should replace Running status with Stopped") {
     val eventMgr = new StubEventManager
+    val dlm = new DownloadListManager(new StubDownloadListSerializer, new File(""), eventMgr)
+
+    val backend = new StubBackend
+    val statuses = Seq(
+      Status.Running,
+      Status.Stopped,
+      Status.Error,
+      Status.Complete
+    )
+    val entries = statuses.zipWithIndex.map {
+      case (status, i) =>
+        backend.create(new URI("uri" + i), new File(""), None, "").withCode {
+          _.status = status
+        }
+    }
+
+    dlm.test_init(entries)
+    assert(dlm.list().toSeq.sortBy(_.uri.toString).map(_.status) === Seq(
+      Status.Stopped,
+      Status.Stopped,
+      Status.Error,
+      Status.Complete
+    ))
+  }
+
+  test("add/remove") {
+    val eventMgr = new StubEventManager
+    val dlm = new DownloadListManager(new StubDownloadListSerializer, new File(""), eventMgr)
 
     val backend = new StubBackend
     val entries = IndexedSeq(
       backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), "comment1"),
       backend.create(new URI("uri2"), new File("/a2"), None, "comment2")
     )
-    val serializer = new StubDownloadListSerializer
-
-    val dlm = new DownloadListManager(serializer, file, eventMgr)
 
     dlm.add(entries(0))
     assert(dlm.list() === Set(entries(0)))
