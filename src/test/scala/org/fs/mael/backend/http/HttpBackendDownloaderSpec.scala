@@ -2,7 +2,9 @@ package org.fs.mael.backend.http
 
 import java.io.File
 import java.net.URI
-import java.nio.charset.Charset
+import java.nio.file.Files
+
+import scala.util.Random
 
 import org.apache.http._
 import org.apache.http.entity._
@@ -16,13 +18,13 @@ import org.fs.mael.test.stub.StoringEventManager
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
 import org.scalatest.FunSuite
-import scala.util.Random
-import java.nio.file.Files
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class HttpBackendDownloaderSpec
   extends FunSuite
   with BeforeAndAfter {
+
+  private type DE = DownloadEntry[HttpEntryData]
 
   private val eventMgr = new ControlledEventManager
   private val transferMgr = new ControlledTransferManager
@@ -36,6 +38,9 @@ class HttpBackendDownloaderSpec
 
   private val port = 52345
   private val server: SimpleHttpServer = new SimpleHttpServer(port)
+
+  /** Change for debugging to set breakpoints */
+  private val waitTimeoutMs = 1000 // * 9999
 
   before {
     eventMgr.reset()
@@ -53,36 +58,85 @@ class HttpBackendDownloaderSpec
   }
 
   test("regular download of 5 bytes") {
-    val uri = new URI(s"http://localhost:$port/mySubUrl")
-    val filename = requestTempFilename()
-    val de = DownloadEntry[HttpEntryData](
-      backendId           = HttpBackend.Id,
-      uri                 = uri,
-      location            = tmpDir,
-      filenameOption      = Some(filename),
-      comment             = "my comment",
-      backendSpecificData = new HttpEntryData
-    )
-    eventMgr.intercept {
-      case Events.StatusChanged(de, _) if de.status == Status.Error =>
-        failureOption = Some(new IllegalStateException("Unexpected status"))
-      case Events.StatusChanged(de, _) if de.status == Status.Complete =>
-        succeeded = true
-    }
+    val de = createDownloadEntry
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
-    server.start { (req, res) =>
-      val target = req.getRequestLine.getUri
-      val ct = ContentType.create("text/html", null.asInstanceOf[Charset])
-      val body = new ByteArrayEntity(expectedBytes, ct)
-      res.setStatusCode(HttpStatus.SC_OK)
-      res.setEntity(body)
+    server.start(serveContentNormally(expectedBytes))
+
+    var startFired = false
+    // Should fire status changed to Running, then - to Complete
+    eventMgr.intercept {
+      case Events.StatusChanged(de, _) if de.status == Status.Running && !startFired =>
+        startFired = true
+      case Events.StatusChanged(de, _) if de.status == Status.Running =>
+        failureOption = Some(new IllegalStateException("Running status fired twice"))
+      case Events.StatusChanged(de, _) if de.status == Status.Complete && startFired =>
+        succeeded = true
+      case Events.StatusChanged(_, _) =>
+        failureOption = Some(new IllegalStateException("Unexpected status"))
     }
     transferMgr.start()
     downloader.start(de, 999999)
-    waitUntil(() => succeeded || failureOption.isDefined, 100000000)
+    waitUntil(() => succeeded || failureOption.isDefined, waitTimeoutMs)
+
     failureOption foreach (ex => fail(ex))
-    val actualBytes = Files.readAllBytes(new File(tmpDir, filename).toPath)
-    assert(actualBytes === expectedBytes)
+    assert(readLocalFile(de) === expectedBytes)
+    assert(server.reqCounter === 1)
+    assert(transferMgr.bytesRead === 5)
+  }
+
+  test("download 5 bytes, stop, download 5 more") {
+    val de = createDownloadEntry
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    server.start(serveContentNormally(expectedBytes))
+
+    var startFired = false
+    // Should fire status changed to Running, then - to Stopped
+    eventMgr.intercept {
+      case Events.StatusChanged(de, _) if de.status == Status.Running && !startFired =>
+        startFired = true
+      case Events.StatusChanged(de, _) if de.status == Status.Running =>
+        failureOption = Some(new IllegalStateException("Running status fired twice"))
+      case Events.StatusChanged(de, _) if de.status == Status.Stopped && startFired =>
+        succeeded = true
+      case Events.StatusChanged(_, _) =>
+        failureOption = Some(new IllegalStateException("Unexpected status"))
+    }
+    transferMgr.throttleBytes(5)
+    transferMgr.start()
+    downloader.start(de, 999999)
+    waitUntil(() => transferMgr.bytesRead == 5 || failureOption.isDefined, waitTimeoutMs)
+    downloader.stop(de)
+    waitUntil(() => downloader.test_findThread(de).isEmpty, waitTimeoutMs)
+
+    failureOption foreach (ex => fail(ex))
+    assert(succeeded)
+    assert(readLocalFile(de) === expectedBytes.take(5) ++ Seq.fill[Byte](5)(0))
+    assert(server.reqCounter === 1)
+    assert(transferMgr.bytesRead === 5)
+
+    succeeded = false
+    startFired = false
+    eventMgr.reset()
+    // Should fire status changed to Running, then - to Complete
+    eventMgr.intercept {
+      case Events.StatusChanged(de, _) if de.status == Status.Running && !startFired =>
+        startFired = true
+      case Events.StatusChanged(de, _) if de.status == Status.Running =>
+        failureOption = Some(new IllegalStateException("Running status fired twice"))
+      case Events.StatusChanged(de, _) if de.status == Status.Complete && startFired =>
+        succeeded = true
+      case Events.StatusChanged(_, _) =>
+        failureOption = Some(new IllegalStateException("Unexpected status"))
+    }
+    transferMgr.reset()
+    transferMgr.start()
+    downloader.start(de, 999999)
+    waitUntil(() => succeeded || failureOption.isDefined, waitTimeoutMs)
+
+    failureOption foreach (ex => fail(ex))
+    assert(readLocalFile(de) === expectedBytes)
+    assert(server.reqCounter === 2)
+    assert(transferMgr.bytesRead === 5)
   }
 
   private def requestTempFilename(): String = {
@@ -90,6 +144,50 @@ class HttpBackendDownloaderSpec
     tmpFilenames = filename +: tmpFilenames
     filename
   }
+
+  private def createDownloadEntry: DE = {
+    val uri = new URI(s"http://localhost:$port/mySubUrl/qwe?a=b&c=d")
+    val filename = requestTempFilename()
+    DownloadEntry[HttpEntryData](
+      backendId           = HttpBackend.Id,
+      uri                 = uri,
+      location            = tmpDir,
+      filenameOption      = Some(filename),
+      comment             = "my comment",
+      backendSpecificData = new HttpEntryData
+    )
+  }
+
+  private def readLocalFile(de: DE): Array[Byte] = {
+    Files.readAllBytes(new File(tmpDir, de.filenameOption.get).toPath)
+  }
+
+  /** Used for server to act like a regular HTTP server serving a file, supporting resuming */
+  private def serveContentNormally(content: Array[Byte]) =
+    (req: HttpRequest, res: HttpResponse) => {
+      val body = if (req.getHeaders(HttpHeaders.RANGE).isEmpty) {
+        res.setStatusCode(HttpStatus.SC_OK)
+        new ByteArrayEntity(content, ContentType.APPLICATION_OCTET_STREAM)
+      } else {
+        val rangeHeaders = req.getHeaders(HttpHeaders.RANGE).map(_.getValue)
+        assert(rangeHeaders.size === 1)
+        assert(rangeHeaders.head.matches("bytes=[0-9]+-[0-9]*"))
+        val range: (Int, Option[Int]) = {
+          val parts = rangeHeaders.head.drop(6).split("-")
+          val left = parts(0).toInt
+          val rightOption = if (parts.size == 1) None else Some(parts(1).toInt)
+          (left, rightOption)
+        }
+        val partialContent = range match {
+          case (left, Some(right)) => content.drop(left).take(right - left)
+          case (left, None)        => content.drop(left)
+        }
+        res.setStatusCode(HttpStatus.SC_PARTIAL_CONTENT)
+        new ByteArrayEntity(partialContent, ContentType.APPLICATION_OCTET_STREAM)
+      }
+      res.setEntity(body)
+
+    }
 
   private class ControlledEventManager extends StoringEventManager {
     private type PF = PartialFunction[PriorityEvent, Unit]
@@ -115,6 +213,7 @@ class HttpBackendDownloaderSpec
   }
 
   private class SimpleHttpServer(port: Int) {
+    import java.net.SocketException
     import java.util.Locale
     import java.util.concurrent.TimeUnit
     import org.apache.http.config.SocketConfig
@@ -129,6 +228,7 @@ class HttpBackendDownloaderSpec
     val exceptionLogger = new ExceptionLogger {
       override def log(ex: Exception): Unit = ex match {
         case _: ConnectionClosedException => // NOOP
+        case _: SocketException           => // NOOP
         case _                            => failureOption = Some(ex)
       }
     }
@@ -141,15 +241,19 @@ class HttpBackendDownloaderSpec
 
     var server: HttpServer = _
 
+    var reqCounter = 0
+
     def start(
       handle2: (HttpRequest, HttpResponse) => Unit
     ): Unit = {
+      reqCounter = 0
       server = serverBootstrap.registerHandler("*", new HttpRequestHandler {
         def handle(request: HttpRequest, response: HttpResponse, context: HttpContext): Unit = {
           val method = request.getRequestLine().getMethod().toUpperCase(Locale.ROOT)
           if (!method.equals("GET") && !method.equals("HEAD") && !method.equals("POST")) {
             throw new MethodNotSupportedException(method + " method not supported")
           }
+          reqCounter += 1
           handle2(request, response)
         }
       }).create()

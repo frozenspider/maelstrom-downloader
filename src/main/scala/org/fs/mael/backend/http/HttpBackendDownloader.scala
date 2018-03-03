@@ -79,6 +79,11 @@ class HttpBackendDownloader(
     }
   }
 
+  /** For test usage only! */
+  def test_findThread(de: DE): Option[Thread] = {
+    threads find (_.de == de)
+  }
+
   private def stopLogAndFire(de: DE, threadOption: Option[Thread]): Unit = {
     changeStatusAndFire(de, Status.Stopped)
     addLogAndFire(de, LogEntry.info("Download stopped"))
