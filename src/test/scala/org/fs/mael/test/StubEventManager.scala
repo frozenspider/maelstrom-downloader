@@ -15,4 +15,7 @@ class StubEventManager extends EventManager {
   override def fire(event: PriorityEvent): Unit = {
     events = events :+ event
   }
+
+  def clear(): Unit =
+    events = IndexedSeq.empty
 }

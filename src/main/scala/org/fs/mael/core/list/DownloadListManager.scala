@@ -32,6 +32,7 @@ class DownloadListManager(
     }
   }
 
+  // TODO: Autosave
   def save(): Unit = {
     this.synchronized {
       require(!file.exists || file.canWrite, "Can't write to this file")

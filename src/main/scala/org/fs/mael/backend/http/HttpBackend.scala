@@ -17,7 +17,8 @@ class HttpBackend(eventMgr: EventManager) extends Backend {
 
   override def isSupported(uri: URI): Boolean = {
     try {
-      Seq("http", "https") contains uri.toURL.getProtocol
+      val url = uri.toURL
+      (Seq("http", "https") contains url.getProtocol) && !url.getHost.isEmpty
     } catch {
       case ex: Exception => false
     }
