@@ -35,11 +35,13 @@ import org.fs.mael.core.backend.BackendDownloader
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
+import org.fs.mael.core.transfer.TransferManager
 import org.fs.mael.core.utils.CoreUtils._
 import org.slf4s.Logging
 
 class HttpBackendDownloader(
-  override val eventMgr: EventManager
+  override val eventMgr: EventManager,
+  override val transferMgr: TransferManager
 ) extends BackendDownloader[HttpEntryData] with Logging {
   private type DE = DownloadEntry[HttpEntryData]
 
@@ -254,13 +256,13 @@ class HttpBackendDownloader(
         try {
           val buffer = Array.fill[Byte](bufferSize)(0x00)
           val sectionStartPos: Long = 0
-          var len = is.read(buffer)
+          var len = transferMgr.read(is, buffer)
           while (len > 0) {
             file.write(buffer, 0, len)
             doChecked {
               de.sections += (sectionStartPos -> (file.getFilePointer - 1 - sectionStartPos))
               eventMgr.fireProgress(de)
-              len = is.read(buffer)
+              len = transferMgr.read(is, buffer)
             }
           }
         } finally {

@@ -5,13 +5,13 @@ import java.net.URI
 import org.fs.mael.test.StubEventManager
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
+import org.fs.mael.core.transfer.SimpleTransferManager
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class HttpBackendSpec
   extends FunSuite {
 
-  val eventMgr = new StubEventManager
-  val backend = new HttpBackend(eventMgr)
+  val backend = new HttpBackend(new StubEventManager, new SimpleTransferManager)
 
   test("supported URLs") {
     assert(backend.isSupported(new URI("http://abcde")))

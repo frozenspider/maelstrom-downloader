@@ -26,6 +26,7 @@ abstract class AbstractSimpleBackend[T <: BackendSpecificEntryData: ClassTag](
 
   override def downloader: BackendDownloader[BSED] = new BackendDownloader[BSED] {
     override def eventMgr = ???
+    override def transferMgr = ???
     def startInner(de: DownloadEntry[BSED], timeoutSec: Int): Unit = downloadStarted(de, timeoutSec)
     def stopInner(de: DownloadEntry[BSED]): Unit = downloadStopped(de)
   }

@@ -5,6 +5,7 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.entry.BackendSpecificEntryData
+import org.fs.mael.core.transfer.TransferManager
 
 trait BackendDownloader[BSED <: BackendSpecificEntryData] {
   def start(de: DownloadEntry[BSED], timeoutSec: Int): Unit = de.status match {
@@ -26,6 +27,8 @@ trait BackendDownloader[BSED <: BackendSpecificEntryData] {
   //
 
   protected def eventMgr: EventManager
+
+  protected def transferMgr: TransferManager
 
   protected def addLogAndFire(de: DownloadEntry[BSED], logEntry: LogEntry): Unit = {
     de.addDownloadLogEntry(logEntry)

@@ -10,6 +10,8 @@ import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.event.EventManagerImpl
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.list.DownloadListSerializerImpl
+import org.fs.mael.core.transfer.SimpleTransferManager
+import org.fs.mael.core.transfer.TransferManager
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.ConfigManager
 import org.fs.mael.ui.MainFrame
@@ -41,7 +43,8 @@ object MaelstromDownloaderMain extends App with Logging {
       val resources = new ResourcesImpl(display)
       val eventMgr = new EventManagerImpl
       val backendMgr = new BackendManager
-      initBackends(backendMgr, eventMgr)
+      val transferMgr = new SimpleTransferManager
+      initBackends(backendMgr, eventMgr, transferMgr)
       val downloadListMgr = {
         val serializer = new DownloadListSerializerImpl(backendMgr)
         new DownloadListManager(serializer, downloadListFile, eventMgr)
@@ -73,10 +76,11 @@ object MaelstromDownloaderMain extends App with Logging {
   }
 
   def initBackends(
-    backendMgr: BackendManager,
-    eventMgr:   EventManager
+    backendMgr:  BackendManager,
+    eventMgr:    EventManager,
+    transferMgr: TransferManager
   ): Unit = {
-    backendMgr += (new HttpBackend(eventMgr), 0)
+    backendMgr += (new HttpBackend(eventMgr, transferMgr), 0)
   }
 
   def initUi(

@@ -10,6 +10,7 @@ import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
+import org.fs.mael.core.transfer.SimpleTransferManager
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.test.StubBackend
 import org.fs.mael.test.StubEventManager
@@ -28,7 +29,7 @@ class DownloadListSerializerImplSpec
 
   private val backendMgr = (new BackendManager).withCode { backendMgr =>
     backendMgr += (new StubBackend, Int.MinValue)
-    backendMgr += (new HttpBackend(eventMgr), 0)
+    backendMgr += (new HttpBackend(eventMgr, new SimpleTransferManager), 0)
   }
 
   private val serializer = new DownloadListSerializerImpl(backendMgr)
