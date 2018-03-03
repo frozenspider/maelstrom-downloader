@@ -7,7 +7,11 @@ import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.transfer.TransferManager
 
-trait BackendDownloader[BSED <: BackendSpecificEntryData] {
+abstract class BackendDownloader[BSED <: BackendSpecificEntryData](protected val backendId: String) {
+
+  /** Thread group which should be used for downloading threads */
+  protected lazy val dlThreadGroup = new ThreadGroup(backendId + "_download")
+
   def start(de: DownloadEntry[BSED], timeoutSec: Int): Unit = de.status match {
     case s if s.canBeStarted => startInner(de, timeoutSec)
     case _                   => // NOOP

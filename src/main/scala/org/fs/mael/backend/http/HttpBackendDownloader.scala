@@ -42,12 +42,8 @@ import org.slf4s.Logging
 class HttpBackendDownloader(
   override val eventMgr:    EventManager,
   override val transferMgr: TransferManager
-) extends BackendDownloader[HttpEntryData] with Logging {
+) extends BackendDownloader[HttpEntryData](HttpBackend.Id) with Logging {
   private type DE = DownloadEntry[HttpEntryData]
-
-  private val dlThreadGroup = new ThreadGroup(HttpBackend.Id + "_download").withCode { tg =>
-    tg.setDaemon(true)
-  }
 
   private var threads: Seq[DownloadingThread] = Seq.empty
 
@@ -81,7 +77,15 @@ class HttpBackendDownloader(
 
   /** For test usage only! */
   def test_findThread(de: DE): Option[Thread] = {
-    threads find (_.de == de)
+    this.synchronized {
+      threads find (_.de == de)
+    }
+  }
+
+  private def removeThread(t: Thread): Unit = {
+    this.synchronized {
+      threads = threads filter (_ != t)
+    }
   }
 
   private def stopLogAndFire(de: DE, threadOption: Option[Thread]): Unit = {
@@ -99,13 +103,8 @@ class HttpBackendDownloader(
     log.info(s"Download error - $msg: ${de.uri} (${de.id})")
   }
 
-  private def removeThread(t: Thread): Unit = {
-    this.synchronized {
-      threads = threads filter (_ != t)
-    }
-  }
-
   // TODO: Handle partially downloaded file deleted
+  // TODO: Handle download not supporting resuming
   private class DownloadingThread(val de: DE, timeoutSec: Int)
     extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
 

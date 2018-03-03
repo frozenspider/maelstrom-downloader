@@ -22,7 +22,7 @@ abstract class AbstractSimpleBackend[T <: BackendSpecificEntryData: ClassTag](
 
   override def dataSerializer: BackendDataSerializer[BSED] = new StubDataSerializer(emptyBsed)
 
-  override def downloader: BackendDownloader[BSED] = new BackendDownloader[BSED] {
+  override def downloader: BackendDownloader[BSED] = new BackendDownloader[BSED](id) {
     override def eventMgr = ???
     override def transferMgr = ???
     def startInner(de: DownloadEntry[BSED], timeoutSec: Int): Unit = downloadStarted(de, timeoutSec)

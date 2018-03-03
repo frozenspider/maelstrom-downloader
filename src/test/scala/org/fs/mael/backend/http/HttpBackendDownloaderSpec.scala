@@ -62,23 +62,13 @@ class HttpBackendDownloaderSpec
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
     server.start(serveContentNormally(expectedBytes))
 
-    var startFired = false
-    // Should fire status changed to Running, then - to Complete
-    eventMgr.intercept {
-      case Events.StatusChanged(de, _) if de.status == Status.Running && !startFired =>
-        startFired = true
-      case Events.StatusChanged(de, _) if de.status == Status.Running =>
-        failureOption = Some(new IllegalStateException("Running status fired twice"))
-      case Events.StatusChanged(de, _) if de.status == Status.Complete && startFired =>
-        succeeded = true
-      case Events.StatusChanged(_, _) =>
-        failureOption = Some(new IllegalStateException("Unexpected status"))
-    }
+    expectStatusChangeEvents(de, Status.Running, Status.Complete)
     transferMgr.start()
     downloader.start(de, 999999)
     waitUntil(() => succeeded || failureOption.isDefined, waitTimeoutMs)
 
     failureOption foreach (ex => fail(ex))
+    assert(succeeded)
     assert(readLocalFile(de) === expectedBytes)
     assert(server.reqCounter === 1)
     assert(transferMgr.bytesRead === 5)
@@ -89,18 +79,7 @@ class HttpBackendDownloaderSpec
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
     server.start(serveContentNormally(expectedBytes))
 
-    var startFired = false
-    // Should fire status changed to Running, then - to Stopped
-    eventMgr.intercept {
-      case Events.StatusChanged(de, _) if de.status == Status.Running && !startFired =>
-        startFired = true
-      case Events.StatusChanged(de, _) if de.status == Status.Running =>
-        failureOption = Some(new IllegalStateException("Running status fired twice"))
-      case Events.StatusChanged(de, _) if de.status == Status.Stopped && startFired =>
-        succeeded = true
-      case Events.StatusChanged(_, _) =>
-        failureOption = Some(new IllegalStateException("Unexpected status"))
-    }
+    expectStatusChangeEvents(de, Status.Running, Status.Stopped)
     transferMgr.throttleBytes(5)
     transferMgr.start()
     downloader.start(de, 999999)
@@ -115,25 +94,15 @@ class HttpBackendDownloaderSpec
     assert(transferMgr.bytesRead === 5)
 
     succeeded = false
-    startFired = false
     eventMgr.reset()
-    // Should fire status changed to Running, then - to Complete
-    eventMgr.intercept {
-      case Events.StatusChanged(de, _) if de.status == Status.Running && !startFired =>
-        startFired = true
-      case Events.StatusChanged(de, _) if de.status == Status.Running =>
-        failureOption = Some(new IllegalStateException("Running status fired twice"))
-      case Events.StatusChanged(de, _) if de.status == Status.Complete && startFired =>
-        succeeded = true
-      case Events.StatusChanged(_, _) =>
-        failureOption = Some(new IllegalStateException("Unexpected status"))
-    }
+    expectStatusChangeEvents(de, Status.Running, Status.Complete)
     transferMgr.reset()
     transferMgr.start()
     downloader.start(de, 999999)
     waitUntil(() => succeeded || failureOption.isDefined, waitTimeoutMs)
 
     failureOption foreach (ex => fail(ex))
+    assert(succeeded)
     assert(readLocalFile(de) === expectedBytes)
     assert(server.reqCounter === 2)
     assert(transferMgr.bytesRead === 5)
@@ -156,6 +125,22 @@ class HttpBackendDownloaderSpec
       comment             = "my comment",
       backendSpecificData = new HttpEntryData
     )
+  }
+
+  /** Expect downloader to fire status changed to status1, and then - to status2 */
+  private def expectStatusChangeEvents(de: DE, status1: Status, status2: Status): Unit = {
+    var firstStatusAdopted = false
+    // Should fire status changed to Running, then - to Stopped
+    eventMgr.intercept {
+      case Events.StatusChanged(`de`, _) if de.status == status1 && !firstStatusAdopted =>
+        firstStatusAdopted = true
+      case Events.StatusChanged(`de`, _) if de.status == status1 =>
+        failureOption = Some(new IllegalStateException(s"${status1} fired twice!"))
+      case Events.StatusChanged(`de`, _) if de.status == status2 && firstStatusAdopted =>
+        succeeded = true
+      case Events.StatusChanged(`de`, _) =>
+        failureOption = Some(new IllegalStateException(s"Unexpected status ${de.status}"))
+    }
   }
 
   private def readLocalFile(de: DE): Array[Byte] = {
