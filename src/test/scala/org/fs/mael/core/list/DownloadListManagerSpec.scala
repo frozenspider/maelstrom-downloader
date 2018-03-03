@@ -7,11 +7,11 @@ import java.nio.file.Files
 
 import scala.io.Source
 
-import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.Status
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.Events._
+import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.test.StubBackend
 import org.fs.mael.test.StubDownloadListSerializer
 import org.fs.mael.test.StubEventManager

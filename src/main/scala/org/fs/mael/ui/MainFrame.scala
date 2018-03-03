@@ -10,14 +10,13 @@ import org.eclipse.swt.events._
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.BuildInfo
-import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.entry.DownloadEntryView
-import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.event.UiSubscriber
 import org.fs.mael.core.list.DownloadListManager
+import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components._
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.SwtUtils._

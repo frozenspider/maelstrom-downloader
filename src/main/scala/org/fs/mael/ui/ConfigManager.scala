@@ -14,7 +14,7 @@ import org.eclipse.jface.preference.PreferenceNode
 import org.eclipse.jface.preference.PreferenceStore
 import org.eclipse.jface.preference.RadioGroupFieldEditor
 import org.eclipse.swt.widgets.Shell
-import org.fs.mael.core.CoreUtils._
+import org.fs.mael.core.utils.CoreUtils._
 
 class ConfigManager(val file: File) {
   import ConfigManager._

@@ -5,12 +5,12 @@ import java.net.URI
 
 import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.backend.http.HttpEntryData
-import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
+import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.test.StubBackend
 import org.fs.mael.test.StubEventManager
 import org.fs.mael.test.TestUtils._

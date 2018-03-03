@@ -29,13 +29,13 @@ import org.apache.http.impl.conn.BasicHttpClientConnectionManager
 import org.apache.http.impl.conn.DefaultHttpResponseParserFactory
 import org.apache.http.impl.conn.ManagedHttpClientConnectionFactory
 import org.apache.http.impl.io.DefaultHttpRequestWriterFactory
-import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.Status
 import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.core.backend.BackendDownloader
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
+import org.fs.mael.core.utils.CoreUtils._
 import org.slf4s.Logging
 
 class HttpBackendDownloader(

@@ -4,9 +4,9 @@ import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.graphics.Image
 import org.eclipse.swt.graphics.ImageData
 import org.eclipse.swt.widgets.Display
-import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.Status
 import org.fs.mael.core.entry.LogEntry
+import org.fs.mael.core.utils.CoreUtils._
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
 

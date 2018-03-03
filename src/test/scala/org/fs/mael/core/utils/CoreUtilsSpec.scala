@@ -1,4 +1,4 @@
-package org.fs.mael.core
+package org.fs.mael.core.utils
 
 import org.fs.utility.StopWatch
 import org.junit.runner.RunWith
