@@ -12,9 +12,9 @@ import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.Events._
 import org.fs.mael.core.utils.CoreUtils._
-import org.fs.mael.test.StubBackend
-import org.fs.mael.test.StubDownloadListSerializer
-import org.fs.mael.test.StubEventManager
+import org.fs.mael.test.stub.StoringEventManager
+import org.fs.mael.test.stub.StubBackend
+import org.fs.mael.test.stub.StubDownloadListSerializer
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 
@@ -44,7 +44,7 @@ class DownloadListManagerSpec
       }
     }
 
-    val dlm = new DownloadListManager(serializer, file, new StubEventManager)
+    val dlm = new DownloadListManager(serializer, file, new StoringEventManager)
 
     // Load
     dlm.load()
@@ -56,7 +56,7 @@ class DownloadListManagerSpec
   }
 
   test("init should replace Running status with Stopped") {
-    val eventMgr = new StubEventManager
+    val eventMgr = new StoringEventManager
     val dlm = new DownloadListManager(new StubDownloadListSerializer, new File(""), eventMgr)
 
     val backend = new StubBackend
@@ -83,7 +83,7 @@ class DownloadListManagerSpec
   }
 
   test("add/remove") {
-    val eventMgr = new StubEventManager
+    val eventMgr = new StoringEventManager
     val dlm = new DownloadListManager(new StubDownloadListSerializer, new File(""), eventMgr)
 
     val backend = new StubBackend

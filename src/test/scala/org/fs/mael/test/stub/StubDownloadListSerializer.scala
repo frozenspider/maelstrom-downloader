@@ -1,4 +1,4 @@
-package org.fs.mael.test
+package org.fs.mael.test.stub
 
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry

@@ -1,4 +1,4 @@
-package org.fs.mael.test
+package org.fs.mael.test.stub
 
 import java.net.URI
 

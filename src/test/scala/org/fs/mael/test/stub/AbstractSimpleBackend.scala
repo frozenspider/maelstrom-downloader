@@ -1,10 +1,8 @@
-package org.fs.mael.test
+package org.fs.mael.test.stub
 
 import java.io.File
 import java.net.URI
-
 import scala.reflect.ClassTag
-
 import org.fs.mael.core.backend.Backend
 import org.fs.mael.core.backend.BackendDataSerializer
 import org.fs.mael.core.backend.BackendDownloader
@@ -22,7 +20,7 @@ abstract class AbstractSimpleBackend[T <: BackendSpecificEntryData: ClassTag](
     ct.runtimeClass.asInstanceOf[Class[BSED]]
   }
 
-  override def dataSerializer: BackendDataSerializer[BSED] = new EmptyDataSerializer(emptyBsed)
+  override def dataSerializer: BackendDataSerializer[BSED] = new StubDataSerializer(emptyBsed)
 
   override def downloader: BackendDownloader[BSED] = new BackendDownloader[BSED] {
     override def eventMgr = ???

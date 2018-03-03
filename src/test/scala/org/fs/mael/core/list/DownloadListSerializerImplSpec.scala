@@ -12,9 +12,9 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.transfer.SimpleTransferManager
 import org.fs.mael.core.utils.CoreUtils._
-import org.fs.mael.test.StubBackend
-import org.fs.mael.test.StubEventManager
 import org.fs.mael.test.TestUtils._
+import org.fs.mael.test.stub.StoringEventManager
+import org.fs.mael.test.stub.StubBackend
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 import org.scalatest.exceptions.TestFailedException
@@ -25,7 +25,7 @@ import com.github.nscala_time.time.Imports._
 class DownloadListSerializerImplSpec
   extends FunSuite {
 
-  private val eventMgr = new StubEventManager
+  private val eventMgr = new StoringEventManager
 
   private val backendMgr = (new BackendManager).withCode { backendMgr =>
     backendMgr += (new StubBackend, Int.MinValue)

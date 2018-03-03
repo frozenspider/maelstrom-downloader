@@ -3,15 +3,12 @@ package org.fs.mael.core.backend
 import java.io.File
 import java.net.URI
 
-import org.fs.mael.core.Status
-import org.fs.mael.core.entry.LogEntry
-import org.fs.mael.core.event.Events._
-import org.fs.mael.test.StubBackend
-import org.junit.runner.RunWith
-import org.scalatest.FunSuite
-import org.scalatest.BeforeAndAfter
 import org.fs.mael.core.entry.BackendSpecificEntryData
-import org.fs.mael.test.AbstractSimpleBackend
+import org.fs.mael.test.stub.AbstractSimpleBackend
+import org.fs.mael.test.stub.StubBackend
+import org.junit.runner.RunWith
+import org.scalatest.BeforeAndAfter
+import org.scalatest.FunSuite
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class BackendManagerSpec
