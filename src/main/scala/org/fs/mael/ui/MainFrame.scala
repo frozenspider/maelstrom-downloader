@@ -20,9 +20,8 @@ import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components._
 import org.fs.mael.ui.resources.Resources
-import org.fs.mael.ui.utils.CharKey
-import org.fs.mael.ui.utils.CtrlKey
 import org.fs.mael.ui.utils.Hotkey
+import org.fs.mael.ui.utils.Hotkey._
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
 
@@ -159,28 +158,23 @@ class MainFrame(
     mainTable = new DownloadsTable(parent, resources)
 
     val menu = new Menu(mainTable.peer).withCode { menu =>
-      mainTable.peer.setMenu(menu)
+      val parent = mainTable.peer
+      parent.setMenu(menu)
 
-      new MenuItem(menu, SWT.NONE).withCode { item =>
-        item.setText("Open folder")
-        item.addListener(SWT.Selection, e => openFolders())
+      createMenuItem(menu, "Open folder", parent, None) {
+        openFolders()
       }
 
-      new MenuItem(menu, SWT.NONE).withCode { item =>
-        item.setText("Copy download URI\tCtrl+C")
-        setMenuItemAction(item, mainTable.peer, Hotkey(SWT.CTRL, CharKey('C'))) {
-          copyUris()
+      createMenuItem(menu, "Copy download URI", parent, Some(Hotkey(Ctrl, Key('C')))) {
+        copyUris()
+      }
+
+      createMenuItem(menu, "Delete", parent, Some(Hotkey(Key.Delete))) {
+        if (mainTable.peer.getSelectionCount > 0) {
+          tryDeleteSelectedDownloads()
         }
       }
 
-      new MenuItem(menu, SWT.NONE).withCode { item =>
-        item.setText("Delete\tDel")
-        setMenuItemAction(item, mainTable.peer, Hotkey(None, CtrlKey(SWT.DEL))) {
-          if (mainTable.peer.getSelectionCount > 0) {
-            tryDeleteSelectedDownloads()
-          }
-        }
-      }
       // TODO: Delete with file
       // TODO: Restart
       // TODO: Properties

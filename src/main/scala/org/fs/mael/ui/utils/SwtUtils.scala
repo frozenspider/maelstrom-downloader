@@ -5,6 +5,7 @@ import org.eclipse.swt.events.KeyEvent
 import org.eclipse.swt.graphics.Rectangle
 import org.eclipse.swt.widgets._
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.ui.utils.Hotkey._
 
 object SwtUtils {
   def getCurrentMonitor(c: Control): Monitor = {
@@ -28,7 +29,7 @@ object SwtUtils {
 
   def installDefaultHotkeys(t: Text): Unit = {
     // Ctrl+A
-    installHotkey(t, Hotkey(SWT.CTRL, CharKey('A'))) { e =>
+    installHotkey(t, Hotkey(Ctrl, Key('A'))) { e =>
       t.selectAll()
       e.doit = false
     }
@@ -36,22 +37,29 @@ object SwtUtils {
 
   def installDefaultHotkeys(t: Table): Unit = {
     // Ctrl+A
-    installHotkey(t, Hotkey(SWT.CTRL, CharKey('A'))) { e =>
+    installHotkey(t, Hotkey(Ctrl, Key('A'))) { e =>
       t.selectAll()
       e.doit = false
     }
   }
 
-  def setMenuItemAction(mi: MenuItem, parent: Control, h: Hotkey)(action: => Unit): Unit = {
-    mi.setAccelerator(h.maskOption map (_ + h.key.accelCode) getOrElse (h.key.accelCode))
+  def createMenuItem(menu: Menu, text: String, parent: Control, hOption: Option[Hotkey])(action: => Unit): MenuItem = {
+    val mi = new MenuItem(menu, SWT.NONE)
     mi.addListener(SWT.Selection, e => {
       action
       e.doit = false
     })
-    installHotkey(parent, h)(e => {
-      action
-      e.doit = false
-    })
+    mi.setText(text)
+    hOption foreach { h =>
+      mi.setText(mi.getText + "\t" + h)
+      mi.setAccelerator(h.modOption map (_.code | h.key.accelCode) getOrElse (h.key.accelCode))
+
+      installHotkey(parent, h)(e => {
+        action
+        e.doit = false
+      })
+    }
+    mi
   }
 
   def installHotkey(c: Control, h: Hotkey)(action: KeyEvent => Unit): Unit = {
