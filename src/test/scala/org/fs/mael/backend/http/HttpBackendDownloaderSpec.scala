@@ -84,17 +84,16 @@ class HttpBackendDownloaderSpec
     transferMgr.throttleBytes(5)
     transferMgr.start()
     downloader.start(de, 999999)
-    waitUntil(() => transferMgr.bytesRead == 5 || failureOption.isDefined, waitTimeoutMs)
+    waitUntilRead(5)
     downloader.stop(de)
-    waitUntil(() => downloader.test_getThreads.isEmpty, waitTimeoutMs)
+    waitUntilStopped()
 
     failureOption foreach (ex => fail(ex))
     assert(succeeded)
-    assert(readLocalFile(de) === expectedBytes.take(5) ++ Seq.fill[Byte](5)(0))
+    assert(readLocalFile(de) === expectedBytes.take(5) ++ Seq.fill[Byte](5)(0x00))
     assert(server.reqCounter === 1)
     assert(transferMgr.bytesRead === 5)
 
-    succeeded = false
     eventMgr.reset()
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     transferMgr.reset()
@@ -107,24 +106,6 @@ class HttpBackendDownloaderSpec
     assert(readLocalFile(de) === expectedBytes)
     assert(server.reqCounter === 2)
     assert(transferMgr.bytesRead === 5)
-  }
-
-  test("server responds with an error") {
-    val de = createDownloadEntry
-    val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
-    server.start { (req, res) =>
-      res.setStatusCode(HttpStatus.SC_FORBIDDEN)
-    }
-    expectStatusChangeEvents(de, Status.Running, Status.Error)
-    transferMgr.start()
-    downloader.start(de, 999999)
-    waitUntilProcessed()
-
-    failureOption foreach (ex => fail(ex))
-    assert(succeeded)
-    assert(!gerLocalFile(de).exists)
-    assert(server.reqCounter === 1)
-    assert(transferMgr.bytesRead === 0)
   }
 
   test("deduce filename from header") {
@@ -172,6 +153,128 @@ class HttpBackendDownloaderSpec
     assert(transferMgr.bytesRead === 5)
   }
 
+  test("deduce filename from entry id (fallback)") {
+    val de = createDownloadEntry
+    de.filenameOption = None
+    de.uri = new URI(de.uri.toString replaceAllLiterally (de.uri.getPath, ""))
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+    server.start(serveContentNormally(expectedBytes))
+
+    expectStatusChangeEvents(de, Status.Running, Status.Complete)
+    transferMgr.start()
+    downloader.start(de, 999999)
+    waitUntilProcessed()
+
+    failureOption foreach (ex => fail(ex))
+    assert(succeeded)
+    assert(de.filenameOption.isDefined)
+    assert(de.filenameOption.get === "file-" + de.id.toString.toUpperCase)
+    assert(readLocalFile(de) === expectedBytes)
+    assert(server.reqCounter === 1)
+    assert(transferMgr.bytesRead === 5)
+  }
+
+  test("file size - pre-allocate if known") {
+    val de = createDownloadEntry
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+    server.start(serveContentNormally(expectedBytes))
+
+    expectStatusChangeEvents(de, Status.Running, Status.Complete)
+    transferMgr.start()
+    transferMgr.throttleBytes(0)
+    downloader.start(de, 999999)
+    waitUntilFileAppears(de)
+    assert(readLocalFile(de).size === 5)
+    assert(readLocalFile(de) === Seq.fill[Byte](5)(0x00))
+    transferMgr.throttleBytes(999)
+    waitUntilProcessed()
+
+    failureOption foreach (ex => fail(ex))
+    assert(succeeded)
+  }
+
+  test("file size - expand dynamically if unknown") {
+    val de = createDownloadEntry
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    server.start { (req, res) =>
+      res.setStatusCode(HttpStatus.SC_OK)
+      val entity = new ByteArrayEntity(expectedBytes, ContentType.APPLICATION_OCTET_STREAM) {
+        override def getContentLength = -1
+      }
+      res.setEntity(entity)
+    }
+
+    expectStatusChangeEvents(de, Status.Running, Status.Complete)
+    transferMgr.start()
+    transferMgr.throttleBytes(0)
+    downloader.start(de, 999999)
+    waitUntilFileAppears(de)
+    assert(readLocalFile(de).size === 0)
+
+    transferMgr.throttleBytes(5)
+    waitUntilRead(5)
+    assert(readLocalFile(de).size === 5)
+
+    transferMgr.throttleBytes(999)
+    waitUntilRead(10)
+    assert(readLocalFile(de).size === 10)
+    waitUntilProcessed()
+
+    failureOption foreach (ex => fail(ex))
+    assert(succeeded)
+    assert(server.reqCounter === 1)
+  }
+
+  test("failure - server responds with an error") {
+    val de = createDownloadEntry
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+    server.start { (req, res) =>
+      res.setStatusCode(HttpStatus.SC_FORBIDDEN)
+    }
+    expectStatusChangeEvents(de, Status.Running, Status.Error)
+    transferMgr.start()
+    downloader.start(de, 999999)
+    waitUntilProcessed()
+
+    failureOption foreach (ex => fail(ex))
+    assert(succeeded)
+    assert(getLocalFileOption(de) map (f => !f.exists) getOrElse true)
+    assert(server.reqCounter === 1)
+    assert(transferMgr.bytesRead === 0)
+  }
+
+  test("failure - file size changed") {
+    val de = createDownloadEntry
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    server.start { (req, res) =>
+      res.setStatusCode(if (req.getHeaders(HttpHeaders.RANGE).isEmpty) HttpStatus.SC_OK else HttpStatus.SC_PARTIAL_CONTENT)
+      val entity = new ByteArrayEntity(expectedBytes, ContentType.APPLICATION_OCTET_STREAM) {
+        override def getContentLength = Random.nextInt(1000) + 1
+      }
+      res.setEntity(entity)
+    }
+
+    expectStatusChangeEvents(de, Status.Running, Status.Stopped)
+    transferMgr.start()
+    transferMgr.throttleBytes(5)
+    downloader.start(de, 999999)
+    waitUntilRead(5)
+
+    downloader.stop(de)
+    waitUntilStopped()
+
+    eventMgr.reset()
+    expectStatusChangeEvents(de, Status.Running, Status.Error)
+    transferMgr.reset()
+    transferMgr.start()
+    downloader.start(de, 999999)
+    waitUntilProcessed()
+
+    failureOption foreach (ex => fail(ex))
+    assert(succeeded)
+    assert(server.reqCounter === 2)
+  }
+
   //
   // Helper methods
   //
@@ -197,8 +300,8 @@ class HttpBackendDownloaderSpec
 
   /** Expect downloader to fire status changed to status1, and then - to status2 */
   private def expectStatusChangeEvents(de: DE, status1: Status, status2: Status): Unit = {
+    succeeded = false
     var firstStatusAdopted = false
-    // Should fire status changed to Running, then - to Stopped
     eventMgr.intercept {
       case Events.StatusChanged(`de`, _) if de.status == status1 && !firstStatusAdopted =>
         firstStatusAdopted = true
@@ -211,20 +314,48 @@ class HttpBackendDownloaderSpec
     }
   }
 
-  /** Wait for all expected events to fire (or unexpected to cause failure) and for download threads to die */
+  /** Wait for all expected events to fire (or unexpected to cause failure) and for all download threads to die */
   private def waitUntilProcessed(): Unit = {
-    waitUntil(
+    val waitUntilProcessed = waitUntil(
       () => (succeeded || failureOption.isDefined) && downloader.test_getThreads.isEmpty,
       waitTimeoutMs
     )
+    assert(waitUntilProcessed)
   }
 
-  private def gerLocalFile(de: DE): File = {
-    new File(tmpDir, de.filenameOption.get)
+  /** Wait for X bytes to be read from transfer manager (since last reset) */
+  private def waitUntilRead(x: Int): Unit = {
+    val waitUntilRead = waitUntil(
+      () => transferMgr.bytesRead == x || failureOption.isDefined,
+      waitTimeoutMs
+    )
+    assert(waitUntilRead)
+  }
+
+  /** Wait for all download threads to die */
+  private def waitUntilStopped(): Unit = {
+    val waitUntilStopped = waitUntil(
+      () => downloader.test_getThreads.isEmpty,
+      waitTimeoutMs
+    )
+    assert(waitUntilStopped)
+  }
+
+  /** Wait for the file associated with download entry to appear on disc */
+  private def waitUntilFileAppears(de: DE): Unit = {
+    val waitUntilFileAppears = waitUntil(
+      () => getLocalFileOption(de) map (_.exists) getOrElse false,
+      waitTimeoutMs
+    )
+    assert(waitUntilFileAppears)
+  }
+
+  private def getLocalFileOption(de: DE): Option[File] = {
+    de.filenameOption map (new File(tmpDir, _))
   }
 
   private def readLocalFile(de: DE): Array[Byte] = {
-    Files.readAllBytes(gerLocalFile(de).toPath)
+    Files.readAllBytes(getLocalFileOption(de).get.toPath)
   }
 
   /** Used for server to act like a regular HTTP server serving a file, supporting resuming */
