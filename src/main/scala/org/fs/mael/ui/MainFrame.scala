@@ -169,7 +169,7 @@ class MainFrame(
       new MenuItem(menu, SWT.NONE).withCode { item =>
         item.setText("Copy download URI\tCtrl+C")
         setMenuItemAction(item, mainTable.peer, Hotkey(SWT.CTRL, CharKey('C'))) {
-          copyUri()
+          copyUris()
         }
       }
 
@@ -286,7 +286,7 @@ class MainFrame(
     }
   }
 
-  private def copyUri(): Unit = {
+  private def copyUris(): Unit = {
     val selected = mainTable.selectedEntries
     val uris = selected.map(_.uri)
     val content = new StringSelection(uris.mkString("\n"))
@@ -305,6 +305,7 @@ class MainFrame(
   }
 
   private def clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
+
   //
   // Subscriber trait
   //
