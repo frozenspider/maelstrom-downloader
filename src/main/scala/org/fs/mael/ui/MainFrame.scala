@@ -263,6 +263,7 @@ class MainFrame(
       }
       if (closeEvent.doit) {
         downloadListMgr.save()
+        shell.dispose()
       }
     } catch {
       case ex: Exception =>
