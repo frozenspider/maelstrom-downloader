@@ -47,7 +47,7 @@ class HttpBackendDownloader(
 
   private var threads: Seq[DownloadingThread] = Seq.empty
 
-  override def startInner(de: DE, timeoutSec: Int): Unit =
+  override def startInner(de: DE, timeoutMs: Int): Unit =
     this.synchronized {
       if (threads exists (t => t.de == de && t.isAlive && !t.isInterrupted)) {
         val activeThreads = threads.filter(t => t.isAlive && !t.isInterrupted)
@@ -55,7 +55,7 @@ class HttpBackendDownloader(
           s", active threads: ${activeThreads.size} (${activeThreads.map(_.getName).mkString(", ")})")
       } else {
         changeStatusAndFire(de, Status.Running)
-        val newThread = new DownloadingThread(de, timeoutSec)
+        val newThread = new DownloadingThread(de, timeoutMs)
         threads = newThread +: threads
         newThread.start()
         log.info(s"Download started: ${de.uri} (${de.id}) as ${newThread.getName}")
@@ -105,7 +105,7 @@ class HttpBackendDownloader(
 
   // TODO: Handle partially downloaded file deleted
   // TODO: Handle download not supporting resuming
-  private class DownloadingThread(val de: DE, timeoutSec: Int)
+  private class DownloadingThread(val de: DE, timeoutMs: Int)
     extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
 
     this.setDaemon(true)
@@ -127,7 +127,7 @@ class HttpBackendDownloader(
         }
         addLogAndFire(de, LogEntry.info("Starting download..."))
         val cookieStore = new BasicCookieStore()
-        val connManager = createConnManager(timeoutSec * 1000)
+        val connManager = createConnManager(timeoutMs)
         val httpClient = {
           val clientBuilder = HttpClients.custom()
             .setDefaultCookieStore(cookieStore)

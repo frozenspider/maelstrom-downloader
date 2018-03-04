@@ -12,12 +12,12 @@ abstract class BackendDownloader[BSED <: BackendSpecificEntryData](protected val
   /** Thread group which should be used for downloading threads */
   protected lazy val dlThreadGroup = new ThreadGroup(backendId + "_download")
 
-  def start(de: DownloadEntry[BSED], timeoutSec: Int): Unit = de.status match {
-    case s if s.canBeStarted => startInner(de, timeoutSec)
+  def start(de: DownloadEntry[BSED], timeoutMs: Int): Unit = de.status match {
+    case s if s.canBeStarted => startInner(de, timeoutMs)
     case _                   => // NOOP
   }
 
-  def startInner(de: DownloadEntry[BSED], timeoutSec: Int): Unit
+  def startInner(de: DownloadEntry[BSED], timeoutMs: Int): Unit
 
   def stop(de: DownloadEntry[BSED]): Unit = de.status match {
     case s if s.canBeStopped => stopInner(de)
