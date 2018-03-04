@@ -1,6 +1,8 @@
 package org.fs.mael.backend.http
 
 import java.io.File
+import java.io.OutputStream
+import java.net.SocketException
 import java.net.URI
 import java.net.URLEncoder
 import java.nio.file.Files
@@ -220,10 +222,9 @@ class HttpBackendDownloaderSpec
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
     server.respondWith { (req, res) =>
       res.setStatusCode(HttpStatus.SC_OK)
-      val entity = new ByteArrayEntity(expectedBytes, ContentType.APPLICATION_OCTET_STREAM) {
+      res.setEntity(new ByteArrayEntity(expectedBytes, ContentType.APPLICATION_OCTET_STREAM) {
         override def getContentLength = -1
-      }
-      res.setEntity(entity)
+      })
     }
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
@@ -264,10 +265,9 @@ class HttpBackendDownloaderSpec
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
     server.respondWith { (req, res) =>
       res.setStatusCode(if (req.getHeaders(HttpHeaders.RANGE).isEmpty) HttpStatus.SC_OK else HttpStatus.SC_PARTIAL_CONTENT)
-      val entity = new ByteArrayEntity(expectedBytes, ContentType.APPLICATION_OCTET_STREAM) {
+      res.setEntity(new ByteArrayEntity(expectedBytes, ContentType.APPLICATION_OCTET_STREAM) {
         override def getContentLength = Random.nextInt(1000) + 1
-      }
-      res.setEntity(entity)
+      })
     }
 
     expectStatusChangeEvents(de, Status.Running, Status.Stopped)
@@ -344,6 +344,29 @@ class HttpBackendDownloaderSpec
     assertLastLogEntry(de, "timed out")
   }
 
+  test("failure - server unexpectedly disconnected") {
+    val de = createDownloadEntry
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+    server.respondWith { (req, res) =>
+      res.setStatusCode(HttpStatus.SC_OK)
+      res.setEntity(new ByteArrayEntity(expectedBytes, ContentType.APPLICATION_OCTET_STREAM) {
+        override def writeTo(os: OutputStream): Unit = {
+          os.write(expectedBytes, 0, 2)
+          os.flush()
+          throw new SocketException("D'oh!")
+        }
+      })
+    }
+
+    expectStatusChangeEvents(de, Status.Running, Status.Error)
+    downloader.start(de, 999999)
+    waitFor.firedAndStopped()
+
+    assert(server.reqCounter === 1)
+    assert(transferMgr.bytesRead === 2)
+    assertLastLogEntry(de, "reset")
+  }
+
   // TODO: Test for file already exits
 
   //
@@ -405,7 +428,7 @@ class HttpBackendDownloaderSpec
 
   private def assertLastLogEntry(de: DE, substr: String): Unit = {
     val lastLogEntry = de.downloadLog.last.details.toLowerCase contains substr
-    assert(lastLogEntry, s": '$substr'")
+    assert(lastLogEntry, s": '$substr'; was ${de.downloadLog.last}")
   }
 
   /** Used for server to act like a regular HTTP server serving a file, supporting resuming */
@@ -498,7 +521,6 @@ class HttpBackendDownloaderSpec
   }
 
   private class SimpleHttpServer(port: Int) extends Logging { self =>
-    import java.net.SocketException
     import java.util.Locale
     import java.util.concurrent.TimeUnit
     import org.apache.http.config.SocketConfig
