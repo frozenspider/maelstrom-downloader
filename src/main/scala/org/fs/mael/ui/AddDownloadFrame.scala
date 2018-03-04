@@ -100,9 +100,11 @@ class AddDownloadFrame(
     // Try to paste URL from clipboard
     try {
       val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
-      val content = clipboard.getData(DataFlavor.stringFlavor).asInstanceOf[String]
-      val url = new URL(content)
-      uriInput.setText(url.toString)
+      val content = clipboard.getData(DataFlavor.stringFlavor).asInstanceOf[String].trim
+      if (!content.contains("\n")) {
+        val url = new URL(content)
+        uriInput.setText(url.toString)
+      }
     } catch {
       case ex: Exception => // Ignore
     }
