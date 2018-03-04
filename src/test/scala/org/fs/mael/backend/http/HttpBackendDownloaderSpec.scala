@@ -331,7 +331,10 @@ class HttpBackendDownloaderSpec
     }
 
     def shutdown(): Unit = {
-      Option(server) foreach (_.shutdown(0, TimeUnit.SECONDS))
+      Option(server) foreach { server =>
+        server.shutdown(0, TimeUnit.SECONDS)
+        server.awaitTermination(1, TimeUnit.SECONDS)
+      }
     }
   }
 }
