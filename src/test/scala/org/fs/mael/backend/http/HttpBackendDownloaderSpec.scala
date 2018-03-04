@@ -52,7 +52,7 @@ class HttpBackendDownloaderSpec
   }
 
   after {
-    server.shutdown()
+    server.stop()
     tmpFilenames.foreach {
       new File(tmpDir, _).delete()
     }
@@ -461,8 +461,9 @@ class HttpBackendDownloaderSpec
       server.start()
     }
 
-    def shutdown(): Unit = {
+    def stop(): Unit = {
       Option(server) foreach { server =>
+        server.stop()
         server.shutdown(0, TimeUnit.SECONDS)
         server.awaitTermination(1, TimeUnit.SECONDS)
       }
