@@ -1,13 +1,29 @@
 package org.fs.mael.ui.resources
 
+import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.graphics.Image
 import org.eclipse.swt.graphics.ImageData
 import org.eclipse.swt.widgets.Display
-import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.Status
 import org.fs.mael.core.entry.LogEntry
+import org.fs.mael.core.utils.CoreUtils._
+import org.joda.time.format.DateTimeFormat
+import org.joda.time.format.DateTimeFormatter
 
 class ResourcesImpl(display: Display) extends Resources {
+  override def dateTimeFmt: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
+
+  override def dateFmt: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd")
+
+  override def timeFmt: DateTimeFormatter = DateTimeFormat.forPattern("HH:mm:ss")
+
+  override def logColor(tpe: LogEntry.Type, display: Display): Color = tpe match {
+    case LogEntry.Info     => new Color(display, 0xE4, 0xF1, 0xFF)
+    case LogEntry.Request  => new Color(display, 0xFF, 0xFF, 0xDD)
+    case LogEntry.Response => new Color(display, 0xEB, 0xFD, 0xEB)
+    case LogEntry.Error    => new Color(display, 0xFF, 0xDD, 0xDD)
+  }
+
   override def mainIcon: Image = icons.main
 
   override def icon(status: Status): Image = status match {

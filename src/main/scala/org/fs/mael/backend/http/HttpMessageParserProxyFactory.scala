@@ -7,7 +7,7 @@ import org.apache.http.io.HttpMessageParserFactory
 import org.apache.http.io.SessionInputBuffer
 import org.apache.http.message.BasicLineFormatter
 import org.apache.http.util.CharArrayBuffer
-import org.fs.mael.core.CoreUtils._
+import org.fs.mael.core.utils.CoreUtils._
 
 class HttpMessageParserProxyFactory(
   delegate:    HttpMessageParserFactory[HttpResponse],

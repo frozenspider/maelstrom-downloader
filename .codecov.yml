@@ -1,0 +1,13 @@
+coverage:
+  range: "50...90"
+
+flags:
+  core:
+    paths:
+      - src/main/scala/org/fs/mael/core/
+  backend:
+    paths:
+      - src/main/scala/org/fs/mael/backend/
+  ui:
+    paths:
+      - src/main/scala/org/fs/mael/ui/

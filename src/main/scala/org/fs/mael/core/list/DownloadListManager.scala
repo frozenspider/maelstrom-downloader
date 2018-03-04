@@ -12,7 +12,11 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.event.EventManager
 
-class DownloadListManager(serializer: DownloadListSerializer, val file: File) {
+class DownloadListManager(
+  serializer: DownloadListSerializer,
+  file:       File,
+  eventMgr:   EventManager
+) {
   private var entries: Set[DownloadEntry[_]] = Set.empty
 
   def load(): Unit = {
@@ -28,6 +32,7 @@ class DownloadListManager(serializer: DownloadListSerializer, val file: File) {
     }
   }
 
+  // TODO: Autosave
   def save(): Unit = {
     this.synchronized {
       require(!file.exists || file.canWrite, "Can't write to this file")
@@ -37,6 +42,7 @@ class DownloadListManager(serializer: DownloadListSerializer, val file: File) {
     }
   }
 
+  /** For test usage only! */
   def test_init(entries: Iterable[DownloadEntry[_ <: BackendSpecificEntryData]]): Unit = init(entries)
 
   /** Called initially upon application start, no event is fired */
@@ -59,7 +65,7 @@ class DownloadListManager(serializer: DownloadListSerializer, val file: File) {
   def add(de: DownloadEntry[_]): Unit = {
     this.synchronized {
       entries += de
-      EventManager.fireAdded(de)
+      eventMgr.fireAdded(de)
     }
   }
 
@@ -69,18 +75,18 @@ class DownloadListManager(serializer: DownloadListSerializer, val file: File) {
       de match {
         case de: DownloadEntry[_] =>
           entries -= de
-          EventManager.fireRemoved(de)
+          eventMgr.fireRemoved(de)
       }
     }
   }
 
-  /** Remove an existing entry from a download list, firing an event */
-  def removeAll(des: Seq[DownloadEntryView]): Unit = {
+  /** Remove existing entries from a download list, firing events */
+  def removeAll(des: Iterable[DownloadEntryView]): Unit = {
     this.synchronized {
       des.foreach {
         case de: DownloadEntry[_] => entries -= de
       }
-      des foreach EventManager.fireRemoved
+      des foreach eventMgr.fireRemoved
     }
   }
 

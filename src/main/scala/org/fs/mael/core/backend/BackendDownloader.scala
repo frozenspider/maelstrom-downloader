@@ -5,14 +5,23 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.entry.BackendSpecificEntryData
+import org.fs.mael.core.transfer.TransferManager
 
-trait BackendDownloader[BSED <: BackendSpecificEntryData] {
-  def start(de: DownloadEntry[BSED], timeoutSec: Int): Unit = de.status match {
-    case s if s.canBeStarted => startInner(de, timeoutSec)
+abstract class BackendDownloader[BSED <: BackendSpecificEntryData](protected val backendId: String) {
+
+  /** Thread group which should be used for downloading threads */
+  protected lazy val dlThreadGroup = new ThreadGroup(backendId + "_download")
+
+  /**
+   * Start downloading the given entry with the given timeout
+   * @param timeoutMs operations timeout in millis, 0 stands for none
+   */
+  def start(de: DownloadEntry[BSED], timeoutMs: Int): Unit = de.status match {
+    case s if s.canBeStarted => startInner(de, timeoutMs)
     case _                   => // NOOP
   }
 
-  def startInner(de: DownloadEntry[BSED], timeoutSec: Int): Unit
+  def startInner(de: DownloadEntry[BSED], timeoutMs: Int): Unit
 
   def stop(de: DownloadEntry[BSED]): Unit = de.status match {
     case s if s.canBeStopped => stopInner(de)
@@ -25,14 +34,18 @@ trait BackendDownloader[BSED <: BackendSpecificEntryData] {
   // Helpers
   //
 
+  protected def eventMgr: EventManager
+
+  protected def transferMgr: TransferManager
+
   protected def addLogAndFire(de: DownloadEntry[BSED], logEntry: LogEntry): Unit = {
     de.addDownloadLogEntry(logEntry)
-    EventManager.fireLogged(de, logEntry)
+    eventMgr.fireLogged(de, logEntry)
   }
 
   protected def changeStatusAndFire(de: DownloadEntry[BSED], newStatus: Status): Unit = {
     val prevStatus = de.status
     de.status = newStatus
-    EventManager.fireStatusChanged(de, prevStatus)
+    eventMgr.fireStatusChanged(de, prevStatus)
   }
 }

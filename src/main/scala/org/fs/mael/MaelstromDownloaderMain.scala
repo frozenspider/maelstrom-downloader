@@ -5,10 +5,14 @@ import java.io.File
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 import org.fs.mael.backend.http.HttpBackend
-import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.backend.BackendManager
+import org.fs.mael.core.event.EventManager
+import org.fs.mael.core.event.EventManagerImpl
 import org.fs.mael.core.list.DownloadListManager
-import org.fs.mael.core.list.DownloadListSerializer
+import org.fs.mael.core.list.DownloadListSerializerImpl
+import org.fs.mael.core.transfer.SimpleTransferManager
+import org.fs.mael.core.transfer.TransferManager
+import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.ConfigManager
 import org.fs.mael.ui.MainFrame
 import org.fs.mael.ui.resources.Resources
@@ -32,18 +36,21 @@ object MaelstromDownloaderMain extends App with Logging {
 
   try {
     val shell: Shell = StopWatch.measureAndCall {
+      preloadClasses()
       // TODO: Show minimal splash screen
       val display = new Display()
       val cfgMgr = new ConfigManager(mainConfigFile)
       val resources = new ResourcesImpl(display)
+      val eventMgr = new EventManagerImpl
+      val backendMgr = new BackendManager
+      val transferMgr = new SimpleTransferManager
+      initBackends(backendMgr, eventMgr, transferMgr)
       val downloadListMgr = {
-        val serializer = new DownloadListSerializer
-        new DownloadListManager(serializer, downloadListFile)
+        val serializer = new DownloadListSerializerImpl(backendMgr)
+        new DownloadListManager(serializer, downloadListFile, eventMgr)
       }
-      preloadClasses()
-      initServices()
       downloadListMgr.load()
-      initUi(display, resources, cfgMgr, downloadListMgr)
+      initUi(display, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
     }((_, ms) =>
       log.info(s"Init done in ${ms} ms"))
 
@@ -68,18 +75,24 @@ object MaelstromDownloaderMain extends App with Logging {
     }
   }
 
-  def initServices(): Unit = {
-    BackendManager += (new HttpBackend, 0)
+  def initBackends(
+    backendMgr:  BackendManager,
+    eventMgr:    EventManager,
+    transferMgr: TransferManager
+  ): Unit = {
+    backendMgr += (new HttpBackend(eventMgr, transferMgr), 0)
   }
 
   def initUi(
     display:         Display,
     resources:       Resources,
     cfgMgr:          ConfigManager,
-    downloadListMgr: DownloadListManager
+    backendMgr:      BackendManager,
+    downloadListMgr: DownloadListManager,
+    eventMgr:        EventManager
   ): Shell = {
     new Shell(display).withCode { shell =>
-      (new MainFrame(shell, resources, cfgMgr, downloadListMgr)).init()
+      (new MainFrame(shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)).init()
     }
   }
 

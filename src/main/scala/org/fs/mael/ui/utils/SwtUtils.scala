@@ -4,7 +4,8 @@ import org.eclipse.swt.SWT
 import org.eclipse.swt.events.KeyEvent
 import org.eclipse.swt.graphics.Rectangle
 import org.eclipse.swt.widgets._
-import org.fs.mael.core.CoreUtils
+import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.ui.utils.Hotkey._
 
 object SwtUtils {
   def getCurrentMonitor(c: Control): Monitor = {
@@ -28,10 +29,42 @@ object SwtUtils {
 
   def installDefaultHotkeys(t: Text): Unit = {
     // Ctrl+A
-    t.addKeyListener(keyPressed {
-      case e if e.stateMask == SWT.CTRL && e.keyCode == 'a' =>
-        t.selectAll()
+    installHotkey(t, Hotkey(Ctrl, Key('A'))) { e =>
+      t.selectAll()
+      e.doit = false
+    }
+  }
+
+  def installDefaultHotkeys(t: Table): Unit = {
+    // Ctrl+A
+    installHotkey(t, Hotkey(Ctrl, Key('A'))) { e =>
+      t.selectAll()
+      e.doit = false
+    }
+  }
+
+  def createMenuItem(menu: Menu, text: String, parent: Control, hOption: Option[Hotkey])(action: => Unit): MenuItem = {
+    val mi = new MenuItem(menu, SWT.NONE)
+    mi.addListener(SWT.Selection, e => {
+      action
+      e.doit = false
+    })
+    mi.setText(text)
+    hOption foreach { h =>
+      mi.setText(mi.getText + "\t" + h)
+      mi.setAccelerator(h.modOption map (_.code | h.key.accelCode) getOrElse (h.key.accelCode))
+
+      installHotkey(parent, h)(e => {
+        action
         e.doit = false
+      })
+    }
+    mi
+  }
+
+  def installHotkey(c: Control, h: Hotkey)(action: KeyEvent => Unit): Unit = {
+    c.addKeyListener(keyPressed {
+      case e if h.isApplied(e) => action(e)
     })
   }
 

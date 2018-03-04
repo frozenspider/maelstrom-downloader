@@ -4,10 +4,11 @@ import java.io.File
 import java.net.URI
 
 import org.fs.mael.core.backend.Backend
-import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
+import org.fs.mael.core.event.EventManager
+import org.fs.mael.core.transfer.TransferManager
 
-class HttpBackend extends Backend {
+class HttpBackend(eventMgr: EventManager, transferMgr: TransferManager) extends Backend {
   override type BSED = HttpEntryData
 
   override val dataClass: Class[BSED] = classOf[BSED]
@@ -16,7 +17,8 @@ class HttpBackend extends Backend {
 
   override def isSupported(uri: URI): Boolean = {
     try {
-      Seq("http", "https") contains uri.toURL.getProtocol
+      val url = uri.toURL
+      (Seq("http", "https") contains url.getProtocol) && !url.getHost.isEmpty
     } catch {
       case ex: Exception => false
     }
@@ -31,7 +33,7 @@ class HttpBackend extends Backend {
     DownloadEntry(id, uri, location, filenameOption, comment, new HttpEntryData)
   }
 
-  override val downloader = new HttpBackendDownloader
+  override val downloader = new HttpBackendDownloader(eventMgr, transferMgr)
 
   override val dataSerializer = new HttpDataSerializer
 }

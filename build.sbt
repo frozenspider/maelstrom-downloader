@@ -1,6 +1,6 @@
 name           := "maelstrom-downloader"
 val prettyName =  "Maelstrom Downloader"
-version        := "0.1"
+version        := "0.1.1"
 scalaVersion   := "2.12.3"
 
 sourceManaged            := baseDirectory.value / "src_managed"

@@ -1,20 +1,20 @@
-package org.fs.mael.core
+package org.fs.mael.core.utils
 
 import scala.annotation.tailrec
 import org.fs.utility.StopWatch
 
 trait CoreUtils {
 
-  def waitUntil(condition: () => Boolean, timeoutMs: Int): Boolean = {
+  def waitUntil(timeoutMs: Int)(condition: => Boolean): Boolean = {
     val sw = new StopWatch
     @tailrec
     def waitInner(): Boolean = {
-      if (condition()) {
+      if (condition) {
         true
       } else if (sw.peek >= timeoutMs) {
         false
       } else {
-        Thread.sleep(30)
+        Thread.sleep(10)
         waitInner()
       }
     }

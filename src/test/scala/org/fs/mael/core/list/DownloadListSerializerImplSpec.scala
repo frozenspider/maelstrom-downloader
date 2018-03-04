@@ -5,32 +5,34 @@ import java.net.URI
 
 import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.backend.http.HttpEntryData
-import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
-import org.fs.mael.test.StubBackend
+import org.fs.mael.core.transfer.SimpleTransferManager
+import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.test.TestUtils._
+import org.fs.mael.test.stub.StoringEventManager
+import org.fs.mael.test.stub.StubBackend
 import org.junit.runner.RunWith
-import org.scalatest.BeforeAndAfter
 import org.scalatest.FunSuite
 import org.scalatest.exceptions.TestFailedException
 
 import com.github.nscala_time.time.Imports._
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
-class DownloadListSerializerSpec
-  extends FunSuite
-  with BeforeAndAfter {
+class DownloadListSerializerImplSpec
+  extends FunSuite {
 
-  before {
-    BackendManager += (new StubBackend, Int.MinValue)
-    BackendManager += (new HttpBackend, 0)
+  private val eventMgr = new StoringEventManager
+
+  private val backendMgr = (new BackendManager).withCode { backendMgr =>
+    backendMgr += (new StubBackend, Int.MinValue)
+    backendMgr += (new HttpBackend(eventMgr, new SimpleTransferManager), 0)
   }
 
-  def serializer = new DownloadListSerializer
+  private val serializer = new DownloadListSerializerImpl(backendMgr)
 
   test("stub - simple") {
     assertSingularSerializationWorks(createDE("simple")())
@@ -111,17 +113,17 @@ class DownloadListSerializerSpec
     }
   }
 
-  def assertSingularSerializationWorks(de1: DownloadEntry[_ <: BackendSpecificEntryData]): Unit = {
+  private def assertSingularSerializationWorks(de1: DownloadEntry[_ <: BackendSpecificEntryData]): Unit = {
     val serialized = serializer.serialize(Seq(de1))
     val deserialized = serializer.deserialize(serialized)
     assert(deserialized.size === 1)
     assertDownloadEntriesEqual(de1, deserialized.head)
   }
 
-  def createDE(uriString: String)(code: (DownloadEntry[_] => Unit) = (de => ())): DownloadEntry[_ <: BackendSpecificEntryData] = {
+  private def createDE(uriString: String)(code: (DownloadEntry[_] => Unit) = (de => ())): DownloadEntry[_ <: BackendSpecificEntryData] = {
     val loc = new File(System.getProperty("java.io.tmpdir"))
     val uri = new URI(uriString)
-    val backend = BackendManager.findFor(uri).get
+    val backend = backendMgr.findFor(uri).get
     backend.create(uri, loc, None, "").withCode(code)
   }
 }

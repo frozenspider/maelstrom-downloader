@@ -11,15 +11,16 @@ import org.eclipse.swt._
 import org.eclipse.swt.events._
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
-import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.list.DownloadListManager
+import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.utils.SwtUtils._
 
 class AddDownloadFrame(
   dialog:          Shell,
   cfgMgr:          ConfigManager,
+  backendMgr:      BackendManager,
   downloadListMgr: DownloadListManager
 ) {
   init()
@@ -99,9 +100,11 @@ class AddDownloadFrame(
     // Try to paste URL from clipboard
     try {
       val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
-      val content = clipboard.getData(DataFlavor.stringFlavor).asInstanceOf[String]
-      val url = new URL(content)
-      uriInput.setText(url.toString)
+      val content = clipboard.getData(DataFlavor.stringFlavor).asInstanceOf[String].trim
+      if (!content.contains("\n")) {
+        val url = new URL(content)
+        uriInput.setText(url.toString)
+      }
     } catch {
       case ex: Exception => // Ignore
     }
@@ -116,7 +119,7 @@ class AddDownloadFrame(
       val location = new File(locationString)
       val comment = commentInput.getText.trim
       val uri = new URI(uriString)
-      val backendOption = BackendManager.findFor(uri)
+      val backendOption = backendMgr.findFor(uri)
       backendOption match {
         case Some(backend) =>
           val entry = backend.create(uri, location, None, comment)

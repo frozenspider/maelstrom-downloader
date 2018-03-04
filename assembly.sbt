@@ -101,7 +101,7 @@ shellScript := {
   val file = buildOutputPath / (name.value + ".sh")
   val cp = Seq(
     (assemblyJarName in assembly).value,
-    swtLibRelativeOutputDirString + "/" + swtOsArtifacts("linux")
+    swtLibRelativeOutputDirString + "/" + swtOsArtifacts("linux") + ".jar"
   ).mkString(":")
   val command = s"java -cp '$cp' ${(mainClass in assembly).value.get}"
   IO.write(file, command + "\n")
