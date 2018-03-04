@@ -1,3 +1,6 @@
+### SNAPSHOT
+* 
+
 ### 0.1.1
 * Added ability to copy download URI
 * Added ability to open download folder
