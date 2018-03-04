@@ -28,19 +28,35 @@ object SwtUtils {
 
   def installDefaultHotkeys(t: Text): Unit = {
     // Ctrl+A
-    t.addKeyListener(keyPressed {
-      case e if e.stateMask == SWT.CTRL && e.keyCode == 'a' =>
-        t.selectAll()
-        e.doit = false
-    })
+    installHotkey(t, Hotkey(SWT.CTRL, CharKey('A'))) { e =>
+      t.selectAll()
+      e.doit = false
+    }
   }
 
   def installDefaultHotkeys(t: Table): Unit = {
     // Ctrl+A
-    t.addKeyListener(keyPressed {
-      case e if e.stateMask == SWT.CTRL && e.keyCode == 'a' =>
-        t.selectAll()
-        e.doit = false
+    installHotkey(t, Hotkey(SWT.CTRL, CharKey('A'))) { e =>
+      t.selectAll()
+      e.doit = false
+    }
+  }
+
+  def setMenuItemAction(mi: MenuItem, parent: Control, h: Hotkey)(action: => Unit): Unit = {
+    mi.setAccelerator(h.maskOption map (_ + h.key.accelCode) getOrElse (h.key.accelCode))
+    mi.addListener(SWT.Selection, e => {
+      action
+      e.doit = false
+    })
+    installHotkey(parent, h)(e => {
+      action
+      e.doit = false
+    })
+  }
+
+  def installHotkey(c: Control, h: Hotkey)(action: KeyEvent => Unit): Unit = {
+    c.addKeyListener(keyPressed {
+      case e if h.isApplied(e) => action(e)
     })
   }
 

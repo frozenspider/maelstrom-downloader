@@ -1,12 +1,13 @@
 package org.fs.mael.ui
 
 import java.awt.Desktop
+import java.awt.Toolkit
+import java.awt.datatransfer.StringSelection
 
 import org.eclipse.jface.dialogs.MessageDialog
 import org.eclipse.jface.dialogs.MessageDialogWithToggle
 import org.eclipse.swt._
 import org.eclipse.swt.custom.SashForm
-import org.eclipse.swt.events._
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.BuildInfo
@@ -19,6 +20,9 @@ import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components._
 import org.fs.mael.ui.resources.Resources
+import org.fs.mael.ui.utils.CharKey
+import org.fs.mael.ui.utils.CtrlKey
+import org.fs.mael.ui.utils.Hotkey
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
 
@@ -155,24 +159,33 @@ class MainFrame(
     mainTable = new DownloadsTable(parent, resources)
 
     val menu = new Menu(mainTable.peer).withCode { menu =>
-      val itemDelete = new MenuItem(menu, SWT.NONE)
-      itemDelete.setText("Delete")
-      itemDelete.addListener(SWT.Selection, e => tryDeleteSelectedDownloads())
+      mainTable.peer.setMenu(menu)
 
-      val itemOpenFolder = new MenuItem(menu, SWT.NONE)
-      itemOpenFolder.setText("Open folder")
-      itemOpenFolder.addListener(SWT.Selection, e => openFolders())
+      new MenuItem(menu, SWT.NONE).withCode { item =>
+        item.setText("Open folder")
+        item.addListener(SWT.Selection, e => openFolders())
+      }
 
+      new MenuItem(menu, SWT.NONE).withCode { item =>
+        item.setText("Copy download URI\tCtrl+C")
+        setMenuItemAction(item, mainTable.peer, Hotkey(SWT.CTRL, CharKey('C'))) {
+          copyUri()
+        }
+      }
+
+      new MenuItem(menu, SWT.NONE).withCode { item =>
+        item.setText("Delete\tDel")
+        setMenuItemAction(item, mainTable.peer, Hotkey(None, CtrlKey(SWT.DEL))) {
+          if (mainTable.peer.getSelectionCount > 0) {
+            tryDeleteSelectedDownloads()
+          }
+        }
+      }
       // TODO: Delete with file
       // TODO: Restart
       // TODO: Properties
     }
-    mainTable.peer.setMenu(menu)
 
-    mainTable.peer.addKeyListener(keyPressed {
-      case e if e.keyCode == SWT.DEL && mainTable.peer.getSelectionCount > 0 =>
-        tryDeleteSelectedDownloads()
-    })
     mainTable.peer.addListener(SWT.Selection, e => {
       logTable.render(mainTable.selectedEntryOption)
     })
@@ -273,6 +286,13 @@ class MainFrame(
     }
   }
 
+  private def copyUri(): Unit = {
+    val selected = mainTable.selectedEntries
+    val uris = selected.map(_.uri)
+    val content = new StringSelection(uris.mkString("\n"))
+    clipboard.setContents(content, null)
+  }
+
   private def openFolders(): Unit = {
     val selected = mainTable.selectedEntries
     val locations = selected.map(_.location).distinct
@@ -284,6 +304,7 @@ class MainFrame(
     btnStop.setEnabled(mainTable.selectedEntries exists (_.status.canBeStopped))
   }
 
+  private def clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
   //
   // Subscriber trait
   //
