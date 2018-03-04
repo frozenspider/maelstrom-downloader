@@ -1,6 +1,9 @@
 ### SNAPSHOT
 * 
 
+### 0.1.2
+* Fixed exit button in top menu not working 
+
 ### 0.1.1
 * Added ability to copy download URI
 * Added ability to open download folder
