@@ -233,7 +233,6 @@ class HttpBackendDownloaderSpec
 
   test("failure - server responds with an error") {
     val de = createDownloadEntry
-    val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
     server.respondWith { (req, res) =>
       res.setStatusCode(HttpStatus.SC_FORBIDDEN)
     }
@@ -279,6 +278,21 @@ class HttpBackendDownloaderSpec
     failureOption foreach (ex => fail(ex))
     assert(succeeded)
     assert(server.reqCounter === 2)
+  }
+
+  test("failure - path is not accessible") {
+    val de = createDownloadEntry
+    de.location = new File("?*|\0><'\"%:")
+    server.respondWith(serveContentNormally(Array.empty[Byte]))
+
+    expectStatusChangeEvents(de, Status.Running, Status.Error)
+    transferMgr.start()
+    downloader.start(de, 999999)
+    waitFor.firedAndStopped()
+
+    failureOption foreach (ex => fail(ex))
+    assert(succeeded)
+    assert(server.reqCounter === 0)
   }
 
   //
@@ -357,10 +371,10 @@ class HttpBackendDownloaderSpec
   private object waitFor {
     /** Wait for all expected events to fire (or unexpected to cause failure) and for all download threads to die */
     def firedAndStopped(): Unit = {
-      val waitUntilProcessed = waitUntil(waitTimeoutMs) {
+      val waitUntilFiredAndStopped = waitUntil(waitTimeoutMs) {
         (succeeded || failureOption.isDefined) && downloader.test_getThreads.isEmpty
       }
-      assert(waitUntilProcessed)
+      assert(waitUntilFiredAndStopped)
     }
 
     /** Wait for X bytes to be read from transfer manager (since last reset) */
