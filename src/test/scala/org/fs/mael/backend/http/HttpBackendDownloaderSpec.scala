@@ -66,7 +66,7 @@ class HttpBackendDownloaderSpec
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     transferMgr.start()
     downloader.start(de, 999999)
-    waitUntilProcessed()
+    waitFor.firedAndStopped()
 
     failureOption foreach (ex => fail(ex))
     assert(succeeded)
@@ -84,9 +84,9 @@ class HttpBackendDownloaderSpec
     transferMgr.throttleBytes(5)
     transferMgr.start()
     downloader.start(de, 999999)
-    waitUntilRead(5)
+    waitFor.read(5)
     downloader.stop(de)
-    waitUntilStopped()
+    waitFor.stopped()
 
     failureOption foreach (ex => fail(ex))
     assert(succeeded)
@@ -99,7 +99,7 @@ class HttpBackendDownloaderSpec
     transferMgr.reset()
     transferMgr.start()
     downloader.start(de, 999999)
-    waitUntilProcessed()
+    waitFor.firedAndStopped()
 
     failureOption foreach (ex => fail(ex))
     assert(succeeded)
@@ -121,7 +121,7 @@ class HttpBackendDownloaderSpec
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     transferMgr.start()
     downloader.start(de, 999999)
-    waitUntilProcessed()
+    waitFor.firedAndStopped()
 
     failureOption foreach (ex => fail(ex))
     assert(succeeded)
@@ -143,7 +143,7 @@ class HttpBackendDownloaderSpec
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     transferMgr.start()
     downloader.start(de, 999999)
-    waitUntilProcessed()
+    waitFor.firedAndStopped()
 
     failureOption foreach (ex => fail(ex))
     assert(succeeded)
@@ -163,7 +163,7 @@ class HttpBackendDownloaderSpec
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     transferMgr.start()
     downloader.start(de, 999999)
-    waitUntilProcessed()
+    waitFor.firedAndStopped()
 
     failureOption foreach (ex => fail(ex))
     assert(succeeded)
@@ -183,11 +183,11 @@ class HttpBackendDownloaderSpec
     transferMgr.start()
     transferMgr.throttleBytes(0)
     downloader.start(de, 999999)
-    waitUntilFileAppears(de)
+    waitFor.fileAppears(de)
     assert(readLocalFile(de).size === 5)
     assert(readLocalFile(de) === Seq.fill[Byte](5)(0x00))
     transferMgr.throttleBytes(999)
-    waitUntilProcessed()
+    waitFor.firedAndStopped()
 
     failureOption foreach (ex => fail(ex))
     assert(succeeded)
@@ -208,17 +208,17 @@ class HttpBackendDownloaderSpec
     transferMgr.start()
     transferMgr.throttleBytes(0)
     downloader.start(de, 999999)
-    waitUntilFileAppears(de)
+    waitFor.fileAppears(de)
     assert(readLocalFile(de).size === 0)
 
     transferMgr.throttleBytes(5)
-    waitUntilRead(5)
+    waitFor.read(5)
     assert(readLocalFile(de).size === 5)
 
     transferMgr.throttleBytes(999)
-    waitUntilRead(10)
+    waitFor.read(10)
     assert(readLocalFile(de).size === 10)
-    waitUntilProcessed()
+    waitFor.firedAndStopped()
 
     failureOption foreach (ex => fail(ex))
     assert(succeeded)
@@ -234,7 +234,7 @@ class HttpBackendDownloaderSpec
     expectStatusChangeEvents(de, Status.Running, Status.Error)
     transferMgr.start()
     downloader.start(de, 999999)
-    waitUntilProcessed()
+    waitFor.firedAndStopped()
 
     failureOption foreach (ex => fail(ex))
     assert(succeeded)
@@ -258,17 +258,17 @@ class HttpBackendDownloaderSpec
     transferMgr.start()
     transferMgr.throttleBytes(5)
     downloader.start(de, 999999)
-    waitUntilRead(5)
+    waitFor.read(5)
 
     downloader.stop(de)
-    waitUntilStopped()
+    waitFor.stopped()
 
     eventMgr.reset()
     expectStatusChangeEvents(de, Status.Running, Status.Error)
     transferMgr.reset()
     transferMgr.start()
     downloader.start(de, 999999)
-    waitUntilProcessed()
+    waitFor.firedAndStopped()
 
     failureOption foreach (ex => fail(ex))
     assert(succeeded)
@@ -314,42 +314,6 @@ class HttpBackendDownloaderSpec
     }
   }
 
-  /** Wait for all expected events to fire (or unexpected to cause failure) and for all download threads to die */
-  private def waitUntilProcessed(): Unit = {
-    val waitUntilProcessed = waitUntil(
-      () => (succeeded || failureOption.isDefined) && downloader.test_getThreads.isEmpty,
-      waitTimeoutMs
-    )
-    assert(waitUntilProcessed)
-  }
-
-  /** Wait for X bytes to be read from transfer manager (since last reset) */
-  private def waitUntilRead(x: Int): Unit = {
-    val waitUntilRead = waitUntil(
-      () => transferMgr.bytesRead == x || failureOption.isDefined,
-      waitTimeoutMs
-    )
-    assert(waitUntilRead)
-  }
-
-  /** Wait for all download threads to die */
-  private def waitUntilStopped(): Unit = {
-    val waitUntilStopped = waitUntil(
-      () => downloader.test_getThreads.isEmpty,
-      waitTimeoutMs
-    )
-    assert(waitUntilStopped)
-  }
-
-  /** Wait for the file associated with download entry to appear on disc */
-  private def waitUntilFileAppears(de: DE): Unit = {
-    val waitUntilFileAppears = waitUntil(
-      () => getLocalFileOption(de) map (_.exists) getOrElse false,
-      waitTimeoutMs
-    )
-    assert(waitUntilFileAppears)
-  }
-
   private def getLocalFileOption(de: DE): Option[File] = {
     de.filenameOption map (new File(tmpDir, _))
   }
@@ -382,8 +346,45 @@ class HttpBackendDownloaderSpec
         new ByteArrayEntity(partialContent, ContentType.APPLICATION_OCTET_STREAM)
       }
       res.setEntity(body)
-
     }
+
+  private object waitFor {
+    /** Wait for all expected events to fire (or unexpected to cause failure) and for all download threads to die */
+    def firedAndStopped(): Unit = {
+      val waitUntilProcessed = waitUntil(
+        () => (succeeded || failureOption.isDefined) && downloader.test_getThreads.isEmpty,
+        waitTimeoutMs
+      )
+      assert(waitUntilProcessed)
+    }
+
+    /** Wait for X bytes to be read from transfer manager (since last reset) */
+    def read(x: Int): Unit = {
+      val waitUntilRead = waitUntil(
+        () => transferMgr.bytesRead == x || failureOption.isDefined,
+        waitTimeoutMs
+      )
+      assert(waitUntilRead)
+    }
+
+    /** Wait for all download threads to die */
+    def stopped(): Unit = {
+      val waitUntilStopped = waitUntil(
+        () => downloader.test_getThreads.isEmpty,
+        waitTimeoutMs
+      )
+      assert(waitUntilStopped)
+    }
+
+    /** Wait for the file associated with download entry to appear on disc */
+    def fileAppears(de: DE): Unit = {
+      val waitUntilFileAppears = waitUntil(
+        () => getLocalFileOption(de) map (_.exists) getOrElse false,
+        waitTimeoutMs
+      )
+      assert(waitUntilFileAppears)
+    }
+  }
 
   //
   // Helper classes
