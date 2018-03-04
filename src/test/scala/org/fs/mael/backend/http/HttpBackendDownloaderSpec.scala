@@ -2,6 +2,7 @@ package org.fs.mael.backend.http
 
 import java.io.File
 import java.net.URI
+import java.net.URLEncoder
 import java.nio.file.Files
 
 import scala.util.Random
@@ -65,7 +66,7 @@ class HttpBackendDownloaderSpec
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     transferMgr.start()
     downloader.start(de, 999999)
-    waitUntil(() => succeeded || failureOption.isDefined, waitTimeoutMs)
+    waitUntilProcessed()
 
     failureOption foreach (ex => fail(ex))
     assert(succeeded)
@@ -85,7 +86,7 @@ class HttpBackendDownloaderSpec
     downloader.start(de, 999999)
     waitUntil(() => transferMgr.bytesRead == 5 || failureOption.isDefined, waitTimeoutMs)
     downloader.stop(de)
-    waitUntil(() => downloader.test_findThread(de).isEmpty, waitTimeoutMs)
+    waitUntil(() => downloader.test_getThreads.isEmpty, waitTimeoutMs)
 
     failureOption foreach (ex => fail(ex))
     assert(succeeded)
@@ -99,7 +100,7 @@ class HttpBackendDownloaderSpec
     transferMgr.reset()
     transferMgr.start()
     downloader.start(de, 999999)
-    waitUntil(() => succeeded || failureOption.isDefined, waitTimeoutMs)
+    waitUntilProcessed()
 
     failureOption foreach (ex => fail(ex))
     assert(succeeded)
@@ -107,6 +108,73 @@ class HttpBackendDownloaderSpec
     assert(server.reqCounter === 2)
     assert(transferMgr.bytesRead === 5)
   }
+
+  test("server responds with an error") {
+    val de = createDownloadEntry
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+    server.start { (req, res) =>
+      res.setStatusCode(HttpStatus.SC_FORBIDDEN)
+    }
+    expectStatusChangeEvents(de, Status.Running, Status.Error)
+    transferMgr.start()
+    downloader.start(de, 999999)
+    waitUntilProcessed()
+
+    failureOption foreach (ex => fail(ex))
+    assert(succeeded)
+    assert(!gerLocalFile(de).exists)
+    assert(server.reqCounter === 1)
+    assert(transferMgr.bytesRead === 0)
+  }
+
+  test("deduce filename from header") {
+    val de = createDownloadEntry
+    val filename = de.filenameOption.get
+    de.filenameOption = None
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+    server.start { (req, res) =>
+      serveContentNormally(expectedBytes)(req, res)
+      res.setHeader("Content-Disposition", s"Attachment; filename=/?${filename}?/")
+    }
+
+    expectStatusChangeEvents(de, Status.Running, Status.Complete)
+    transferMgr.start()
+    downloader.start(de, 999999)
+    waitUntilProcessed()
+
+    failureOption foreach (ex => fail(ex))
+    assert(succeeded)
+    assert(de.filenameOption === Some("__" + filename + "__"))
+    assert(readLocalFile(de) === expectedBytes)
+    assert(server.reqCounter === 1)
+    assert(transferMgr.bytesRead === 5)
+  }
+
+  test("deduce filename from URL") {
+    val de = createDownloadEntry
+    val filename = de.filenameOption.get
+    val encodedFilename = URLEncoder.encode(s"/?${filename}?/", "UTF8")
+    de.filenameOption = None
+    de.uri = new URI(de.uri.toString replaceAllLiterally (de.uri.getPath, s"/$encodedFilename"))
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+    server.start(serveContentNormally(expectedBytes))
+
+    expectStatusChangeEvents(de, Status.Running, Status.Complete)
+    transferMgr.start()
+    downloader.start(de, 999999)
+    waitUntilProcessed()
+
+    failureOption foreach (ex => fail(ex))
+    assert(succeeded)
+    assert(de.filenameOption === Some("__" + filename + "__"))
+    assert(readLocalFile(de) === expectedBytes)
+    assert(server.reqCounter === 1)
+    assert(transferMgr.bytesRead === 5)
+  }
+
+  //
+  // Helper methods
+  //
 
   private def requestTempFilename(): String = {
     val filename = Random.alphanumeric.take(10).mkString + ".tmp"
@@ -143,8 +211,20 @@ class HttpBackendDownloaderSpec
     }
   }
 
+  /** Wait for all expected events to fire (or unexpected to cause failure) and for download threads to die */
+  private def waitUntilProcessed(): Unit = {
+    waitUntil(
+      () => (succeeded || failureOption.isDefined) && downloader.test_getThreads.isEmpty,
+      waitTimeoutMs
+    )
+  }
+
+  private def gerLocalFile(de: DE): File = {
+    new File(tmpDir, de.filenameOption.get)
+  }
+
   private def readLocalFile(de: DE): Array[Byte] = {
-    Files.readAllBytes(new File(tmpDir, de.filenameOption.get).toPath)
+    Files.readAllBytes(gerLocalFile(de).toPath)
   }
 
   /** Used for server to act like a regular HTTP server serving a file, supporting resuming */
@@ -173,6 +253,10 @@ class HttpBackendDownloaderSpec
       res.setEntity(body)
 
     }
+
+  //
+  // Helper classes
+  //
 
   private class ControlledEventManager extends StoringEventManager {
     private type PF = PartialFunction[PriorityEvent, Unit]

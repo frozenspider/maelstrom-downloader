@@ -3,6 +3,7 @@ package org.fs.mael.backend.http
 import java.io.File
 import java.io.RandomAccessFile
 import java.net.SocketException
+import java.net.URLDecoder
 import java.net.UnknownHostException
 
 import scala.util.Random
@@ -36,7 +37,6 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
-import org.fs.mael.core.utils.CoreUtils._
 import org.slf4s.Logging
 
 class HttpBackendDownloader(
@@ -76,9 +76,9 @@ class HttpBackendDownloader(
   }
 
   /** For test usage only! */
-  def test_findThread(de: DE): Option[Thread] = {
+  def test_getThreads: Seq[Thread] = {
     this.synchronized {
-      threads find (_.de == de)
+      threads
     }
   }
 
@@ -236,7 +236,7 @@ class HttpBackendDownloader(
       } orElse {
         // Try to use the last part of URL path as filename
         de.uri.toURL.getPath.split("/").lastOption flatMap {
-          case x if x.length > 0 => Some(x)
+          case x if x.length > 0 => Some(URLDecoder.decode(x, "UTF8"))
           case _                 => None
         }
       } map { fn =>
