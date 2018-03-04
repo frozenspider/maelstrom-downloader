@@ -18,13 +18,15 @@ import org.fs.mael.test.stub.ControlledTransferManager
 import org.fs.mael.test.stub.StoringEventManager
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.FunSuite
 import org.slf4s.Logging
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class HttpBackendDownloaderSpec
   extends FunSuite
-  with BeforeAndAfter {
+  with BeforeAndAfter
+  with BeforeAndAfterAll {
 
   private type DE = DownloadEntry[HttpEntryData]
 
@@ -42,7 +44,7 @@ class HttpBackendDownloaderSpec
   private val server: SimpleHttpServer = new SimpleHttpServer(port)
 
   /** Change for debugging to set breakpoints */
-  private val waitTimeoutMs = 1000 // * 9999
+  private val waitTimeoutMs = 1000 * 9999
 
   before {
     eventMgr.reset()
@@ -53,16 +55,19 @@ class HttpBackendDownloaderSpec
   }
 
   after {
-    server.stop()
     tmpFilenames.foreach {
       new File(tmpDir, _).delete()
     }
   }
 
+  override def afterAll() {
+    server.shutdown()
+  }
+
   test("regular download of 5 bytes") {
     val de = createDownloadEntry
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
-    server.start(serveContentNormally(expectedBytes))
+    server.respondWith(serveContentNormally(expectedBytes))
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     transferMgr.start()
@@ -79,7 +84,7 @@ class HttpBackendDownloaderSpec
   test("download 5 bytes, stop, download 5 more") {
     val de = createDownloadEntry
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-    server.start(serveContentNormally(expectedBytes))
+    server.respondWith(serveContentNormally(expectedBytes))
 
     expectStatusChangeEvents(de, Status.Running, Status.Stopped)
     transferMgr.throttleBytes(5)
@@ -114,7 +119,7 @@ class HttpBackendDownloaderSpec
     val filename = de.filenameOption.get
     de.filenameOption = None
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
-    server.start { (req, res) =>
+    server.respondWith { (req, res) =>
       serveContentNormally(expectedBytes)(req, res)
       res.setHeader("Content-Disposition", s"Attachment; filename=/?${filename}?/")
     }
@@ -139,7 +144,7 @@ class HttpBackendDownloaderSpec
     de.filenameOption = None
     de.uri = new URI(de.uri.toString replaceAllLiterally (de.uri.getPath, s"/$encodedFilename"))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
-    server.start(serveContentNormally(expectedBytes))
+    server.respondWith(serveContentNormally(expectedBytes))
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     transferMgr.start()
@@ -159,7 +164,7 @@ class HttpBackendDownloaderSpec
     de.filenameOption = None
     de.uri = new URI(de.uri.toString replaceAllLiterally (de.uri.getPath, ""))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
-    server.start(serveContentNormally(expectedBytes))
+    server.respondWith(serveContentNormally(expectedBytes))
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     transferMgr.start()
@@ -178,7 +183,7 @@ class HttpBackendDownloaderSpec
   test("file size - pre-allocate if known") {
     val de = createDownloadEntry
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
-    server.start(serveContentNormally(expectedBytes))
+    server.respondWith(serveContentNormally(expectedBytes))
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     transferMgr.start()
@@ -197,7 +202,7 @@ class HttpBackendDownloaderSpec
   test("file size - expand dynamically if unknown") {
     val de = createDownloadEntry
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-    server.start { (req, res) =>
+    server.respondWith { (req, res) =>
       res.setStatusCode(HttpStatus.SC_OK)
       val entity = new ByteArrayEntity(expectedBytes, ContentType.APPLICATION_OCTET_STREAM) {
         override def getContentLength = -1
@@ -229,7 +234,7 @@ class HttpBackendDownloaderSpec
   test("failure - server responds with an error") {
     val de = createDownloadEntry
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
-    server.start { (req, res) =>
+    server.respondWith { (req, res) =>
       res.setStatusCode(HttpStatus.SC_FORBIDDEN)
     }
     expectStatusChangeEvents(de, Status.Running, Status.Error)
@@ -247,7 +252,7 @@ class HttpBackendDownloaderSpec
   test("failure - file size changed") {
     val de = createDownloadEntry
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-    server.start { (req, res) =>
+    server.respondWith { (req, res) =>
       res.setStatusCode(if (req.getHeaders(HttpHeaders.RANGE).isEmpty) HttpStatus.SC_OK else HttpStatus.SC_PARTIAL_CONTENT)
       val entity = new ByteArrayEntity(expectedBytes, ContentType.APPLICATION_OCTET_STREAM) {
         override def getContentLength = Random.nextInt(1000) + 1
@@ -410,7 +415,7 @@ class HttpBackendDownloaderSpec
     }
   }
 
-  private class SimpleHttpServer(port: Int) extends Logging {
+  private class SimpleHttpServer(port: Int) extends Logging { self =>
     import java.net.SocketException
     import java.util.Locale
     import java.util.concurrent.TimeUnit
@@ -424,54 +429,45 @@ class HttpBackendDownloaderSpec
       .build()
 
     val exceptionLogger = new ExceptionLogger {
-      override def log(ex: Exception): Unit = ex match {
-        case _: ConnectionClosedException => // NOOP
-        case _: SocketException           => // NOOP
-        case _                            => failureOption = Some(ex)
-      }
+      override def log(ex: Exception): Unit =
+        ex match {
+          case _: ConnectionClosedException => // NOOP
+          case _: SocketException           => // NOOP
+          case _                            => failureOption = Some(ex)
+        }
     }
 
-    def serverBootstrap = ServerBootstrap.bootstrap()
+    @volatile var reqCounter = 0
+
+    @volatile var handle: (HttpRequest, HttpResponse) => Unit = _
+
+    val server: HttpServer = ServerBootstrap.bootstrap()
       .setListenerPort(port)
       .setServerInfo("Test/1.1")
       .setSocketConfig(socketConfig)
       .setExceptionLogger(exceptionLogger)
+      .registerHandler("*", new HttpRequestHandler {
+        def handle(request: HttpRequest, response: HttpResponse, context: HttpContext): Unit = {
+          val method = request.getRequestLine().getMethod().toUpperCase(Locale.ROOT)
+          if (!method.equals("GET") && !method.equals("HEAD") && !method.equals("POST")) {
+            throw new MethodNotSupportedException(method + " method not supported")
+          }
+          reqCounter += 1
+          self.handle(request, response)
+        }
+      })
+      .create()
 
-    var server: HttpServer = _
+    server.start()
 
-    var reqCounter = 0
-
-    def start(
-      handle2: (HttpRequest, HttpResponse) => Unit
+    def respondWith(
+      handle: (HttpRequest, HttpResponse) => Unit
     ): Unit = {
       reqCounter = 0
-
-      // Attempt to start a server for 1 second, stopping
-      val started = waitUntil(1000) {
-        try {
-          server = serverBootstrap.registerHandler("*", new HttpRequestHandler {
-            def handle(request: HttpRequest, response: HttpResponse, context: HttpContext): Unit = {
-              val method = request.getRequestLine().getMethod().toUpperCase(Locale.ROOT)
-              if (!method.equals("GET") && !method.equals("HEAD") && !method.equals("POST")) {
-                throw new MethodNotSupportedException(method + " method not supported")
-              }
-              reqCounter += 1
-              handle2(request, response)
-            }
-          }).create()
-          server.start()
-          true
-        } catch {
-          case _: SocketException =>
-            log.warn("Port is still in use, retrying start...")
-            false
-        }
-      }
-
-      assert(started)
+      this.handle = handle
     }
 
-    def stop(): Unit = {
+    def shutdown(): Unit = {
       Option(server) foreach { server =>
         server.stop()
         server.shutdown(0, TimeUnit.SECONDS)
