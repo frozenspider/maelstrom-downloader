@@ -12,6 +12,10 @@ abstract class BackendDownloader[BSED <: BackendSpecificEntryData](protected val
   /** Thread group which should be used for downloading threads */
   protected lazy val dlThreadGroup = new ThreadGroup(backendId + "_download")
 
+  /**
+   * Start downloading the given entry with the given timeout
+   * @param timeoutMs operations timeout in millis, 0 stands for none
+   */
   def start(de: DownloadEntry[BSED], timeoutMs: Int): Unit = de.status match {
     case s if s.canBeStarted => startInner(de, timeoutMs)
     case _                   => // NOOP

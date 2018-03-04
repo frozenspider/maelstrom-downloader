@@ -70,7 +70,6 @@ class HttpBackendDownloaderSpec
     server.respondWith(serveContentNormally(expectedBytes))
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
-    transferMgr.start()
     downloader.start(de, 999999)
     waitFor.firedAndStopped()
 
@@ -88,7 +87,6 @@ class HttpBackendDownloaderSpec
 
     expectStatusChangeEvents(de, Status.Running, Status.Stopped)
     transferMgr.throttleBytes(5)
-    transferMgr.start()
     downloader.start(de, 999999)
     waitFor.read(5)
     downloader.stop(de)
@@ -103,7 +101,6 @@ class HttpBackendDownloaderSpec
     eventMgr.reset()
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     transferMgr.reset()
-    transferMgr.start()
     downloader.start(de, 999999)
     waitFor.firedAndStopped()
 
@@ -125,7 +122,6 @@ class HttpBackendDownloaderSpec
     }
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
-    transferMgr.start()
     downloader.start(de, 999999)
     waitFor.firedAndStopped()
 
@@ -147,7 +143,6 @@ class HttpBackendDownloaderSpec
     server.respondWith(serveContentNormally(expectedBytes))
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
-    transferMgr.start()
     downloader.start(de, 999999)
     waitFor.firedAndStopped()
 
@@ -167,7 +162,6 @@ class HttpBackendDownloaderSpec
     server.respondWith(serveContentNormally(expectedBytes))
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
-    transferMgr.start()
     downloader.start(de, 999999)
     waitFor.firedAndStopped()
 
@@ -186,7 +180,6 @@ class HttpBackendDownloaderSpec
     server.respondWith(serveContentNormally(expectedBytes))
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
-    transferMgr.start()
     transferMgr.throttleBytes(0)
     downloader.start(de, 999999)
     waitFor.fileAppears(de)
@@ -211,7 +204,6 @@ class HttpBackendDownloaderSpec
     }
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
-    transferMgr.start()
     transferMgr.throttleBytes(0)
     downloader.start(de, 999999)
     waitFor.fileAppears(de)
@@ -237,7 +229,6 @@ class HttpBackendDownloaderSpec
       res.setStatusCode(HttpStatus.SC_FORBIDDEN)
     }
     expectStatusChangeEvents(de, Status.Running, Status.Error)
-    transferMgr.start()
     downloader.start(de, 999999)
     waitFor.firedAndStopped()
 
@@ -246,6 +237,7 @@ class HttpBackendDownloaderSpec
     assert(getLocalFileOption(de) map (f => !f.exists) getOrElse true)
     assert(server.reqCounter === 1)
     assert(transferMgr.bytesRead === 0)
+    assert(de.downloadLog.last.details.toLowerCase contains "responded")
   }
 
   test("failure - file size changed") {
@@ -260,7 +252,6 @@ class HttpBackendDownloaderSpec
     }
 
     expectStatusChangeEvents(de, Status.Running, Status.Stopped)
-    transferMgr.start()
     transferMgr.throttleBytes(5)
     downloader.start(de, 999999)
     waitFor.read(5)
@@ -271,13 +262,41 @@ class HttpBackendDownloaderSpec
     eventMgr.reset()
     expectStatusChangeEvents(de, Status.Running, Status.Error)
     transferMgr.reset()
-    transferMgr.start()
     downloader.start(de, 999999)
     waitFor.firedAndStopped()
 
     failureOption foreach (ex => fail(ex))
     assert(succeeded)
     assert(server.reqCounter === 2)
+    assert(de.downloadLog.last.details.toLowerCase contains "size")
+  }
+
+  test("failure - local file disappeared") {
+    val de = createDownloadEntry
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    server.respondWith(serveContentNormally(expectedBytes))
+
+    expectStatusChangeEvents(de, Status.Running, Status.Stopped)
+    transferMgr.throttleBytes(5)
+    downloader.start(de, 999999)
+    waitFor.read(5)
+
+    downloader.stop(de)
+    waitFor.stopped()
+
+    assert(getLocalFileOption(de).isDefined && getLocalFileOption(de).get.exists)
+    getLocalFileOption(de).get.delete()
+
+    eventMgr.reset()
+    expectStatusChangeEvents(de, Status.Running, Status.Error)
+    transferMgr.reset()
+    downloader.start(de, 999999)
+    waitFor.firedAndStopped()
+
+    failureOption foreach (ex => fail(ex))
+    assert(succeeded)
+    assert(server.reqCounter === 2)
+    assert(de.downloadLog.last.details.toLowerCase contains "file")
   }
 
   test("failure - path is not accessible") {
@@ -286,14 +305,35 @@ class HttpBackendDownloaderSpec
     server.respondWith(serveContentNormally(Array.empty[Byte]))
 
     expectStatusChangeEvents(de, Status.Running, Status.Error)
-    transferMgr.start()
     downloader.start(de, 999999)
     waitFor.firedAndStopped()
 
     failureOption foreach (ex => fail(ex))
     assert(succeeded)
     assert(server.reqCounter === 0)
+    assert(de.downloadLog.last.details.toLowerCase contains "path")
   }
+
+  test("failure - request timeout") {
+    val de = createDownloadEntry
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+    server.respondWith { (req, res) =>
+      Thread.sleep(200)
+      serveContentNormally(expectedBytes)(req, res)
+    }
+
+    expectStatusChangeEvents(de, Status.Running, Status.Error)
+    downloader.start(de, 100)
+    waitFor.firedAndStopped()
+
+    failureOption foreach (ex => fail(ex))
+    assert(succeeded)
+    assert(server.reqCounter === 1)
+    assert(transferMgr.bytesRead === 0)
+    assert(de.downloadLog.last.details.toLowerCase contains "timed out")
+  }
+
+  // TODO: Test for file already exits
 
   //
   // Helper methods

@@ -3,6 +3,7 @@ package org.fs.mael.backend.http
 import java.io.File
 import java.io.RandomAccessFile
 import java.net.SocketException
+import java.net.SocketTimeoutException
 import java.net.URLDecoder
 import java.net.UnknownHostException
 
@@ -212,6 +213,8 @@ class HttpBackendDownloader(
           errorLogAndFire(de, "Host cannot be resolved: " + ex.getMessage)
         case ex: SocketException =>
           errorLogAndFire(de, ex.getMessage)
+        case ex: SocketTimeoutException =>
+          errorLogAndFire(de, "Request timed out")
         case ex: InterruptedException =>
           log.debug(s"Thread interrupted: ${this.getName}")
         case ex: Exception =>
@@ -310,7 +313,7 @@ class HttpBackendDownloader(
       val connMgr = new BasicHttpClientConnectionManager(HttpBackendDownloader.SocketFactoryRegistry, connFactory, null, null)
       connMgr.setSocketConfig(
         SocketConfig.custom()
-          .setSoTimeout(connTimeoutMs) // TODO: Test
+          .setSoTimeout(connTimeoutMs)
           .build()
       )
       connMgr
