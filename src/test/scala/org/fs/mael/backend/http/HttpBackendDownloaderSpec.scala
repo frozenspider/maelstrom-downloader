@@ -73,7 +73,7 @@ class HttpBackendDownloaderSpec
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     downloader.start(de, 999999)
-    waitFor.firedAndStopped()
+    await.firedAndStopped()
 
     assert(readLocalFile(de) === expectedBytes)
     assert(server.reqCounter === 1)
@@ -91,10 +91,10 @@ class HttpBackendDownloaderSpec
     expectStatusChangeEvents(de, Status.Running, Status.Stopped)
     transferMgr.throttleBytes(5)
     downloader.start(de, 999999)
-    waitFor.read(5)
+    await.read(5)
 
     downloader.stop(de)
-    waitFor.stopped()
+    await.stopped()
 
     assertDoesntHaveLogEntry(de, "doesn't support resuming")
     assert(readLocalFile(de) === expectedBytes.take(5) ++ Seq.fill[Byte](5)(0x00))
@@ -105,7 +105,7 @@ class HttpBackendDownloaderSpec
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     transferMgr.reset()
     downloader.start(de, 999999)
-    waitFor.firedAndStopped()
+    await.firedAndStopped()
 
     assertDoesntHaveLogEntry(de, "starting over")
     assert(readLocalFile(de) === expectedBytes)
@@ -121,10 +121,10 @@ class HttpBackendDownloaderSpec
     expectStatusChangeEvents(de, Status.Running, Status.Stopped)
     transferMgr.throttleBytes(5)
     downloader.start(de, 999999)
-    waitFor.read(5)
+    await.read(5)
 
     downloader.stop(de)
-    waitFor.stopped()
+    await.stopped()
 
     assertHasLogEntry(de, "doesn't support resuming")
     assert(readLocalFile(de) === expectedBytes.take(5) ++ Seq.fill[Byte](5)(0x00))
@@ -135,7 +135,7 @@ class HttpBackendDownloaderSpec
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     transferMgr.reset()
     downloader.start(de, 999999)
-    waitFor.firedAndStopped()
+    await.firedAndStopped()
 
     assertHasLogEntry(de, "starting over")
     assert(server.reqCounter === 2)
@@ -154,7 +154,7 @@ class HttpBackendDownloaderSpec
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     downloader.start(de, 999999)
-    waitFor.firedAndStopped()
+    await.firedAndStopped()
 
     assert(de.filenameOption === Some("__" + filename + "__"))
     assert(readLocalFile(de) === expectedBytes)
@@ -173,7 +173,7 @@ class HttpBackendDownloaderSpec
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     downloader.start(de, 999999)
-    waitFor.firedAndStopped()
+    await.firedAndStopped()
 
     assert(de.filenameOption === Some("__" + filename + "__"))
     assert(readLocalFile(de) === expectedBytes)
@@ -190,7 +190,7 @@ class HttpBackendDownloaderSpec
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     downloader.start(de, 999999)
-    waitFor.firedAndStopped()
+    await.firedAndStopped()
 
     assert(de.filenameOption.isDefined)
     assert(de.filenameOption.get === "file-" + de.id.toString.toUpperCase)
@@ -207,12 +207,12 @@ class HttpBackendDownloaderSpec
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     transferMgr.throttleBytes(0)
     downloader.start(de, 999999)
-    waitFor.fileAppears(de)
+    await.fileAppears(de)
     assert(readLocalFile(de).size === 5)
     assert(readLocalFile(de) === Seq.fill[Byte](5)(0x00))
 
     transferMgr.throttleBytes(999)
-    waitFor.firedAndStopped()
+    await.firedAndStopped()
     assert(readLocalFile(de).size === 5)
     assert(readLocalFile(de) === expectedBytes)
   }
@@ -230,17 +230,17 @@ class HttpBackendDownloaderSpec
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
     transferMgr.throttleBytes(0)
     downloader.start(de, 999999)
-    waitFor.fileAppears(de)
+    await.fileAppears(de)
     assert(readLocalFile(de).size === 0)
 
     transferMgr.throttleBytes(5)
-    waitFor.read(5)
+    await.read(5)
     assert(readLocalFile(de).size === 5)
 
     transferMgr.throttleBytes(999)
-    waitFor.read(10)
+    await.read(10)
     assert(readLocalFile(de).size === 10)
-    waitFor.firedAndStopped()
+    await.firedAndStopped()
 
     assert(server.reqCounter === 1)
   }
@@ -252,7 +252,7 @@ class HttpBackendDownloaderSpec
     }
     expectStatusChangeEvents(de, Status.Running, Status.Error)
     downloader.start(de, 999999)
-    waitFor.firedAndStopped()
+    await.firedAndStopped()
 
     assert(getLocalFileOption(de) map (f => !f.exists) getOrElse true)
     assert(server.reqCounter === 1)
@@ -273,16 +273,16 @@ class HttpBackendDownloaderSpec
     expectStatusChangeEvents(de, Status.Running, Status.Stopped)
     transferMgr.throttleBytes(5)
     downloader.start(de, 999999)
-    waitFor.read(5)
+    await.read(5)
 
     downloader.stop(de)
-    waitFor.stopped()
+    await.stopped()
 
     eventMgr.reset()
     expectStatusChangeEvents(de, Status.Running, Status.Error)
     transferMgr.reset()
     downloader.start(de, 999999)
-    waitFor.firedAndStopped()
+    await.firedAndStopped()
 
     assert(server.reqCounter === 2)
     assertLastLogEntry(de, "size")
@@ -296,10 +296,10 @@ class HttpBackendDownloaderSpec
     expectStatusChangeEvents(de, Status.Running, Status.Stopped)
     transferMgr.throttleBytes(5)
     downloader.start(de, 999999)
-    waitFor.read(5)
+    await.read(5)
 
     downloader.stop(de)
-    waitFor.stopped()
+    await.stopped()
 
     assert(getLocalFileOption(de).isDefined && getLocalFileOption(de).get.exists)
     getLocalFileOption(de).get.delete()
@@ -308,7 +308,7 @@ class HttpBackendDownloaderSpec
     expectStatusChangeEvents(de, Status.Running, Status.Error)
     transferMgr.reset()
     downloader.start(de, 999999)
-    waitFor.firedAndStopped()
+    await.firedAndStopped()
 
     assert(server.reqCounter === 2)
     assertLastLogEntry(de, "file")
@@ -321,7 +321,7 @@ class HttpBackendDownloaderSpec
 
     expectStatusChangeEvents(de, Status.Running, Status.Error)
     downloader.start(de, 999999)
-    waitFor.firedAndStopped()
+    await.firedAndStopped()
 
     assert(server.reqCounter === 0)
     assertLastLogEntry(de, "path")
@@ -337,7 +337,7 @@ class HttpBackendDownloaderSpec
 
     expectStatusChangeEvents(de, Status.Running, Status.Error)
     downloader.start(de, 100)
-    waitFor.firedAndStopped()
+    await.firedAndStopped()
 
     assert(server.reqCounter === 1)
     assert(transferMgr.bytesRead === 0)
@@ -360,7 +360,7 @@ class HttpBackendDownloaderSpec
 
     expectStatusChangeEvents(de, Status.Running, Status.Error)
     downloader.start(de, 999999)
-    waitFor.firedAndStopped()
+    await.firedAndStopped()
 
     assert(server.reqCounter === 1)
     assert(transferMgr.bytesRead === 2)
@@ -457,7 +457,7 @@ class HttpBackendDownloaderSpec
       res.setEntity(body)
     }
 
-  private object waitFor {
+  private object await {
     /** Wait for all expected events to fire (or unexpected to cause failure) and for all download threads to die */
     def firedAndStopped(): Unit = {
       val waitUntilFiredAndStopped = waitUntil(waitTimeoutMs) {
