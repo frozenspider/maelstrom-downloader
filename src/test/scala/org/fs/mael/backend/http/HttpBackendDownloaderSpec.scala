@@ -445,20 +445,20 @@ class HttpBackendDownloaderSpec
       handle2: (HttpRequest, HttpResponse) => Unit
     ): Unit = {
       reqCounter = 0
-      server = serverBootstrap.registerHandler("*", new HttpRequestHandler {
-        def handle(request: HttpRequest, response: HttpResponse, context: HttpContext): Unit = {
-          val method = request.getRequestLine().getMethod().toUpperCase(Locale.ROOT)
-          if (!method.equals("GET") && !method.equals("HEAD") && !method.equals("POST")) {
-            throw new MethodNotSupportedException(method + " method not supported")
-          }
-          reqCounter += 1
-          handle2(request, response)
-        }
-      }).create()
 
       // Attempt to start a server for 1 second, stopping
-      waitUntil(1000) {
+      val started = waitUntil(1000) {
         try {
+          server = serverBootstrap.registerHandler("*", new HttpRequestHandler {
+            def handle(request: HttpRequest, response: HttpResponse, context: HttpContext): Unit = {
+              val method = request.getRequestLine().getMethod().toUpperCase(Locale.ROOT)
+              if (!method.equals("GET") && !method.equals("HEAD") && !method.equals("POST")) {
+                throw new MethodNotSupportedException(method + " method not supported")
+              }
+              reqCounter += 1
+              handle2(request, response)
+            }
+          }).create()
           server.start()
           true
         } catch {
@@ -467,6 +467,8 @@ class HttpBackendDownloaderSpec
             false
         }
       }
+
+      assert(started)
     }
 
     def stop(): Unit = {
