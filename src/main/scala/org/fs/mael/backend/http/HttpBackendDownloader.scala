@@ -104,8 +104,6 @@ class HttpBackendDownloader(
     log.info(s"Download error - $msg: ${de.uri} (${de.id})")
   }
 
-  // TODO: Handle partially downloaded file deleted
-  // TODO: Handle download not supporting resuming
   private class DownloadingThread(val de: DE, timeoutMs: Int)
     extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
 
@@ -137,6 +135,11 @@ class HttpBackendDownloader(
         }
 
         val partial = de.downloadedSize > 0
+
+        if (partial && !de.supportsResumingOption.getOrElse(true)) {
+          de.sections.clear()
+          addLogAndFire(de, LogEntry.info("Resuming is not supported, starting over"))
+        }
 
         val req = {
           val rb = RequestBuilder.get(de.uri)

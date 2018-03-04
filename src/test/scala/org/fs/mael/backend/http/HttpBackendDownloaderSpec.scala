@@ -73,8 +73,6 @@ class HttpBackendDownloaderSpec
     downloader.start(de, 999999)
     waitFor.firedAndStopped()
 
-    failureOption foreach (ex => fail(ex))
-    assert(succeeded)
     assert(readLocalFile(de) === expectedBytes)
     assert(server.reqCounter === 1)
     assert(transferMgr.bytesRead === 5)
@@ -83,17 +81,20 @@ class HttpBackendDownloaderSpec
   test("download 5 bytes, stop, download 5 more") {
     val de = createDownloadEntry
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-    server.respondWith(serveContentNormally(expectedBytes))
+    server.respondWith { (req, res) =>
+      serveContentNormally(expectedBytes)(req, res)
+      res.addHeader(HttpHeaders.ACCEPT_RANGES, "bytes")
+    }
 
     expectStatusChangeEvents(de, Status.Running, Status.Stopped)
     transferMgr.throttleBytes(5)
     downloader.start(de, 999999)
     waitFor.read(5)
+
     downloader.stop(de)
     waitFor.stopped()
 
-    failureOption foreach (ex => fail(ex))
-    assert(succeeded)
+    assertDoesntHaveLogEntry(de, "doesn't support resuming")
     assert(readLocalFile(de) === expectedBytes.take(5) ++ Seq.fill[Byte](5)(0x00))
     assert(server.reqCounter === 1)
     assert(transferMgr.bytesRead === 5)
@@ -104,11 +105,39 @@ class HttpBackendDownloaderSpec
     downloader.start(de, 999999)
     waitFor.firedAndStopped()
 
-    failureOption foreach (ex => fail(ex))
-    assert(succeeded)
+    assertDoesntHaveLogEntry(de, "starting over")
     assert(readLocalFile(de) === expectedBytes)
     assert(server.reqCounter === 2)
     assert(transferMgr.bytesRead === 5)
+  }
+
+  test("download 5 bytes, stop, redownload file with unsupported resuming") {
+    val de = createDownloadEntry
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    server.respondWith(serveContentNormally(expectedBytes))
+
+    expectStatusChangeEvents(de, Status.Running, Status.Stopped)
+    transferMgr.throttleBytes(5)
+    downloader.start(de, 999999)
+    waitFor.read(5)
+
+    downloader.stop(de)
+    waitFor.stopped()
+
+    assertHasLogEntry(de, "doesn't support resuming")
+    assert(readLocalFile(de) === expectedBytes.take(5) ++ Seq.fill[Byte](5)(0x00))
+    assert(server.reqCounter === 1)
+    assert(transferMgr.bytesRead === 5)
+
+    eventMgr.reset()
+    expectStatusChangeEvents(de, Status.Running, Status.Complete)
+    transferMgr.reset()
+    downloader.start(de, 999999)
+    waitFor.firedAndStopped()
+
+    assertHasLogEntry(de, "starting over")
+    assert(server.reqCounter === 2)
+    assert(transferMgr.bytesRead === 10)
   }
 
   test("deduce filename from header") {
@@ -125,8 +154,6 @@ class HttpBackendDownloaderSpec
     downloader.start(de, 999999)
     waitFor.firedAndStopped()
 
-    failureOption foreach (ex => fail(ex))
-    assert(succeeded)
     assert(de.filenameOption === Some("__" + filename + "__"))
     assert(readLocalFile(de) === expectedBytes)
     assert(server.reqCounter === 1)
@@ -146,8 +173,6 @@ class HttpBackendDownloaderSpec
     downloader.start(de, 999999)
     waitFor.firedAndStopped()
 
-    failureOption foreach (ex => fail(ex))
-    assert(succeeded)
     assert(de.filenameOption === Some("__" + filename + "__"))
     assert(readLocalFile(de) === expectedBytes)
     assert(server.reqCounter === 1)
@@ -165,8 +190,6 @@ class HttpBackendDownloaderSpec
     downloader.start(de, 999999)
     waitFor.firedAndStopped()
 
-    failureOption foreach (ex => fail(ex))
-    assert(succeeded)
     assert(de.filenameOption.isDefined)
     assert(de.filenameOption.get === "file-" + de.id.toString.toUpperCase)
     assert(readLocalFile(de) === expectedBytes)
@@ -185,11 +208,11 @@ class HttpBackendDownloaderSpec
     waitFor.fileAppears(de)
     assert(readLocalFile(de).size === 5)
     assert(readLocalFile(de) === Seq.fill[Byte](5)(0x00))
+
     transferMgr.throttleBytes(999)
     waitFor.firedAndStopped()
-
-    failureOption foreach (ex => fail(ex))
-    assert(succeeded)
+    assert(readLocalFile(de).size === 5)
+    assert(readLocalFile(de) === expectedBytes)
   }
 
   test("file size - expand dynamically if unknown") {
@@ -218,8 +241,6 @@ class HttpBackendDownloaderSpec
     assert(readLocalFile(de).size === 10)
     waitFor.firedAndStopped()
 
-    failureOption foreach (ex => fail(ex))
-    assert(succeeded)
     assert(server.reqCounter === 1)
   }
 
@@ -232,12 +253,10 @@ class HttpBackendDownloaderSpec
     downloader.start(de, 999999)
     waitFor.firedAndStopped()
 
-    failureOption foreach (ex => fail(ex))
-    assert(succeeded)
     assert(getLocalFileOption(de) map (f => !f.exists) getOrElse true)
     assert(server.reqCounter === 1)
     assert(transferMgr.bytesRead === 0)
-    assert(de.downloadLog.last.details.toLowerCase contains "responded")
+    assertLastLogEntry(de, "responded")
   }
 
   test("failure - file size changed") {
@@ -265,10 +284,8 @@ class HttpBackendDownloaderSpec
     downloader.start(de, 999999)
     waitFor.firedAndStopped()
 
-    failureOption foreach (ex => fail(ex))
-    assert(succeeded)
     assert(server.reqCounter === 2)
-    assert(de.downloadLog.last.details.toLowerCase contains "size")
+    assertLastLogEntry(de, "size")
   }
 
   test("failure - local file disappeared") {
@@ -293,10 +310,8 @@ class HttpBackendDownloaderSpec
     downloader.start(de, 999999)
     waitFor.firedAndStopped()
 
-    failureOption foreach (ex => fail(ex))
-    assert(succeeded)
     assert(server.reqCounter === 2)
-    assert(de.downloadLog.last.details.toLowerCase contains "file")
+    assertLastLogEntry(de, "file")
   }
 
   test("failure - path is not accessible") {
@@ -308,10 +323,8 @@ class HttpBackendDownloaderSpec
     downloader.start(de, 999999)
     waitFor.firedAndStopped()
 
-    failureOption foreach (ex => fail(ex))
-    assert(succeeded)
     assert(server.reqCounter === 0)
-    assert(de.downloadLog.last.details.toLowerCase contains "path")
+    assertLastLogEntry(de, "path")
   }
 
   test("failure - request timeout") {
@@ -326,11 +339,9 @@ class HttpBackendDownloaderSpec
     downloader.start(de, 100)
     waitFor.firedAndStopped()
 
-    failureOption foreach (ex => fail(ex))
-    assert(succeeded)
     assert(server.reqCounter === 1)
     assert(transferMgr.bytesRead === 0)
-    assert(de.downloadLog.last.details.toLowerCase contains "timed out")
+    assertLastLogEntry(de, "timed out")
   }
 
   // TODO: Test for file already exits
@@ -382,6 +393,21 @@ class HttpBackendDownloaderSpec
     Files.readAllBytes(getLocalFileOption(de).get.toPath)
   }
 
+  private def assertHasLogEntry(de: DE, substr: String): Unit = {
+    val hasLogEntry = de.downloadLog.exists(_.details.toLowerCase contains substr)
+    assert(hasLogEntry, s": '$substr'")
+  }
+
+  private def assertDoesntHaveLogEntry(de: DE, substr: String): Unit = {
+    val hasLogEntry = de.downloadLog.exists(_.details.toLowerCase contains substr)
+    assert(!hasLogEntry, s": '$substr'")
+  }
+
+  private def assertLastLogEntry(de: DE, substr: String): Unit = {
+    val lastLogEntry = de.downloadLog.last.details.toLowerCase contains substr
+    assert(lastLogEntry, s": '$substr'")
+  }
+
   /** Used for server to act like a regular HTTP server serving a file, supporting resuming */
   private def serveContentNormally(content: Array[Byte]) =
     (req: HttpRequest, res: HttpResponse) => {
@@ -415,6 +441,7 @@ class HttpBackendDownloaderSpec
         (succeeded || failureOption.isDefined) && downloader.test_getThreads.isEmpty
       }
       assert(waitUntilFiredAndStopped)
+      failureOption foreach (ex => fail(ex))
     }
 
     /** Wait for X bytes to be read from transfer manager (since last reset) */
@@ -423,6 +450,7 @@ class HttpBackendDownloaderSpec
         transferMgr.bytesRead == x || failureOption.isDefined
       }
       assert(waitUntilRead)
+      failureOption foreach (ex => fail(ex))
     }
 
     /** Wait for all download threads to die */
