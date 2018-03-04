@@ -3,8 +3,8 @@ package org.fs.mael.ui.components
 import org.eclipse.swt.SWT
 import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.widgets._
-import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.entry.DownloadEntryView
+import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.SwtUtils._
 

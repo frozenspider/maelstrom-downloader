@@ -11,10 +11,10 @@ import org.eclipse.swt._
 import org.eclipse.swt.events._
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
-import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.list.DownloadListManager
+import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.utils.SwtUtils._
 
 class AddDownloadFrame(

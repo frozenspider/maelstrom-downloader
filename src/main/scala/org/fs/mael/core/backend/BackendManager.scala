@@ -28,21 +28,23 @@ class BackendManager {
     _backends.toSeq.map(_._1)
   }
 
+  def apply(id: String): Backend = {
+    this.synchronized {
+      (_backends map (_._1) find (_.id == id)).getOrElse {
+        throw new IllegalArgumentException(s"No backend registered with id '$id'")
+      }
+    }
+  }
+
   def findFor(uri: URI): Option[Backend] = {
     this.synchronized {
       _backends map (_._1) find (_.isSupported(uri))
     }
   }
 
-  def apply(id: String): Backend = {
-    this.synchronized {
-      (_backends map (_._1) find (_.id == id)).get
-    }
-  }
-
   def getCastedPair(de: DownloadEntryView): BackendWithEntry = {
     this.synchronized {
-      val backend = (_backends map (_._1) find (_.id == de.backendId)).get
+      val backend = apply(de.backendId)
       BackendWithEntry.apply(backend, de.asInstanceOf[DownloadEntry[_]])
     }
   }

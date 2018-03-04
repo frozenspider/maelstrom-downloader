@@ -3,6 +3,8 @@ package org.fs.mael.backend.http
 import java.io.File
 import java.io.RandomAccessFile
 import java.net.SocketException
+import java.net.SocketTimeoutException
+import java.net.URLDecoder
 import java.net.UnknownHostException
 
 import scala.util.Random
@@ -29,27 +31,24 @@ import org.apache.http.impl.conn.BasicHttpClientConnectionManager
 import org.apache.http.impl.conn.DefaultHttpResponseParserFactory
 import org.apache.http.impl.conn.ManagedHttpClientConnectionFactory
 import org.apache.http.impl.io.DefaultHttpRequestWriterFactory
-import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.Status
 import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.core.backend.BackendDownloader
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
+import org.fs.mael.core.transfer.TransferManager
 import org.slf4s.Logging
 
 class HttpBackendDownloader(
-  override val eventMgr: EventManager
-) extends BackendDownloader[HttpEntryData] with Logging {
+  override val eventMgr:    EventManager,
+  override val transferMgr: TransferManager
+) extends BackendDownloader[HttpEntryData](HttpBackend.Id) with Logging {
   private type DE = DownloadEntry[HttpEntryData]
-
-  private val dlThreadGroup = new ThreadGroup(HttpBackend.Id + "_download").withCode { tg =>
-    tg.setDaemon(true)
-  }
 
   private var threads: Seq[DownloadingThread] = Seq.empty
 
-  override def startInner(de: DE, timeoutSec: Int): Unit =
+  override def startInner(de: DE, timeoutMs: Int): Unit =
     this.synchronized {
       if (threads exists (t => t.de == de && t.isAlive && !t.isInterrupted)) {
         val activeThreads = threads.filter(t => t.isAlive && !t.isInterrupted)
@@ -57,7 +56,7 @@ class HttpBackendDownloader(
           s", active threads: ${activeThreads.size} (${activeThreads.map(_.getName).mkString(", ")})")
       } else {
         changeStatusAndFire(de, Status.Running)
-        val newThread = new DownloadingThread(de, timeoutSec)
+        val newThread = new DownloadingThread(de, timeoutMs)
         threads = newThread +: threads
         newThread.start()
         log.info(s"Download started: ${de.uri} (${de.id}) as ${newThread.getName}")
@@ -77,6 +76,19 @@ class HttpBackendDownloader(
     }
   }
 
+  /** For test usage only! */
+  def test_getThreads: Seq[Thread] = {
+    this.synchronized {
+      threads
+    }
+  }
+
+  private def removeThread(t: Thread): Unit = {
+    this.synchronized {
+      threads = threads filter (_ != t)
+    }
+  }
+
   private def stopLogAndFire(de: DE, threadOption: Option[Thread]): Unit = {
     changeStatusAndFire(de, Status.Stopped)
     addLogAndFire(de, LogEntry.info("Download stopped"))
@@ -92,14 +104,7 @@ class HttpBackendDownloader(
     log.info(s"Download error - $msg: ${de.uri} (${de.id})")
   }
 
-  private def removeThread(t: Thread): Unit = {
-    this.synchronized {
-      threads = threads filter (_ != t)
-    }
-  }
-
-  // TODO: Handle partially downloaded file deleted
-  private class DownloadingThread(val de: DE, timeoutSec: Int)
+  private class DownloadingThread(val de: DE, timeoutMs: Int)
     extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
 
     this.setDaemon(true)
@@ -121,7 +126,7 @@ class HttpBackendDownloader(
         }
         addLogAndFire(de, LogEntry.info("Starting download..."))
         val cookieStore = new BasicCookieStore()
-        val connManager = createConnManager(timeoutSec * 1000)
+        val connManager = createConnManager(timeoutMs)
         val httpClient = {
           val clientBuilder = HttpClients.custom()
             .setDefaultCookieStore(cookieStore)
@@ -130,6 +135,11 @@ class HttpBackendDownloader(
         }
 
         val partial = de.downloadedSize > 0
+
+        if (partial && !de.supportsResumingOption.getOrElse(true)) {
+          de.sections.clear()
+          addLogAndFire(de, LogEntry.info("Resuming is not supported, starting over"))
+        }
 
         val req = {
           val rb = RequestBuilder.get(de.uri)
@@ -206,6 +216,8 @@ class HttpBackendDownloader(
           errorLogAndFire(de, "Host cannot be resolved: " + ex.getMessage)
         case ex: SocketException =>
           errorLogAndFire(de, ex.getMessage)
+        case ex: SocketTimeoutException =>
+          errorLogAndFire(de, "Request timed out")
         case ex: InterruptedException =>
           log.debug(s"Thread interrupted: ${this.getName}")
         case ex: Exception =>
@@ -230,7 +242,7 @@ class HttpBackendDownloader(
       } orElse {
         // Try to use the last part of URL path as filename
         de.uri.toURL.getPath.split("/").lastOption flatMap {
-          case x if x.length > 0 => Some(x)
+          case x if x.length > 0 => Some(URLDecoder.decode(x, "UTF8"))
           case _                 => None
         }
       } map { fn =>
@@ -246,7 +258,7 @@ class HttpBackendDownloader(
       val file = instantiateFile(partial)
       try {
         de.sizeOption map file.setLength
-        file.seek(de.downloadedSize + 1)
+        file.seek(de.downloadedSize /*+ 1*/ )
 
         val bufferSize = 10 * 1024 // 10 Kb
 
@@ -254,13 +266,13 @@ class HttpBackendDownloader(
         try {
           val buffer = Array.fill[Byte](bufferSize)(0x00)
           val sectionStartPos: Long = 0
-          var len = is.read(buffer)
+          var len = transferMgr.read(is, buffer)
           while (len > 0) {
             file.write(buffer, 0, len)
             doChecked {
-              de.sections += (sectionStartPos -> (file.getFilePointer - 1 - sectionStartPos))
+              de.sections += (sectionStartPos -> (file.getFilePointer - sectionStartPos))
               eventMgr.fireProgress(de)
-              len = is.read(buffer)
+              len = transferMgr.read(is, buffer)
             }
           }
         } finally {
@@ -304,7 +316,7 @@ class HttpBackendDownloader(
       val connMgr = new BasicHttpClientConnectionManager(HttpBackendDownloader.SocketFactoryRegistry, connFactory, null, null)
       connMgr.setSocketConfig(
         SocketConfig.custom()
-          .setSoTimeout(connTimeoutMs) // TODO: Test
+          .setSoTimeout(connTimeoutMs)
           .build()
       )
       connMgr

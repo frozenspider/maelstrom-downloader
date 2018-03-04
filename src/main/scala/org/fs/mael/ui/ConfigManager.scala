@@ -14,7 +14,7 @@ import org.eclipse.jface.preference.PreferenceNode
 import org.eclipse.jface.preference.PreferenceStore
 import org.eclipse.jface.preference.RadioGroupFieldEditor
 import org.eclipse.swt.widgets.Shell
-import org.fs.mael.core.CoreUtils._
+import org.fs.mael.core.utils.CoreUtils._
 
 class ConfigManager(val file: File) {
   import ConfigManager._
@@ -92,8 +92,8 @@ object ConfigManager {
         addField(field)
       }
 
-      new IntegerFieldEditor(ConfigOptions.NetworkTimeout.id, "Network timeout (seconds, 0 means no timeout):", getFieldEditorParent()).withCode { field =>
-        field.setValidRange(0, 7 * 24 * 60 * 60) // Up to one week
+      new IntegerFieldEditor(ConfigOptions.NetworkTimeout.id, "Network timeout (ms, 0 means no timeout):", getFieldEditorParent()).withCode { field =>
+        field.setValidRange(0, 7 * 24 * 60 * 60 * 1000) // Up to one week
         addField(field)
       }
 

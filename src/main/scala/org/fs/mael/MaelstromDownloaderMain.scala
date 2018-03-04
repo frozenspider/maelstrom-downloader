@@ -5,11 +5,14 @@ import java.io.File
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 import org.fs.mael.backend.http.HttpBackend
-import org.fs.mael.core.CoreUtils._
 import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.event.EventManager
+import org.fs.mael.core.event.EventManagerImpl
 import org.fs.mael.core.list.DownloadListManager
-import org.fs.mael.core.list.DownloadListSerializer
+import org.fs.mael.core.list.DownloadListSerializerImpl
+import org.fs.mael.core.transfer.SimpleTransferManager
+import org.fs.mael.core.transfer.TransferManager
+import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.ConfigManager
 import org.fs.mael.ui.MainFrame
 import org.fs.mael.ui.resources.Resources
@@ -38,11 +41,12 @@ object MaelstromDownloaderMain extends App with Logging {
       val display = new Display()
       val cfgMgr = new ConfigManager(mainConfigFile)
       val resources = new ResourcesImpl(display)
-      val eventMgr = new EventManager
+      val eventMgr = new EventManagerImpl
       val backendMgr = new BackendManager
-      initBackends(backendMgr, eventMgr)
+      val transferMgr = new SimpleTransferManager
+      initBackends(backendMgr, eventMgr, transferMgr)
       val downloadListMgr = {
-        val serializer = new DownloadListSerializer(backendMgr)
+        val serializer = new DownloadListSerializerImpl(backendMgr)
         new DownloadListManager(serializer, downloadListFile, eventMgr)
       }
       downloadListMgr.load()
@@ -72,10 +76,11 @@ object MaelstromDownloaderMain extends App with Logging {
   }
 
   def initBackends(
-    backendMgr: BackendManager,
-    eventMgr:   EventManager
+    backendMgr:  BackendManager,
+    eventMgr:    EventManager,
+    transferMgr: TransferManager
   ): Unit = {
-    backendMgr += (new HttpBackend(eventMgr), 0)
+    backendMgr += (new HttpBackend(eventMgr, transferMgr), 0)
   }
 
   def initUi(

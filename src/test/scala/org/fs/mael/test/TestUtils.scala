@@ -19,6 +19,7 @@ object TestUtils extends Assertions {
     assert(de1.sections === de2.sections)
     assert(de1.downloadedSize === de2.downloadedSize)
     assert(de1.downloadLog === de2.downloadLog)
+    // Have to use plain old equals here
     assert(de1.backendSpecificData == de2.backendSpecificData)
   }
 }

@@ -4,7 +4,7 @@ import org.eclipse.swt.SWT
 import org.eclipse.swt.events.KeyEvent
 import org.eclipse.swt.graphics.Rectangle
 import org.eclipse.swt.widgets._
-import org.fs.mael.core.CoreUtils
+import org.fs.mael.core.utils.CoreUtils._
 
 object SwtUtils {
   def getCurrentMonitor(c: Control): Monitor = {

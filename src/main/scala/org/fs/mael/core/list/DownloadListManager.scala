@@ -32,6 +32,7 @@ class DownloadListManager(
     }
   }
 
+  // TODO: Autosave
   def save(): Unit = {
     this.synchronized {
       require(!file.exists || file.canWrite, "Can't write to this file")
@@ -41,6 +42,7 @@ class DownloadListManager(
     }
   }
 
+  /** For test usage only! */
   def test_init(entries: Iterable[DownloadEntry[_ <: BackendSpecificEntryData]]): Unit = init(entries)
 
   /** Called initially upon application start, no event is fired */
@@ -78,8 +80,8 @@ class DownloadListManager(
     }
   }
 
-  /** Remove an existing entry from a download list, firing an event */
-  def removeAll(des: Seq[DownloadEntryView]): Unit = {
+  /** Remove existing entries from a download list, firing events */
+  def removeAll(des: Iterable[DownloadEntryView]): Unit = {
     this.synchronized {
       des.foreach {
         case de: DownloadEntry[_] => entries -= de
