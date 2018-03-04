@@ -11,25 +11,25 @@ class CoreUtilsSpec
   import CoreUtils._
 
   test("wait until false") {
-    assert(waitUntil(() => false, 100) === false)
+    assert(waitUntil(100)(false) === false)
   }
 
   test("wait until true") {
-    assert(waitUntil(() => true, 0) === true)
+    assert(waitUntil(0)(true) === true)
   }
 
   test("wait until condition proc before timeout") {
     val sw = new StopWatch
-    assert(waitUntil(() => {
+    assert(waitUntil(100) {
       sw.peek >= 50
-    }, 100) === true)
+    } === true)
   }
 
   test("wait until condition proc after timeout") {
     val sw = new StopWatch
-    assert(waitUntil(() => {
+    assert(waitUntil(100) {
       sw.peek >= 150
-    }, 100) === false)
+    } === false)
   }
 
   test("with code") {

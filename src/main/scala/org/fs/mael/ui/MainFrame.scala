@@ -248,7 +248,7 @@ class MainFrame(
             pair.backend.downloader.stop(pair.de)
           }
           shell.setVisible(false)
-          val terminatedNormally = waitUntil(() => getRunningEntities().size == 0, 2000)
+          val terminatedNormally = waitUntil(2000) { getRunningEntities().size == 0 }
           if (!terminatedNormally) {
             log.error("Couldn't stop all downloads before exiting")
           }

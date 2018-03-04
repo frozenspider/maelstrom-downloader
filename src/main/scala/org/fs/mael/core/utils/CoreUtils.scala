@@ -5,11 +5,11 @@ import org.fs.utility.StopWatch
 
 trait CoreUtils {
 
-  def waitUntil(condition: () => Boolean, timeoutMs: Int): Boolean = {
+  def waitUntil(timeoutMs: Int)(condition: => Boolean): Boolean = {
     val sw = new StopWatch
     @tailrec
     def waitInner(): Boolean = {
-      if (condition()) {
+      if (condition) {
         true
       } else if (sw.peek >= timeoutMs) {
         false

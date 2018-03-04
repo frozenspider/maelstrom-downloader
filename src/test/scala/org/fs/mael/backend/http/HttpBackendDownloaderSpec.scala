@@ -19,6 +19,7 @@ import org.fs.mael.test.stub.StoringEventManager
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
 import org.scalatest.FunSuite
+import org.slf4s.Logging
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class HttpBackendDownloaderSpec
@@ -351,37 +352,33 @@ class HttpBackendDownloaderSpec
   private object waitFor {
     /** Wait for all expected events to fire (or unexpected to cause failure) and for all download threads to die */
     def firedAndStopped(): Unit = {
-      val waitUntilProcessed = waitUntil(
-        () => (succeeded || failureOption.isDefined) && downloader.test_getThreads.isEmpty,
-        waitTimeoutMs
-      )
+      val waitUntilProcessed = waitUntil(waitTimeoutMs) {
+        (succeeded || failureOption.isDefined) && downloader.test_getThreads.isEmpty
+      }
       assert(waitUntilProcessed)
     }
 
     /** Wait for X bytes to be read from transfer manager (since last reset) */
     def read(x: Int): Unit = {
-      val waitUntilRead = waitUntil(
-        () => transferMgr.bytesRead == x || failureOption.isDefined,
-        waitTimeoutMs
-      )
+      val waitUntilRead = waitUntil(waitTimeoutMs) {
+        transferMgr.bytesRead == x || failureOption.isDefined
+      }
       assert(waitUntilRead)
     }
 
     /** Wait for all download threads to die */
     def stopped(): Unit = {
-      val waitUntilStopped = waitUntil(
-        () => downloader.test_getThreads.isEmpty,
-        waitTimeoutMs
-      )
+      val waitUntilStopped = waitUntil(waitTimeoutMs) {
+        downloader.test_getThreads.isEmpty
+      }
       assert(waitUntilStopped)
     }
 
     /** Wait for the file associated with download entry to appear on disc */
     def fileAppears(de: DE): Unit = {
-      val waitUntilFileAppears = waitUntil(
-        () => getLocalFileOption(de) map (_.exists) getOrElse false,
-        waitTimeoutMs
-      )
+      val waitUntilFileAppears = waitUntil(waitTimeoutMs) {
+        getLocalFileOption(de) map (_.exists) getOrElse false
+      }
       assert(waitUntilFileAppears)
     }
   }
@@ -413,7 +410,7 @@ class HttpBackendDownloaderSpec
     }
   }
 
-  private class SimpleHttpServer(port: Int) {
+  private class SimpleHttpServer(port: Int) extends Logging {
     import java.net.SocketException
     import java.util.Locale
     import java.util.concurrent.TimeUnit
@@ -459,7 +456,17 @@ class HttpBackendDownloaderSpec
         }
       }).create()
 
-      server.start()
+      // Attempt to start a server for 1 second, stopping
+      waitUntil(1000) {
+        try {
+          server.start()
+          true
+        } catch {
+          case _: SocketException =>
+            log.warn("Port is still in use, retrying start...")
+            false
+        }
+      }
     }
 
     def stop(): Unit = {
