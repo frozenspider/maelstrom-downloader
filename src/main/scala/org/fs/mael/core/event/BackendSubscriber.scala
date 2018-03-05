@@ -1,7 +1,5 @@
 package org.fs.mael.core.event
 
-import org.fs.mael.core.entry.DownloadEntry
-
 /**
  * Backend event subscriber, interested in changes which may
  * affect the ongoing download process.
@@ -9,5 +7,6 @@ import org.fs.mael.core.entry.DownloadEntry
  * @author FS
  */
 trait BackendSubscriber extends EventSubscriber {
-  def fired(event: EventForBackend): Unit
+  override type EventType = EventForBackend
+  override def fired(event: EventForBackend): Unit
 }

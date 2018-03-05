@@ -316,7 +316,7 @@ class MainFrame(
     // TODO: Make per-download?
     val ProgressUpdateThresholdMs = 100
 
-    def fired(event: EventForUi): Unit = event match {
+    override def fired(event: EventForUi): Unit = event match {
       case Added(de) => syncExecSafely {
         if (!shell.isDisposed) {
           mainTable.add(de)
