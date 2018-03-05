@@ -7,10 +7,7 @@ coverage:
       default:
         enabled:   true
         threshold: 4
-    patch:
-      default:
-        enabled:   true
-        threshold: 4
+    patch: false
 
 flags:
   core:
