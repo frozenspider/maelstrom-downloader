@@ -4,6 +4,8 @@ import java.awt.Desktop
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 
+import scala.util.Random
+
 import org.eclipse.jface.dialogs.MessageDialog
 import org.eclipse.jface.dialogs.MessageDialogWithToggle
 import org.eclipse.swt._
@@ -14,7 +16,9 @@ import org.fs.mael.BuildInfo
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.entry.DownloadEntryView
+import org.fs.mael.core.event.EventForUi
 import org.fs.mael.core.event.EventManager
+import org.fs.mael.core.event.Events._
 import org.fs.mael.core.event.UiSubscriber
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.utils.CoreUtils._
@@ -296,6 +300,12 @@ class MainFrame(
 
   private def clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
 
+  /** Execute code in UI thread iff UI is not disposed yet */
+  private def syncExecSafely(code: => Unit): Unit =
+    if (!shell.isDisposed) display.syncExec { () =>
+      if (!shell.isDisposed) code
+    }
+
   //
   // Subscriber trait
   //
@@ -305,9 +315,6 @@ class MainFrame(
 
     // TODO: Make per-download?
     val ProgressUpdateThresholdMs = 100
-
-    import org.fs.mael.core.event.EventForUi
-    import org.fs.mael.core.event.Events._
 
     def fired(event: EventForUi): Unit = event match {
       case Added(de) => syncExecSafely {
@@ -345,12 +352,6 @@ class MainFrame(
         }
       }
     }
-
-    /** Execute code in UI thread iff UI is not disposed yet */
-    private def syncExecSafely(code: => Unit): Unit =
-      if (!shell.isDisposed) display.syncExec { () =>
-        if (!shell.isDisposed) code
-      }
   }
 
   private implicit class ItemExt(item: { def setEnabled(b: Boolean): Unit }) {
@@ -363,6 +364,13 @@ class MainFrame(
     def forDownloads(condition: Seq[DownloadEntryView] => Boolean) {
       mainTable.peer.addListener(SWT.Selection, e => {
         item.setEnabled(condition(mainTable.selectedEntries))
+      })
+      eventMgr.subscribe(new UiSubscriber {
+        override val subscriberId = "_event_forDownloads_" + Random.alphanumeric.take(20).mkString
+        override def fired(event: EventForUi): Unit = event match {
+          case StatusChanged(_, _) => syncExecSafely(item.setEnabled(condition(mainTable.selectedEntries)))
+          case _                   => // NOOP
+        }
       })
     }
   }
