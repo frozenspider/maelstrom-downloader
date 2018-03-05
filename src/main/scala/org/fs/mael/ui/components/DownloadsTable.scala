@@ -96,7 +96,10 @@ class DownloadsTable(
   }
 
   def update(de: DownloadEntryView): Unit = {
-    indexOfOption(de) map (peer.getItem) map (row => fillRow(row, de)) foreach { _ => fireSelectionUpdated() }
+    indexOfOption(de) match {
+      case Some(idx) => fillRow(peer.getItem(idx), de)
+      case None      => // NOOP
+    }
   }
 
   private def fireSelectionUpdated(): Unit = {

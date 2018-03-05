@@ -121,7 +121,7 @@ class MainFrame(
     val btnAdd = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnAdd =>
       btnAdd.setText("Add")
       btnAdd.addListener(SWT.Selection, e => {
-        val dialog = new EditDownloadDialog(None, shell, resources, cfgMgr, backendMgr, downloadListMgr)
+        val dialog = new EditDownloadDialog(None, shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
         dialog.peer.open()
       })
     }
@@ -177,13 +177,12 @@ class MainFrame(
       createMenuItem(menu, "Properties", parent, None) {
         val deOption = mainTable.selectedEntryOption
         require(deOption.isDefined)
-        val dialog = new EditDownloadDialog(deOption, shell, resources, cfgMgr, backendMgr, downloadListMgr)
+        val dialog = new EditDownloadDialog(deOption, shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
         dialog.peer.open()
       }.forSingleDownloads()
 
       // TODO: Delete with file
       // TODO: Restart
-      // TODO: Properties
     }
 
     mainTable.peer.addListener(SWT.Selection, e => {
@@ -314,7 +313,6 @@ class MainFrame(
       case Added(de) => syncExecSafely {
         if (!shell.isDisposed) {
           mainTable.add(de)
-          logTable.render(mainTable.selectedEntryOption)
         }
       }
 

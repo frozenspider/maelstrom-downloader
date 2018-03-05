@@ -11,14 +11,18 @@ import org.eclipse.swt._
 import org.eclipse.swt.events._
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
+import org.fs.mael.core.Status
 import org.fs.mael.core.UserFriendlyException
+import org.fs.mael.core.backend.Backend
 import org.fs.mael.core.backend.BackendManager
+import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
+import org.fs.mael.core.event.EventManager
 
 class EditDownloadDialog(
   deOption:        Option[DownloadEntryView],
@@ -26,7 +30,8 @@ class EditDownloadDialog(
   resources:       Resources,
   cfgMgr:          ConfigManager,
   backendMgr:      BackendManager,
-  downloadListMgr: DownloadListManager
+  downloadListMgr: DownloadListManager,
+  eventMgr:        EventManager
 ) extends Logging {
 
   var uriInput: Text = _
@@ -34,7 +39,11 @@ class EditDownloadDialog(
   var commentInput: Text = _
 
   val peer = new Shell(parent, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL).withCode { peer =>
-    peer.setText("Add Download")
+    if (!deOption.isDefined) {
+      peer.setText("Add Download")
+    } else {
+      peer.setText("Edit Download")
+    }
 
     peer.setLayout(new GridLayout())
 
@@ -73,6 +82,16 @@ class EditDownloadDialog(
       editor.getLabelControl(locationRow).dispose()
       editor.setStringValue(cfgMgr.getProperty(ConfigOptions.DownloadPath))
       editor.setEmptyStringAllowed(false)
+      deOption foreach { de =>
+        editor.setStringValue(de.location.getAbsolutePath)
+        // Changing enabled state in a tricky way so that path can still be selected
+        val enabled = de.status != Status.Running
+        editor.setEnabled(enabled, locationRow)
+        editor.getTextControl(locationRow).withCode { input =>
+          input.setEnabled(true)
+          input.setEditable(enabled)
+        }
+      }
     }
 
     new Label(peer, SWT.NONE).withCode { label =>
@@ -111,16 +130,23 @@ class EditDownloadDialog(
     peer.pack()
     centerOnScreen(peer)
 
-    // Try to paste URL from clipboard
-    try {
-      val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
-      val content = clipboard.getData(DataFlavor.stringFlavor).asInstanceOf[String].trim
-      if (!content.contains("\n")) {
-        val url = new URL(content)
-        uriInput.setText(url.toString)
-      }
-    } catch {
-      case ex: Exception => // Ignore
+    deOption match {
+      case Some(de) =>
+        uriInput.setText(de.uri.toString)
+        uriInput.setEditable(de.status.canBeStarted)
+
+      case None =>
+        // Try to paste URL from clipboard
+        try {
+          val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
+          val content = clipboard.getData(DataFlavor.stringFlavor).asInstanceOf[String].trim
+          if (!content.contains("\n")) {
+            val url = new URL(content)
+            uriInput.setText(url.toString)
+          }
+        } catch {
+          case ex: Exception => // Ignore
+        }
     }
 
     uriInput.setFocus()
@@ -136,12 +162,23 @@ class EditDownloadDialog(
       val location = new File(locationString)
       val comment = commentInput.getText.trim
       val uri = new URI(uriString)
-      val backendOption = backendMgr.findFor(uri)
-      val backend = backendOption getOrElse {
-        throw new UserFriendlyException(s"Malformed or unsupported URI scheme")
+      val backend = deOption match {
+        case Some(de) =>
+          backendMgr(de.backendId).withCode { backend =>
+            if (!backend.isSupported(uri)) {
+              throw new UserFriendlyException(s"Incompatible URI scheme")
+            }
+          }
+        case None =>
+          val backendOption = backendMgr.findFor(uri)
+          backendOption getOrElse {
+            throw new UserFriendlyException(s"Malformed or unsupported URI scheme")
+          }
       }
-      val entry = backend.create(uri, location, None, comment)
-      downloadListMgr.add(entry)
+      deOption match {
+        case Some(de) => edit(de, backend, uri, location, comment)
+        case None     => create(backend, uri, location, comment)
+      }
       peer.dispose()
     } catch {
       case ex: UserFriendlyException =>
@@ -150,5 +187,27 @@ class EditDownloadDialog(
         log.error("Unexpected error", ex)
         showError(peer, message = ex.toString)
     }
+  }
+
+  private def create(backend: Backend, uri: URI, location: File, comment: String): Unit = {
+    val entry = backend.create(uri, location, None, comment)
+    downloadListMgr.add(entry)
+  }
+
+  private def edit(dev: DownloadEntryView, backend: Backend, uri: URI, location: File, comment: String): Unit = {
+    val de = dev.asInstanceOf[DownloadEntry[backend.BSED]]
+    de.uri = uri
+    if (de.location != location) {
+      if (de.downloadedSize > 0) {
+        val file = new File(de.location, de.filenameOption.get)
+        if (file.exists) {
+          // TODO: Relocate!
+          ???
+        }
+      }
+      de.location = location
+    }
+    de.comment = comment
+    eventMgr.fireConfigChanged(de)
   }
 }
