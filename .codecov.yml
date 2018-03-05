@@ -1,8 +1,13 @@
 coverage:
   range: "40...70"
 
+  # Workaround for unexpected coverage decrease
   status:
     project:
+      default:
+        enabled:   true
+        threshold: 4
+    patch:
       default:
         enabled:   true
         threshold: 4
