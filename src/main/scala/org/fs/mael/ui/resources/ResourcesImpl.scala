@@ -26,8 +26,6 @@ class ResourcesImpl(display: Display) extends Resources {
 
   override lazy val mainIcon: Image = icons.main
 
-  override def browseIcon: Image = loadImageData("folder-16x16.png").withStroke().toImage()
-
   override def icon(status: Status): Image = status match {
     case Status.Running  => icons.play
     case Status.Stopped  => icons.stop

@@ -7,6 +7,7 @@ import java.net.MalformedURLException
 import java.net.URI
 import java.net.URL
 
+import org.eclipse.jface.preference.DirectoryFieldEditor
 import org.eclipse.swt._
 import org.eclipse.swt.events._
 import org.eclipse.swt.layout._
@@ -28,7 +29,7 @@ class AddDownloadFrame(
   init()
 
   var uriInput: Text = _
-  var locationInput: Text = _
+  var locationInput: DirectoryFieldEditor = _
   var commentInput: Text = _
 
   def init(): Unit = {
@@ -67,20 +68,10 @@ class AddDownloadFrame(
       })
     }
 
-    locationInput = new Text(locationRow, SWT.SINGLE | SWT.BORDER).withCode { input =>
-      input.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, true))
-      input.setText(cfgMgr.getProperty(ConfigOptions.DownloadPath))
-      installDefaultHotkeys(input)
-    }
-
-    new Button(locationRow, SWT.NONE).withCode { btn =>
-      btn.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false).withCode { d =>
-        d.heightHint = 24
-        d.widthHint = 24
-      })
-      btn.setImage(resources.browseIcon)
-      btn.setToolTipText("Browse...")
-      btn.addListener(SWT.Selection, e => browse())
+    locationInput = new DirectoryFieldEditor("", "", locationRow).withCode { editor =>
+      editor.getLabelControl(locationRow).dispose()
+      editor.setStringValue(cfgMgr.getProperty(ConfigOptions.DownloadPath))
+      editor.setEmptyStringAllowed(false)
     }
 
     new Label(shell, SWT.NONE).withCode { label =>
@@ -134,17 +125,13 @@ class AddDownloadFrame(
     uriInput.setFocus()
   }
 
-  private def browse(): Unit = {
-    val dialog = new DirectoryDialog(shell)
-    dialog.setFilterPath(locationInput.getText)
-    val result = dialog.open()
-    Option(result) foreach locationInput.setText
-  }
-
   private def okClicked(dialog: Shell): Unit = {
     try {
       val uriString = uriInput.getText.trim
-      val locationString = locationInput.getText.trim
+      if (!locationInput.isValid) {
+        throw new UserFriendlyException("Invalid location: " + locationInput.getErrorMessage)
+      }
+      val locationString = locationInput.getStringValue.trim
       val location = new File(locationString)
       val comment = commentInput.getText.trim
       val uri = new URI(uriString)

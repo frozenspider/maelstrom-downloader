@@ -18,8 +18,6 @@ trait Resources {
 
   def mainIcon: Image
 
-  def browseIcon: Image
-
   def icon(status: Status): Image
 
   def icon(logType: LogEntry.Type): Image
