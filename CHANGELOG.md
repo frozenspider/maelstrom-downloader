@@ -1,5 +1,5 @@
 ### SNAPSHOT
-* 
+* Reworked download location selection in Add Download dialog
 
 ### 0.1.2
 * Fixed exit button in top menu not working 
