@@ -120,7 +120,7 @@ class MainFrame(
       btnAdd.setText("Add")
       btnAdd.addListener(SWT.Selection, e => {
         val dialog = new Shell(shell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL)
-        new AddDownloadFrame(dialog, cfgMgr, backendMgr, downloadListMgr)
+        new AddDownloadFrame(dialog, resources, cfgMgr, backendMgr, downloadListMgr)
         dialog.open()
       })
     }
