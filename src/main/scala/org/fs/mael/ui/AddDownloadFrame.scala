@@ -15,10 +15,12 @@ import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.SwtUtils._
 
 class AddDownloadFrame(
-  dialog:          Shell,
+  shell:           Shell,
+  resources:       Resources,
   cfgMgr:          ConfigManager,
   backendMgr:      BackendManager,
   downloadListMgr: DownloadListManager
@@ -30,15 +32,15 @@ class AddDownloadFrame(
   var commentInput: Text = _
 
   def init(): Unit = {
-    dialog.setText("Add Download")
+    shell.setText("Add Download")
 
-    dialog.setLayout(new GridLayout())
+    shell.setLayout(new GridLayout())
 
-    new Label(dialog, SWT.NONE).withCode { label =>
+    new Label(shell, SWT.NONE).withCode { label =>
       label.setText("URI:")
     }
 
-    uriInput = new Text(dialog, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL).withCode { input =>
+    uriInput = new Text(shell, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL).withCode { input =>
       input.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_FILL).withCode { d =>
         d.heightHint = 50
         d.widthHint = 500
@@ -50,22 +52,42 @@ class AddDownloadFrame(
       installDefaultHotkeys(input)
     }
 
-    new Label(dialog, SWT.NONE).withCode { label =>
+    new Label(shell, SWT.NONE).withCode { label =>
       label.setText("Location:")
     }
 
-    // TODO: Browse button
-    locationInput = new Text(dialog, SWT.SINGLE | SWT.BORDER).withCode { input =>
-      input.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_FILL))
+    val locationRow = new Composite(shell, SWT.NONE).withCode { row =>
+      row.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false))
+      row.setLayout(new GridLayout().withCode { layout =>
+        layout.horizontalSpacing = 0
+        layout.verticalSpacing = 0
+        layout.marginWidth = 0
+        layout.marginHeight = 0
+        layout.numColumns = 2
+      })
+    }
+
+    locationInput = new Text(locationRow, SWT.SINGLE | SWT.BORDER).withCode { input =>
+      input.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, true))
       input.setText(cfgMgr.getProperty(ConfigOptions.DownloadPath))
       installDefaultHotkeys(input)
     }
 
-    new Label(dialog, SWT.NONE).withCode { label =>
+    new Button(locationRow, SWT.NONE).withCode { btn =>
+      btn.setLayoutData(new GridData(GridData.END, GridData.CENTER, false, false).withCode { d =>
+        d.heightHint = 24
+        d.widthHint = 24
+      })
+      btn.setImage(resources.browseIcon)
+      btn.setToolTipText("Browse...")
+      btn.addListener(SWT.Selection, e => browse())
+    }
+
+    new Label(shell, SWT.NONE).withCode { label =>
       label.setText("Comment:")
     }
 
-    commentInput = new Text(dialog, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL).withCode { input =>
+    commentInput = new Text(shell, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL).withCode { input =>
       input.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_FILL).withCode { d =>
         d.heightHint = 50
         d.widthHint = 500
@@ -73,7 +95,7 @@ class AddDownloadFrame(
       installDefaultHotkeys(input)
     }
 
-    val bottomButtonRow = new Composite(dialog, SWT.NONE).withCode { composite =>
+    val bottomButtonRow = new Composite(shell, SWT.NONE).withCode { composite =>
       composite.setLayout(new RowLayout().withCode { layout =>
         layout.marginTop = 0
         layout.marginBottom = 0
@@ -84,18 +106,18 @@ class AddDownloadFrame(
     val okButton = new Button(bottomButtonRow, SWT.PUSH).withCode { btn =>
       btn.setText("&OK")
       btn.setLayoutData(new RowData(100, SWT.DEFAULT))
-      btn.addListener(SWT.Selection, e => okClicked(dialog))
-      dialog.setDefaultButton(btn)
+      btn.addListener(SWT.Selection, e => okClicked(shell))
+      shell.setDefaultButton(btn)
     }
 
     val cancelButton = new Button(bottomButtonRow, SWT.PUSH).withCode { btn =>
       btn.setText("&Cancel")
       btn.setLayoutData(new RowData(100, SWT.DEFAULT))
-      btn.addListener(SWT.Selection, e => dialog.dispose())
+      btn.addListener(SWT.Selection, e => shell.dispose())
     }
 
-    dialog.pack()
-    centerOnScreen(dialog)
+    shell.pack()
+    centerOnScreen(shell)
 
     // Try to paste URL from clipboard
     try {
@@ -110,6 +132,13 @@ class AddDownloadFrame(
     }
 
     uriInput.setFocus()
+  }
+
+  private def browse(): Unit = {
+    val dialog = new DirectoryDialog(shell)
+    dialog.setFilterPath(locationInput.getText)
+    val result = dialog.open()
+    Option(result) foreach locationInput.setText
   }
 
   private def okClicked(dialog: Shell): Unit = {
