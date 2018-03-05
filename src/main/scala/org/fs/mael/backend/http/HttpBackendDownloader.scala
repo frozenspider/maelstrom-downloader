@@ -258,9 +258,9 @@ class HttpBackendDownloader(
       val file = instantiateFile(partial)
       try {
         de.sizeOption map file.setLength
-        file.seek(de.downloadedSize /*+ 1*/ )
+        file.seek(de.downloadedSize)
 
-        val bufferSize = 10 * 1024 // 10 Kb
+        val bufferSize = 1 * 1024 // 1 KB
 
         val is = entity.getContent
         try {
