@@ -3,7 +3,6 @@ package org.fs.mael.ui
 import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
 import java.io.File
-import java.net.MalformedURLException
 import java.net.URI
 import java.net.URL
 
@@ -18,30 +17,30 @@ import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.SwtUtils._
+import org.slf4s.Logging
 
-class AddDownloadFrame(
-  shell:           Shell,
+class EditDownloadDialog(
+  parent:          Shell,
   resources:       Resources,
   cfgMgr:          ConfigManager,
   backendMgr:      BackendManager,
   downloadListMgr: DownloadListManager
-) {
-  init()
+) extends Logging {
 
   var uriInput: Text = _
   var locationInput: DirectoryFieldEditor = _
   var commentInput: Text = _
 
-  def init(): Unit = {
-    shell.setText("Add Download")
+  val peer = new Shell(parent, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL).withCode { peer =>
+    peer.setText("Add Download")
 
-    shell.setLayout(new GridLayout())
+    peer.setLayout(new GridLayout())
 
-    new Label(shell, SWT.NONE).withCode { label =>
+    new Label(peer, SWT.NONE).withCode { label =>
       label.setText("URI:")
     }
 
-    uriInput = new Text(shell, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL).withCode { input =>
+    uriInput = new Text(peer, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL).withCode { input =>
       input.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_FILL).withCode { d =>
         d.heightHint = 50
         d.widthHint = 500
@@ -53,11 +52,11 @@ class AddDownloadFrame(
       installDefaultHotkeys(input)
     }
 
-    new Label(shell, SWT.NONE).withCode { label =>
+    new Label(peer, SWT.NONE).withCode { label =>
       label.setText("Location:")
     }
 
-    val locationRow = new Composite(shell, SWT.NONE).withCode { row =>
+    val locationRow = new Composite(peer, SWT.NONE).withCode { row =>
       row.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false))
       row.setLayout(new GridLayout().withCode { layout =>
         layout.horizontalSpacing = 0
@@ -74,11 +73,11 @@ class AddDownloadFrame(
       editor.setEmptyStringAllowed(false)
     }
 
-    new Label(shell, SWT.NONE).withCode { label =>
+    new Label(peer, SWT.NONE).withCode { label =>
       label.setText("Comment:")
     }
 
-    commentInput = new Text(shell, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL).withCode { input =>
+    commentInput = new Text(peer, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL).withCode { input =>
       input.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_FILL).withCode { d =>
         d.heightHint = 50
         d.widthHint = 500
@@ -86,7 +85,7 @@ class AddDownloadFrame(
       installDefaultHotkeys(input)
     }
 
-    val bottomButtonRow = new Composite(shell, SWT.NONE).withCode { composite =>
+    val bottomButtonRow = new Composite(peer, SWT.NONE).withCode { composite =>
       composite.setLayout(new RowLayout().withCode { layout =>
         layout.marginTop = 0
         layout.marginBottom = 0
@@ -97,18 +96,18 @@ class AddDownloadFrame(
     val okButton = new Button(bottomButtonRow, SWT.PUSH).withCode { btn =>
       btn.setText("&OK")
       btn.setLayoutData(new RowData(100, SWT.DEFAULT))
-      btn.addListener(SWT.Selection, e => okClicked(shell))
-      shell.setDefaultButton(btn)
+      btn.addListener(SWT.Selection, e => okClicked())
+      peer.setDefaultButton(btn)
     }
 
     val cancelButton = new Button(bottomButtonRow, SWT.PUSH).withCode { btn =>
       btn.setText("&Cancel")
       btn.setLayoutData(new RowData(100, SWT.DEFAULT))
-      btn.addListener(SWT.Selection, e => shell.dispose())
+      btn.addListener(SWT.Selection, e => peer.dispose())
     }
 
-    shell.pack()
-    centerOnScreen(shell)
+    peer.pack()
+    centerOnScreen(peer)
 
     // Try to paste URL from clipboard
     try {
@@ -125,7 +124,7 @@ class AddDownloadFrame(
     uriInput.setFocus()
   }
 
-  private def okClicked(dialog: Shell): Unit = {
+  private def okClicked(): Unit = {
     try {
       val uriString = uriInput.getText.trim
       if (!locationInput.isValid) {
@@ -136,18 +135,18 @@ class AddDownloadFrame(
       val comment = commentInput.getText.trim
       val uri = new URI(uriString)
       val backendOption = backendMgr.findFor(uri)
-      backendOption match {
-        case Some(backend) =>
-          val entry = backend.create(uri, location, None, comment)
-          downloadListMgr.add(entry)
-          dialog.dispose()
-        case other => throw new UserFriendlyException(s"Unsupported scheme: $other")
+      val backend = backendOption getOrElse {
+        throw new UserFriendlyException(s"Malformed or unsupported URI scheme")
       }
+      val entry = backend.create(uri, location, None, comment)
+      downloadListMgr.add(entry)
+      peer.dispose()
     } catch {
       case ex: UserFriendlyException =>
-        showError(dialog, message = ex.getMessage)
-      case ex: MalformedURLException =>
-        showError(dialog, message = "Malformed URL")
+        showError(peer, message = ex.getMessage)
+      case ex: Throwable =>
+        log.error("Unexpected error", ex)
+        showError(peer, message = ex.toString)
     }
   }
 }

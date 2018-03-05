@@ -119,9 +119,8 @@ class MainFrame(
     val btnAdd = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnAdd =>
       btnAdd.setText("Add")
       btnAdd.addListener(SWT.Selection, e => {
-        val dialog = new Shell(shell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL)
-        new AddDownloadFrame(dialog, resources, cfgMgr, backendMgr, downloadListMgr)
-        dialog.open()
+        val dialog = new EditDownloadDialog(shell, resources, cfgMgr, backendMgr, downloadListMgr)
+        dialog.peer.open()
       })
     }
 
