@@ -6,6 +6,7 @@ import java.io.File
 import java.net.URI
 import java.net.URL
 
+import org.eclipse.jface.dialogs.ProgressMonitorDialog
 import org.eclipse.jface.preference.DirectoryFieldEditor
 import org.eclipse.swt._
 import org.eclipse.swt.events._
@@ -17,12 +18,12 @@ import org.fs.mael.core.backend.Backend
 import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.DownloadEntryView
+import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
-import org.fs.mael.core.event.EventManager
 
 class EditDownloadDialog(
   deOption:        Option[DownloadEntryView],
@@ -155,32 +156,30 @@ class EditDownloadDialog(
   private def okClicked(): Unit = {
     try {
       val uriString = uriInput.getText.trim
-      if (!locationInput.isValid) {
-        throw new UserFriendlyException("Invalid location: " + locationInput.getErrorMessage)
-      }
+      requireFriendly(locationInput.isValid, "Invalid location: " + locationInput.getErrorMessage)
       val locationString = locationInput.getStringValue.trim
       val location = new File(locationString)
       val comment = commentInput.getText.trim
       val uri = new URI(uriString)
       val backend = deOption match {
-        case Some(de) =>
-          backendMgr(de.backendId).withCode { backend =>
-            if (!backend.isSupported(uri)) {
-              throw new UserFriendlyException(s"Incompatible URI scheme")
-            }
-          }
         case None =>
           val backendOption = backendMgr.findFor(uri)
           backendOption getOrElse {
-            throw new UserFriendlyException(s"Malformed or unsupported URI scheme")
+            failFriendly("Malformed or unsupported URI scheme")
+          }
+        case Some(de) =>
+          backendMgr(de.backendId).withCode { backend =>
+            requireFriendly(backend isSupported uri, "Incompatible URI scheme")
           }
       }
       deOption match {
-        case Some(de) => edit(de, backend, uri, location, comment)
         case None     => create(backend, uri, location, comment)
+        case Some(de) => edit(de, backend, uri, location, comment)
       }
       peer.dispose()
     } catch {
+      case ex: InterruptedException =>
+      // Cancelled by user, do nothing
       case ex: UserFriendlyException =>
         showError(peer, message = ex.getMessage)
       case ex: Throwable =>
@@ -196,18 +195,34 @@ class EditDownloadDialog(
 
   private def edit(dev: DownloadEntryView, backend: Backend, uri: URI, location: File, comment: String): Unit = {
     val de = dev.asInstanceOf[DownloadEntry[backend.BSED]]
-    de.uri = uri
     if (de.location != location) {
       if (de.downloadedSize > 0) {
-        val file = new File(de.location, de.filenameOption.get)
-        if (file.exists) {
-          // TODO: Relocate!
-          ???
+        val Some(filename) = de.filenameOption
+        val oldFile = new File(de.location, filename)
+        if (oldFile.exists) {
+          relocateWithProgress(oldFile, new File(location, filename))
         }
       }
       de.location = location
     }
+    de.uri = uri
     de.comment = comment
+    downloadListMgr.save() // We don't want to lose changes
     eventMgr.fireConfigChanged(de)
+  }
+
+  private def relocateWithProgress(from: File, to: File): Unit = {
+    requireFriendly(!to.exists, "File with the same name already exists in the new location")
+    (new ProgressMonitorDialog(peer)).run(true, true, monitor => {
+      monitor.beginTask("Moving file", (from.length / 100).toInt)
+      try {
+        moveFile(from, to, (portion, total) => {
+          if (monitor.isCanceled) throw new InterruptedException
+          monitor.worked((portion / 100).toInt)
+        })
+      } finally {
+        monitor.done()
+      }
+    })
   }
 }
