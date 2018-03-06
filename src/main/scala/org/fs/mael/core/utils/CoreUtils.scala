@@ -73,7 +73,7 @@ trait CoreUtils {
     if (fs1 == fs2) {
       // No need to do deep copy, we can move file instantaneously
       Files.move(from, to)
-      val size = Files.size(from)
+      val size = Files.size(to)
       onProgress(size, size)
     } else {
       copyFile(from, to, onProgress)
