@@ -107,6 +107,8 @@ class EditDownloadDialog(
       installDefaultHotkeys(input)
     }
 
+    // TODO: Checksum
+
     val bottomButtonRow = new Composite(peer, SWT.NONE).withCode { composite =>
       composite.setLayout(new RowLayout().withCode { layout =>
         layout.marginTop = 0

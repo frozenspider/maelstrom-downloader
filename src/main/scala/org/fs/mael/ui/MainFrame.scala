@@ -178,12 +178,13 @@ class MainFrame(
         }
       }
 
-      createMenuItem(menu, "Properties", parent, None) {
+      val openProps = createMenuItem(menu, "Properties", parent, None) {
         val deOption = mainTable.selectedEntryOption
         require(deOption.isDefined)
         val dialog = new EditDownloadDialog(deOption, shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
         dialog.peer.open()
       }.forSingleDownloads()
+      mainTable.peer.addListener(SWT.MouseDoubleClick, e => openProps.notifyListeners(SWT.Selection, e))
 
       // TODO: Delete with file
       // TODO: Restart
@@ -354,14 +355,15 @@ class MainFrame(
     }
   }
 
-  private implicit class ItemExt(item: { def setEnabled(b: Boolean): Unit }) {
-    def forSingleDownloads() {
+  private implicit class ItemExt[T <: { def setEnabled(b: Boolean): Unit }](item: T) {
+    def forSingleDownloads(): T = {
       mainTable.peer.addListener(SWT.Selection, e => {
         item.setEnabled(mainTable.peer.getSelectionCount == 1)
       })
+      item
     }
 
-    def forDownloads(condition: Seq[DownloadEntryView] => Boolean) {
+    def forDownloads(condition: Seq[DownloadEntryView] => Boolean): T = {
       mainTable.peer.addListener(SWT.Selection, e => {
         item.setEnabled(condition(mainTable.selectedEntries))
       })
@@ -372,6 +374,7 @@ class MainFrame(
           case _                   => // NOOP
         }
       })
+      item
     }
   }
 }
