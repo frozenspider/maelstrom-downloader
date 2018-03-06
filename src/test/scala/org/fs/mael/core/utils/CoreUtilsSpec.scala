@@ -3,6 +3,7 @@ package org.fs.mael.core.utils
 import org.fs.utility.StopWatch
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
+import java.io.Closeable
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class CoreUtilsSpec
@@ -10,29 +11,29 @@ class CoreUtilsSpec
 
   import CoreUtils._
 
-  test("wait until false") {
+  test("waitUntil false") {
     assert(waitUntil(100)(false) === false)
   }
 
-  test("wait until true") {
+  test("waitUntil true") {
     assert(waitUntil(0)(true) === true)
   }
 
-  test("wait until condition proc before timeout") {
+  test("waitUntil condition proc before timeout") {
     val sw = new StopWatch
     assert(waitUntil(100) {
       sw.peek >= 50
     } === true)
   }
 
-  test("wait until condition proc after timeout") {
+  test("waitUntil condition proc after timeout") {
     val sw = new StopWatch
     assert(waitUntil(100) {
       sw.peek >= 150
     } === false)
   }
 
-  test("with code") {
+  test("withCode") {
     var arr = Array.fill(1)(999).withCode { a =>
       assert(a.length === 1)
       assert(a(0) === 999)
@@ -40,6 +41,32 @@ class CoreUtilsSpec
       assert(a(0) === -1234)
     }
     assert(arr(0) === -1234)
+  }
+
+  test("tryWith") {
+    var isClosed = false
+    var codeProcessed = false
+    val cl = new Closeable {
+      override def close(): Unit = isClosed = true
+    }
+    assert(!isClosed)
+    tryWith(cl)(cl2 => {
+      assert(cl2 === cl)
+      codeProcessed = true
+    })
+    assert(codeProcessed)
+    assert(isClosed)
+
+    isClosed = false
+    codeProcessed = false
+    intercept[IllegalArgumentException] {
+      tryWith(cl)(cl2 => {
+        throw new IllegalArgumentException
+        codeProcessed = true
+      })
+    }
+    assert(!codeProcessed)
+    assert(isClosed)
   }
 
 }
