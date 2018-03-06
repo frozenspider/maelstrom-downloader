@@ -12,6 +12,7 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 
 import com.google.common.jimfs.Configuration
 import com.google.common.jimfs.Jimfs
+import org.fs.mael.core.UserFriendlyException
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class CoreUtilsSpec
@@ -19,6 +20,22 @@ class CoreUtilsSpec
   with TableDrivenPropertyChecks {
 
   import CoreUtils._
+
+  test("requireFriendly") {
+    requireFriendly(true, "msg")
+    requireFriendly(true, ???)
+    val ex = intercept[UserFriendlyException] {
+      requireFriendly(false, "msg")
+    }
+    assert(ex.getMessage === "msg")
+  }
+
+  test("failFriendly") {
+    val ex = intercept[UserFriendlyException] {
+      failFriendly("msg")
+    }
+    assert(ex.getMessage === "msg")
+  }
 
   test("waitUntil false") {
     assert(waitUntil(100)(false) === false)
