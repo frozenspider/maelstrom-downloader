@@ -50,7 +50,8 @@ trait CoreUtils {
   /**
    * Move a {@code from} file to {@code to} file, which shouldn't exist yet.
    *
-   * @param onProgress callback, {@code (PortionRead, TotalRead) => Unit}
+   * @param onProgress callback, {@code (BatchRead, TotalRead) => Unit}.
+   * Exceptions will cause process to be interrupted and target file to be deleted.
    */
   def moveFile(from: File, to: File, onProgress: (Long, Long) => Unit): Unit = {
     require(from.exists, "Source file does not exist")
@@ -71,29 +72,36 @@ trait CoreUtils {
   /**
    * Copy a {@code from} file to {@code to} file, which shouldn't exist yet.
    *
-   * @param onProgress callback, {@code (PortionRead, TotalRead) => Unit}
+   * @param onProgress callback, {@code (BatchRead, TotalRead) => Unit}.
+   * Exceptions will cause process to be interrupted and target file to be deleted.
    */
   def copyFile(from: File, to: File, onProgress: (Long, Long) => Unit): Unit = {
     require(from.exists, "Source file does not exist")
     require(!to.exists, "Target file already exists")
-    tryWith(new FileInputStream(from)) { fis =>
-      tryWith(try {
-        val to2 = new RandomAccessFile(to, "rw")
-        to2.setLength(from.length)
-        to2
-      } catch {
-        case ex: Exception => failFriendly(ex.getMessage)
-      }) { to2 =>
-        val buf = Array.fill[Byte](1024 * 1024)(0x00)
-        var len = fis.read(buf)
-        var totalRead: Long = 0
-        while (len > 0) {
-          totalRead += len
-          to2.write(buf, 0, len)
-          onProgress(len, totalRead)
-          len = fis.read(buf)
+    try {
+      tryWith(new FileInputStream(from)) { fis =>
+        tryWith(try {
+          val to2 = new RandomAccessFile(to, "rw")
+          to2.setLength(from.length)
+          to2
+        } catch {
+          case ex: Exception => failFriendly(ex.getMessage)
+        }) { to2 =>
+          val buf = Array.fill[Byte](1024 * 1024)(0x00)
+          var len = fis.read(buf)
+          var totalRead: Long = 0
+          while (len > 0) {
+            totalRead += len
+            to2.write(buf, 0, len)
+            onProgress(len, totalRead)
+            len = fis.read(buf)
+          }
         }
       }
+    } catch {
+      case th: Throwable =>
+        to.delete()
+        throw th
     }
   }
 
