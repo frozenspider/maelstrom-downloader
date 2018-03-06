@@ -218,7 +218,7 @@ class EditDownloadDialog(
     (new ProgressMonitorDialog(peer)).run(true, true, monitor => {
       monitor.beginTask("Moving file", (from.length / 100).toInt)
       try {
-        moveFile(from, to, (portion, total) => {
+        moveFile(from.toPath, to.toPath, (portion, total) => {
           if (monitor.isCanceled) throw new InterruptedException
           monitor.worked((portion / 100).toInt)
         })
