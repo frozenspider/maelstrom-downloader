@@ -136,6 +136,11 @@ class HttpBackendDownloader(
 
         val partial = de.downloadedSize > 0
 
+        if (partial) {
+          assert(de.filenameOption.isDefined)
+          if (!new File(de.location, de.filenameOption.get).exists())
+            throw new UserFriendlyException(s"File is missing")
+        }
         if (partial && !de.supportsResumingOption.getOrElse(true)) {
           de.sections.clear()
           addLogAndFire(de, LogEntry.info("Resuming is not supported, starting over"))
@@ -289,10 +294,10 @@ class HttpBackendDownloader(
 
     private def instantiateFile(partial: Boolean): RandomAccessFile = {
       val f = new File(de.location, de.filenameOption.get)
-      if (partial && !f.exists) {
-        throw new UserFriendlyException(s"File is missing")
-      } else if (!partial && f.exists) {
+      if (!partial && f.exists) {
         throw new UserFriendlyException(s"File already exists")
+      } else if (partial) {
+        assert(f.exists) // Was checked before
       }
       f.createNewFile()
       if (!f.canWrite) {

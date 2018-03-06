@@ -301,6 +301,7 @@ class HttpBackendDownloaderSpec
     downloader.stop(de)
     await.stopped()
 
+    assert(server.reqCounter === 1)
     assert(getLocalFileOption(de).isDefined && getLocalFileOption(de).get.exists)
     getLocalFileOption(de).get.delete()
 
@@ -310,7 +311,7 @@ class HttpBackendDownloaderSpec
     downloader.start(de, 999999)
     await.firedAndStopped()
 
-    assert(server.reqCounter === 2)
+    assert(server.reqCounter === 1) // No request is issued
     assertLastLogEntry(de, "file")
   }
 
