@@ -1,5 +1,8 @@
 ### SNAPSHOT
+* Added ability to edit download properties
+  * Changing location will cause the file to be moved, in a safe way and with a progress bar
 * Reworked download location selection in Add Download dialog
+* Fixed issue with HTTP downloader starving for data
 
 ### 0.1.2
 * Fixed exit button in top menu not working 

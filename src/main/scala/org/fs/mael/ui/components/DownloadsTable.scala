@@ -79,6 +79,7 @@ class DownloadsTable(
       fillRow(newRow, de)
     }
     adjustColumnWidths()
+    fireSelectionUpdated()
   }
 
   def add(de: DownloadEntryView): Unit = {
@@ -86,15 +87,24 @@ class DownloadsTable(
     fillRow(newRow, de)
     peer.deselectAll()
     peer.showItem(newRow)
-    peer.select(peer.getItems.indexOf(newRow)) // Why no event fired?
+    peer.select(peer.getItems.indexOf(newRow))
+    fireSelectionUpdated()
   }
 
   def remove(de: DownloadEntryView): Unit = {
-    indexOfOption(de) map (peer.remove)
+    indexOfOption(de) map (peer.remove) foreach { _ => fireSelectionUpdated() }
   }
 
   def update(de: DownloadEntryView): Unit = {
-    indexOfOption(de) map (peer.getItem) map (row => fillRow(row, de))
+    indexOfOption(de) match {
+      case Some(idx) => fillRow(peer.getItem(idx), de)
+      case None      => // NOOP
+    }
+  }
+
+  private def fireSelectionUpdated(): Unit = {
+    // We could fill the event properly, but our code doesn't care about event details
+    peer.notifyListeners(SWT.Selection, new Event())
   }
 
   private def fillRow(row: TableItem, de: DownloadEntryView): Unit = {
