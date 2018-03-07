@@ -390,7 +390,7 @@ class HttpBackendDownloaderSpec
       uri                 = uri,
       location            = tmpDir,
       filenameOption      = Some(filename),
-      checksumOption      = Some(Checksum("123", ChecksumType.MD5)),
+      checksumOption      = Some(Checksum(ChecksumType.MD5, "123")),
       comment             = "my comment",
       backendSpecificData = new HttpEntryData
     )

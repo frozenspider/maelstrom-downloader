@@ -44,7 +44,7 @@ class DownloadListSerializerImplSpec
     assertSingularSerializationWorks(createDE("all-simple-fields") { de =>
       de.location = new File("c:/ewq\\:c").getAbsoluteFile
       de.filenameOption = Some("c:/ewq\\:c")
-      de.checksumOption = Some(Checksum("1abcde", ChecksumType.SHA1))
+      de.checksumOption = Some(Checksum(ChecksumType.SHA1, "1abcde"))
       de.comment = "My\nmulti-line\ncomment"
       de.status = Status.Error
       de.sizeOption = Some(12345)

@@ -11,7 +11,7 @@ import org.fs.mael.core.utils.CoreUtils._
 object Checksums {
   val HexRegex = "[0-9a-fA-F]+"
 
-  def isProper(str: String, tpe: ChecksumType): Boolean = {
+  def isProper(tpe: ChecksumType, str: String): Boolean = {
     if (!(str matches HexRegex)) {
       false
     } else {

@@ -32,7 +32,7 @@ class DownloadListManagerSpec
     val backend = new StubBackend
     val entries = Seq(
       backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1"),
-      backend.create(new URI("uri2"), new File("/a2"), None, Some(Checksum("1abcde", ChecksumType.SHA1)), "comment2")
+      backend.create(new URI("uri2"), new File("/a2"), None, Some(Checksum(ChecksumType.SHA1, "1abcde")), "comment2")
     )
     val serializer: DownloadListSerializer = new DownloadListSerializer {
       override def serialize(entries2: Iterable[DownloadEntry[_]]): String = {
@@ -91,7 +91,7 @@ class DownloadListManagerSpec
     val backend = new StubBackend
     val entries = IndexedSeq(
       backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1"),
-      backend.create(new URI("uri2"), new File("/a2"), None, Some(Checksum("1abcde", ChecksumType.SHA1)), "comment2")
+      backend.create(new URI("uri2"), new File("/a2"), None, Some(Checksum(ChecksumType.SHA1, "1abcde")), "comment2")
     )
 
     dlm.add(entries(0))

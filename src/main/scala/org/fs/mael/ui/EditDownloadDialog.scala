@@ -108,7 +108,9 @@ class EditDownloadDialog(
     }
 
     checksumInput = new Text(checksumRow, SWT.SINGLE | SWT.BORDER).withCode { input =>
-      input.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false))
+      input.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false).withCode { d =>
+        d.widthHint = 520
+      })
       input.setFont(new Font(parent.getDisplay, monospacedFontData))
       input.addVerifyListener(e => {
         if (!e.text.isEmpty && !e.text.matches(Checksums.HexRegex)) {
@@ -169,14 +171,14 @@ class EditDownloadDialog(
         }
 
         // FIXME: setText
-        checksumInput.setEditable(de.status != Status.Complete)
         checksumDropdown.setEnabled(de.status != Status.Complete)
+        checksumInput.setEditable(de.status != Status.Complete)
 
         de.checksumOption match {
-          case Some(Checksum(value, tpe)) =>
-            checksumInput.setText(value)
+          case Some(Checksum(tpe, value)) =>
             checksumDropdown.select(tpe.ordinal)
-          case None                       =>
+            checksumInput.setText(value)
+          case None =>
           // NOOP
         }
 
@@ -203,16 +205,6 @@ class EditDownloadDialog(
       requireFriendly(locationInput.isValid, "Invalid location: " + locationInput.getErrorMessage)
       val locationString = locationInput.getStringValue.trim
       val location = new File(locationString)
-      val checksumString = checksumInput.getText
-      val checksumOption = if (!checksumString.isEmpty) {
-        // TODO: Guess?
-        requireFriendly(checksumDropdown.getSelectionIndex > -1, "Please select checksum type")
-        val checksumType = ChecksumType.values()(checksumDropdown.getSelectionIndex)
-        requireFriendly(Checksums.isProper(checksumString, checksumType), "Malformed checksum")
-        Some(Checksum(checksumString.toLowerCase, checksumType))
-      } else {
-        None
-      }
       val comment = commentInput.getText.trim
       val uri = new URI(uriString)
       val backend = deOption match {
@@ -225,6 +217,16 @@ class EditDownloadDialog(
           backendMgr(de.backendId).withCode { backend =>
             requireFriendly(backend isSupported uri, "Incompatible URI scheme")
           }
+      }
+      val checksumString = checksumInput.getText
+      val checksumOption = if (!checksumString.isEmpty) {
+        // TODO: Guess?
+        requireFriendly(checksumDropdown.getSelectionIndex > -1, "Please select checksum type")
+        val tpe = ChecksumType.values()(checksumDropdown.getSelectionIndex)
+        requireFriendly(Checksums.isProper(tpe, checksumString), "Malformed checksum")
+        Some(Checksum(tpe, checksumString.toLowerCase))
+      } else {
+        None
       }
       deOption match {
         case None     => create(backend, uri, location, checksumOption, comment)
