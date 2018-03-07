@@ -1,15 +1,11 @@
 package org.fs.mael.core.checksum
 
 import java.io.File
-import java.net.URI
+import java.nio.file.Files
 
-import org.fs.mael.core.entry.BackendSpecificEntryData
-import org.fs.mael.test.stub.AbstractSimpleBackend
-import org.fs.mael.test.stub.StubBackend
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
 import org.scalatest.FunSuite
-import java.nio.file.Files
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class ChecksumsSpec
