@@ -4,6 +4,7 @@ import java.io.File
 import java.net.URI
 
 import org.fs.mael.core.backend.Backend
+import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
@@ -28,9 +29,10 @@ class HttpBackend(eventMgr: EventManager, transferMgr: TransferManager) extends 
     uri:            URI,
     location:       File,
     filenameOption: Option[String],
+    checksumOption: Option[Checksum],
     comment:        String
   ): DownloadEntry[HttpEntryData] = {
-    DownloadEntry(id, uri, location, filenameOption, comment, new HttpEntryData)
+    DownloadEntry(id, uri, location, filenameOption, checksumOption, comment, new HttpEntryData)
   }
 
   override val downloader = new HttpBackendDownloader(eventMgr, transferMgr)

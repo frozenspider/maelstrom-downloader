@@ -2,10 +2,13 @@ package org.fs.mael.test.stub
 
 import java.io.File
 import java.net.URI
+
 import scala.reflect.ClassTag
+
 import org.fs.mael.core.backend.Backend
 import org.fs.mael.core.backend.BackendDataSerializer
 import org.fs.mael.core.backend.BackendDownloader
+import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 
@@ -37,9 +40,10 @@ abstract class AbstractSimpleBackend[T <: BackendSpecificEntryData: ClassTag](
     uri:            URI,
     location:       File,
     filenameOption: Option[String],
+    checksumOption: Option[Checksum],
     comment:        String
   ): DownloadEntry[BSED] = {
-    DownloadEntry[BSED](id, uri, location, filenameOption, comment, emptyBsed)
+    DownloadEntry[BSED](id, uri, location, filenameOption, checksumOption, comment, emptyBsed)
   }
 
 }

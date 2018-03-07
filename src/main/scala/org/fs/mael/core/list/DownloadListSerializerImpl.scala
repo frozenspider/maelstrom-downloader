@@ -4,6 +4,7 @@ import java.io.File
 
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.BackendManager
+import org.fs.mael.core.checksum.ChecksumType
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
@@ -35,6 +36,7 @@ class DownloadListSerializerImpl(backendMgr: BackendManager) extends DownloadLis
       FileSerializer,
       StatusSerializer,
       LogTypeSerializer,
+      new EnumSerializer[ChecksumType],
       new BackendDataSerializer(backendMgr)
     )
     Serialization.formats(NoTypeHints) + deSerializer ++ serializers + SectionsKeySerializer ++ JavaTypesSerializers.all
@@ -86,6 +88,14 @@ object DownloadListSerializerImpl {
       case JString("Error")    => LogEntry.Error
     }, {
       case tpe: LogEntry.Type => JString(tpe.toString)
+    }
+  ))
+
+  class EnumSerializer[E <: Enum[E]](implicit ct: Manifest[E]) extends CustomSerializer[E](format => (
+    {
+      case JString(name) => Enum.valueOf(ct.runtimeClass.asInstanceOf[Class[E]], name)
+    }, {
+      case dt: E => JString(dt.name)
     }
   ))
 

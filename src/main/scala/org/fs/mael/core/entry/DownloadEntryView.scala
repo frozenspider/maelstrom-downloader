@@ -7,6 +7,7 @@ import java.util.UUID
 import scala.collection.MapLike
 
 import org.fs.mael.core.Status
+import org.fs.mael.core.checksum.Checksum
 
 import com.github.nscala_time.time.Imports._
 
@@ -32,6 +33,8 @@ trait DownloadEntryView {
 
   def filenameOption: Option[String]
 
+  def checksumOption: Option[Checksum]
+  
   def comment: String
 
   /** File name of download if known, display name otherwise */

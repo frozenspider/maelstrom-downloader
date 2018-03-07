@@ -10,12 +10,16 @@ import org.eclipse.jface.dialogs.ProgressMonitorDialog
 import org.eclipse.jface.preference.DirectoryFieldEditor
 import org.eclipse.swt._
 import org.eclipse.swt.events._
+import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.core.Status
 import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.core.backend.Backend
 import org.fs.mael.core.backend.BackendManager
+import org.fs.mael.core.checksum.Checksum
+import org.fs.mael.core.checksum.ChecksumType
+import org.fs.mael.core.checksum.Checksums
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.event.EventManager
@@ -38,6 +42,8 @@ class EditDownloadDialog(
   var uriInput: Text = _
   var locationInput: DirectoryFieldEditor = _
   var commentInput: Text = _
+  var checksumDropdown: Combo = _
+  var checksumInput: Text = _
 
   val peer = new Shell(parent, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL).withCode { peer =>
     if (!deOption.isDefined) {
@@ -71,8 +77,6 @@ class EditDownloadDialog(
     val locationRow = new Composite(peer, SWT.NONE).withCode { row =>
       row.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false))
       row.setLayout(new GridLayout().withCode { layout =>
-        layout.horizontalSpacing = 0
-        layout.verticalSpacing = 0
         layout.marginWidth = 0
         layout.marginHeight = 0
         layout.numColumns = 2
@@ -83,16 +87,37 @@ class EditDownloadDialog(
       editor.getLabelControl(locationRow).dispose()
       editor.setStringValue(cfgMgr.getProperty(ConfigOptions.DownloadPath))
       editor.setEmptyStringAllowed(false)
-      deOption foreach { de =>
-        editor.setStringValue(de.location.getAbsolutePath)
-        // Changing enabled state in a tricky way so that path can still be selected
-        val enabled = de.status != Status.Running
-        editor.setEnabled(enabled, locationRow)
-        editor.getTextControl(locationRow).withCode { input =>
-          input.setEnabled(true)
-          input.setEditable(enabled)
+    }
+
+    new Label(peer, SWT.NONE).withCode { label =>
+      label.setText("Checksum:")
+    }
+
+    val checksumRow = new Composite(peer, SWT.NONE).withCode { row =>
+      row.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false))
+      row.setLayout(new GridLayout().withCode { layout =>
+        layout.marginWidth = 0
+        layout.marginHeight = 0
+        layout.numColumns = 2
+      })
+    }
+
+    checksumDropdown = new Combo(checksumRow, SWT.READ_ONLY).withCode { dropdown =>
+      dropdown.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false))
+      dropdown.setItems(ChecksumType.values().map(_.name): _*)
+    }
+
+    checksumInput = new Text(checksumRow, SWT.SINGLE | SWT.BORDER).withCode { input =>
+      input.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false).withCode { d =>
+        d.widthHint = 520
+      })
+      input.setFont(new Font(parent.getDisplay, monospacedFontData))
+      input.addVerifyListener(e => {
+        if (!e.text.isEmpty && !e.text.matches(Checksums.HexRegex)) {
+          e.doit = false
         }
-      }
+      })
+      installDefaultHotkeys(input)
     }
 
     new Label(peer, SWT.NONE).withCode { label =>
@@ -100,14 +125,12 @@ class EditDownloadDialog(
     }
 
     commentInput = new Text(peer, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL).withCode { input =>
-      input.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_FILL).withCode { d =>
+      input.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false).withCode { d =>
         d.heightHint = 50
         d.widthHint = 500
       })
       installDefaultHotkeys(input)
     }
-
-    // TODO: Checksum
 
     val bottomButtonRow = new Composite(peer, SWT.NONE).withCode { composite =>
       composite.setLayout(new RowLayout().withCode { layout =>
@@ -137,6 +160,26 @@ class EditDownloadDialog(
       case Some(de) =>
         uriInput.setText(de.uri.toString)
         uriInput.setEditable(de.status.canBeStarted)
+
+        locationInput.setStringValue(de.location.getAbsolutePath)
+        // Changing enabled state in a tricky way so that path can still be selected
+        val enabled = de.status != Status.Running
+        locationInput.setEnabled(enabled, locationRow)
+        locationInput.getTextControl(locationRow).withCode { input =>
+          input.setEnabled(true)
+          input.setEditable(enabled)
+        }
+
+        checksumDropdown.setEnabled(de.status != Status.Complete)
+        checksumInput.setEditable(de.status != Status.Complete)
+
+        de.checksumOption match {
+          case Some(Checksum(tpe, value)) =>
+            checksumDropdown.select(tpe.ordinal)
+            checksumInput.setText(value)
+          case None =>
+          // NOOP
+        }
 
       case None =>
         // Try to paste URL from clipboard
@@ -174,9 +217,23 @@ class EditDownloadDialog(
             requireFriendly(backend isSupported uri, "Incompatible URI scheme")
           }
       }
+      val checksumString = checksumInput.getText
+      val checksumOption = if (!checksumString.isEmpty) {
+        val tpe = if (checksumDropdown.getSelectionIndex == -1) {
+          Checksums.guessType(checksumString) getOrElse {
+            failFriendly("Please select checksum type")
+          }
+        } else {
+          ChecksumType.values()(checksumDropdown.getSelectionIndex)
+        }
+        requireFriendly(Checksums.isProper(tpe, checksumString), "Malformed checksum")
+        Some(Checksum(tpe, checksumString.toLowerCase))
+      } else {
+        None
+      }
       deOption match {
-        case None     => create(backend, uri, location, comment)
-        case Some(de) => edit(de, backend, uri, location, comment)
+        case None     => create(backend, uri, location, checksumOption, comment)
+        case Some(de) => edit(de, backend, uri, location, checksumOption, comment)
       }
       peer.dispose()
     } catch {
@@ -190,12 +247,12 @@ class EditDownloadDialog(
     }
   }
 
-  private def create(backend: Backend, uri: URI, location: File, comment: String): Unit = {
-    val entry = backend.create(uri, location, None, comment)
+  private def create(backend: Backend, uri: URI, location: File, checksumOption: Option[Checksum], comment: String): Unit = {
+    val entry = backend.create(uri, location, None, checksumOption, comment)
     downloadListMgr.add(entry)
   }
 
-  private def edit(dev: DownloadEntryView, backend: Backend, uri: URI, location: File, comment: String): Unit = {
+  private def edit(dev: DownloadEntryView, backend: Backend, uri: URI, location: File, checksumOption: Option[Checksum], comment: String): Unit = {
     val de = dev.asInstanceOf[DownloadEntry[backend.BSED]]
     if (de.location != location) {
       if (de.downloadedSize > 0) {
@@ -208,6 +265,7 @@ class EditDownloadDialog(
       de.location = location
     }
     de.uri = uri
+    de.checksumOption = checksumOption
     de.comment = comment
     downloadListMgr.save() // We don't want to lose changes
     eventMgr.fireConfigChanged(de)

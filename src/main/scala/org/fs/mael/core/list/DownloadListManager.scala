@@ -33,6 +33,7 @@ class DownloadListManager(
   }
 
   // TODO: Autosave
+  // TODO: Only save last 100 (?) entries from download log
   def save(): Unit = {
     this.synchronized {
       require(!file.exists || file.canWrite, "Can't write to this file")
