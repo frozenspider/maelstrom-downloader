@@ -171,6 +171,8 @@ class MainFrame(
         copyUris()
       }
 
+      new MenuItem(menu, SWT.SEPARATOR)
+
       createMenuItem(menu, "Delete", parent, Some(Hotkey(Key.Delete))) {
         if (mainTable.peer.getSelectionCount > 0) {
           tryDeleteSelectedDownloads(false)
@@ -182,6 +184,8 @@ class MainFrame(
           tryDeleteSelectedDownloads(true)
         }
       }
+
+      new MenuItem(menu, SWT.SEPARATOR)
 
       val openProps = createMenuItem(menu, "Properties", parent, None) {
         val deOption = mainTable.selectedEntryOption
