@@ -40,6 +40,7 @@ Seq(
   "ch.qos.logback"            %  "logback-classic"      % "1.1.2",
   // Other
   "com.github.frozenspider"   %% "fs-common-utils"      % "0.1.3",
+  "commons-codec"             %  "commons-codec"        % "1.11",
   "org.apache.commons"        %  "commons-lang3"        % "3.4",
   "com.github.nscala-time"    %% "nscala-time"          % "2.16.0",
   "org.json4s"                %% "json4s-jackson"       % "3.5.3",
