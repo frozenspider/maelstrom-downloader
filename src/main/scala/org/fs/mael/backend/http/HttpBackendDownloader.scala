@@ -145,7 +145,7 @@ class HttpBackendDownloader(
         }
 
         // If no exception is thrown
-        checkHashAndComplete(de)
+        checkIntegrityAndComplete(de)
         log.info(s"Download complete: ${de.uri} (${de.id})")
       } catch {
         case ex: UserFriendlyException =>

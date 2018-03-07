@@ -43,9 +43,9 @@ abstract class BackendDownloader[BSED <: BackendSpecificEntryData](protected val
 
   /**
    * Should be invoked when download is complete.
-   * Checks the checksum hash (if any) and advance status to either Complete or Error.
+   * Verifies the checksum hash (if any) and advances status to either Complete or Error.
    */
-  protected def checkHashAndComplete(de: DownloadEntry[BSED]): Unit = {
+  protected def checkIntegrityAndComplete(de: DownloadEntry[BSED]): Unit = {
     val passed = de.checksumOption match {
       case Some(checksum) =>
         addLogAndFire(de, LogEntry.info("Verifying checksum"))
@@ -58,7 +58,7 @@ abstract class BackendDownloader[BSED <: BackendSpecificEntryData](protected val
       addLogAndFire(de, LogEntry.info("Download complete"))
     } else {
       changeStatusAndFire(de, Status.Error)
-      addLogAndFire(de, LogEntry.error("Checksum doesn't match"))
+      addLogAndFire(de, LogEntry.error("File integrity is violated, checksum doesn't match!"))
     }
   }
 

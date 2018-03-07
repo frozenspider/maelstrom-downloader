@@ -3,6 +3,7 @@ package org.fs.mael.core.checksum
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
+import java.nio.ByteBuffer
 import java.security.MessageDigest
 
 import org.apache.commons.codec.binary.Hex
@@ -10,8 +11,6 @@ import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.codec.digest.MessageDigestAlgorithms
 import org.apache.commons.codec.digest.PureJavaCrc32
 import org.fs.mael.core.utils.CoreUtils._
-
-import com.google.common.primitives.Ints
 
 object Checksums {
   val HexRegex = "[0-9a-fA-F]+"
@@ -88,7 +87,10 @@ object Checksums {
     override def engineUpdate(input: Array[Byte], offset: Int, len: Int): Unit =
       inner.update(input, offset, len)
 
-    override def engineDigest(): Array[Byte] =
-      Ints.toByteArray(inner.getValue.toInt)
+    override def engineDigest(): Array[Byte] = {
+      val buf = ByteBuffer.allocate(java.lang.Integer.BYTES)
+      buf.putInt(inner.getValue.toInt)
+      buf.array()
+    }
   }
 }
