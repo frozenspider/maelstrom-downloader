@@ -220,9 +220,13 @@ class EditDownloadDialog(
       }
       val checksumString = checksumInput.getText
       val checksumOption = if (!checksumString.isEmpty) {
-        // TODO: Guess?
-        requireFriendly(checksumDropdown.getSelectionIndex > -1, "Please select checksum type")
-        val tpe = ChecksumType.values()(checksumDropdown.getSelectionIndex)
+        val tpe = if (checksumDropdown.getSelectionIndex == -1) {
+          Checksums.guessType(checksumString) getOrElse {
+            failFriendly("Please select checksum type")
+          }
+        } else {
+          ChecksumType.values()(checksumDropdown.getSelectionIndex)
+        }
         requireFriendly(Checksums.isProper(tpe, checksumString), "Malformed checksum")
         Some(Checksum(tpe, checksumString.toLowerCase))
       } else {

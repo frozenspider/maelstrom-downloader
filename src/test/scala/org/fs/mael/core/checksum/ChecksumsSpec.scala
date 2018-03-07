@@ -42,6 +42,8 @@ class ChecksumsSpec
     assert(!isProper(md5, "5358c37942b0126084bb16f7d602788d00416e01bc3fd0132f4458dd355d8e76"))
 
     assert(check(Checksum(md5, "aa2a28c6443be2ec593d1e04e0dcbcd4"), file))
+
+    assert(guessType("aa2a28c6443be2ec593d1e04e0dcbcd4") === Some(md5))
   }
 
   test("SHA-1") {
@@ -57,6 +59,8 @@ class ChecksumsSpec
     assert(!isProper(sha1, "5358c37942b0126084bb16f7d602788d00416e01bc3fd0132f4458dd355d8e76"))
 
     assert(check(Checksum(sha1, "a47a2da1bf0020f5c41c69219179c159b1383194"), file))
+
+    assert(guessType("a47a2da1bf0020f5c41c69219179c159b1383194") === Some(sha1))
   }
 
   test("SHA-256") {
@@ -72,5 +76,7 @@ class ChecksumsSpec
     assert(isProper(sha256, "5358c37942b0126084bb16f7d602788d00416e01bc3fd0132f4458dd355d8e76"))
 
     assert(check(Checksum(sha256, "5358c37942b0126084bb16f7d602788d00416e01bc3fd0132f4458dd355d8e76"), file))
+
+    assert(guessType("5358c37942b0126084bb16f7d602788d00416e01bc3fd0132f4458dd355d8e76") === Some(sha256))
   }
 }

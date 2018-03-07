@@ -349,6 +349,8 @@ class HttpBackendDownloaderSpec
     assertLastLogEntry(de, "match")
   }
 
+  // WARNING: Unstable test!
+  // server.reqCounter is sometimes 0
   test("failure - request timeout") {
     val de = createDownloadEntry
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)

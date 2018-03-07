@@ -11,12 +11,26 @@ import org.fs.mael.core.utils.CoreUtils._
 object Checksums {
   val HexRegex = "[0-9a-fA-F]+"
 
+  val LengthsMap: Map[ChecksumType, Int] = ChecksumType.values().map(ct => (ct, ct.length)).toMap
+
   def isProper(tpe: ChecksumType, str: String): Boolean = {
     if (!(str matches HexRegex)) {
       false
     } else {
-      val digest = DigestUtils.getDigest(getAlgorithmName(tpe))
-      str.length == (digest.getDigestLength * 2)
+      str.length == (LengthsMap(tpe) * 2)
+    }
+  }
+
+  def guessType(str: String): Option[ChecksumType] = {
+    val confirming = Checksums.LengthsMap filter (str.length == _._2 * 2)
+    if (confirming.size == 1) {
+      val guess = confirming.head._1
+      if (isProper(guess, str))
+        Some(confirming.head._1)
+      else
+        None
+    } else {
+      None
     }
   }
 
