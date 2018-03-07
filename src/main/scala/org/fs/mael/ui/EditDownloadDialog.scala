@@ -170,7 +170,6 @@ class EditDownloadDialog(
           input.setEditable(enabled)
         }
 
-        // FIXME: setText
         checksumDropdown.setEnabled(de.status != Status.Complete)
         checksumInput.setEditable(de.status != Status.Complete)
 

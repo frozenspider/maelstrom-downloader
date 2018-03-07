@@ -2,11 +2,10 @@ package org.fs.mael.ui.utils
 
 import org.eclipse.swt.SWT
 import org.eclipse.swt.events.KeyEvent
+import org.eclipse.swt.graphics.FontData
 import org.eclipse.swt.graphics.Rectangle
 import org.eclipse.swt.widgets._
-import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.utils.Hotkey._
-import org.eclipse.swt.graphics.FontData
 
 object SwtUtils {
   def getCurrentMonitor(c: Control): Monitor = {
@@ -103,8 +102,8 @@ object SwtUtils {
   val monospacedFontData: FontData = {
     // Taken from https://bugs.eclipse.org/bugs/show_bug.cgi?id=48055
     val osName = System.getProperty("os.name")
-    val wsName = SWT.getPlatform().toLowerCase
-    val fd = (osName, wsName) match {
+    val wsNameLC = SWT.getPlatform.toLowerCase
+    val fd = (osName, wsNameLC) match {
       case ("Linux", "gtk")                   => new FontData("Monospace", 10, SWT.NORMAL)
       case ("Linux", _)                       => new FontData("adobe-courier", 12, SWT.NORMAL)
       case (os, _) if os startsWith "Windows" => new FontData("Courier New", 10, SWT.NORMAL)
