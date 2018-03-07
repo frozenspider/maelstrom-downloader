@@ -130,7 +130,7 @@ class HttpBackendDownloader(
 
         if (partial) {
           assert(de.filenameOption.isDefined)
-          if (!new File(de.location, de.filenameOption.get).exists())
+          if (!de.fileOption.get.exists())
             throw new UserFriendlyException(s"File is missing")
         }
         if (partial && !de.supportsResumingOption.getOrElse(true)) {
@@ -301,7 +301,7 @@ class HttpBackendDownloader(
     }
 
     private def instantiateFile(): RandomAccessFile = {
-      val f = new File(de.location, de.filenameOption.get)
+      val f = de.fileOption.get
       if (!partial && f.exists) {
         throw new UserFriendlyException(s"File already exists")
       } else if (partial) {

@@ -33,8 +33,12 @@ trait DownloadEntryView {
 
   def filenameOption: Option[String]
 
+  def fileOption: Option[File] = {
+    filenameOption map (filename => new File(location, filename))
+  }
+
   def checksumOption: Option[Checksum]
-  
+
   def comment: String
 
   /** File name of download if known, display name otherwise */

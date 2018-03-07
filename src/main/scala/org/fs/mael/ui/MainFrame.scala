@@ -173,7 +173,13 @@ class MainFrame(
 
       createMenuItem(menu, "Delete", parent, Some(Hotkey(Key.Delete))) {
         if (mainTable.peer.getSelectionCount > 0) {
-          tryDeleteSelectedDownloads()
+          tryDeleteSelectedDownloads(false)
+        }
+      }
+
+      createMenuItem(menu, "Delete with file", parent, Some(Hotkey(Shift, Key.Delete))) {
+        if (mainTable.peer.getSelectionCount > 0) {
+          tryDeleteSelectedDownloads(true)
         }
       }
 
@@ -185,7 +191,6 @@ class MainFrame(
       }.forSingleDownloads()
       mainTable.peer.addListener(SWT.MouseDoubleClick, e => openProps.notifyListeners(SWT.Selection, e))
 
-      // TODO: Delete with file
       // TODO: Restart
     }
 
@@ -276,12 +281,16 @@ class MainFrame(
     }
   }
 
-  private def tryDeleteSelectedDownloads(): Unit = {
-    val confirmed = MessageDialog.openConfirm(peer, "Confirmation",
-      s"Are you sure you wish to delete selected downloads?")
+  private def tryDeleteSelectedDownloads(withFile: Boolean): Unit = {
+    val msg = "Are you sure you wish to delete selected downloads" +
+      (if (withFile) " AND thier corresponding files?" else "?")
+    val confirmed = MessageDialog.openConfirm(peer, "Confirmation", msg)
     if (confirmed) {
       val selected = mainTable.selectedEntries
       downloadListMgr.removeAll(selected)
+      if (withFile) {
+        selected foreach (_.fileOption foreach (_.delete()))
+      }
     }
   }
 

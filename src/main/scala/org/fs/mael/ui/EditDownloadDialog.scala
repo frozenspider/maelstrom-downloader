@@ -257,7 +257,7 @@ class EditDownloadDialog(
     if (de.location != location) {
       if (de.downloadedSize > 0) {
         val Some(filename) = de.filenameOption
-        val oldFile = new File(de.location, filename)
+        val oldFile = de.fileOption.get
         if (oldFile.exists) {
           relocateWithProgress(oldFile, new File(location, filename))
         }

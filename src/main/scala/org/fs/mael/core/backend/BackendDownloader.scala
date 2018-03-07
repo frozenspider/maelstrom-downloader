@@ -49,7 +49,7 @@ abstract class BackendDownloader[BSED <: BackendSpecificEntryData](protected val
     val passed = de.checksumOption match {
       case Some(checksum) =>
         addLogAndFire(de, LogEntry.info("Verifying checksum"))
-        Checksums.check(checksum, new File(de.location, de.filenameOption.get))
+        Checksums.check(checksum, de.fileOption.get)
       case None =>
         true
     }
