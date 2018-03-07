@@ -1,4 +1,5 @@
 ### SNAPSHOT
+* Added ability to verify a download with a hash checksum
 * Added ability to edit download properties
   * Changing location will cause the file to be moved, in a safe way and with a progress bar
 * Reworked download location selection in Add Download dialog
