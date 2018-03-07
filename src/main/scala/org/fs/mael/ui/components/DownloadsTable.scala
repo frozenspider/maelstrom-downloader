@@ -1,5 +1,8 @@
 package org.fs.mael.ui.components
 
+import java.text.Collator
+import java.util.Locale
+
 import org.eclipse.swt.SWT
 import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.widgets._
@@ -39,7 +42,10 @@ class DownloadsTable(
       c.setText(cd.name)
       c.setWidth(cd.width)
       c.setResizable(cd.resizable)
+      c.addListener(SWT.Selection, sortListener)
     }
+
+    // TODO: Remember sort column/direction
 
     installDefaultHotkeys(table)
     table
@@ -121,6 +127,44 @@ class DownloadsTable(
 
   private def adjustColumnWidths(): Unit = {
     peer.getColumns.filter(_.getWidth == 0).map(_.pack())
+  }
+
+  private lazy val sortListener: Listener = e => {
+    val collator = Collator.getInstance(Locale.getDefault)
+    val column = e.widget.asInstanceOf[TableColumn]
+    val colIdx = peer.getColumns.indexOf(column)
+    val items = peer.getItems
+    val ascending =
+      if (peer.getSortColumn == column) {
+        peer.getSortDirection match {
+          case SWT.UP   => false
+          case SWT.DOWN => true
+        }
+      } else {
+        true
+      }
+    // Selection sort
+    for (i <- 0 until (items.length - 1)) {
+      var minIdx = i
+      var minValue = items(minIdx).getText(colIdx)
+      for (j <- (i + 1) until items.length) {
+        val value = items(j).getText(colIdx)
+        val cmp = collator.compare(minValue, value)
+        if ((ascending && cmp > 0) || (!ascending && cmp < 0)) {
+          minIdx = j
+          minValue = value
+        }
+      }
+      if (minIdx != i) {
+        // Swap rows
+        val de1 = items(i).getData.asInstanceOf[DownloadEntryView]
+        val de2 = items(minIdx).getData.asInstanceOf[DownloadEntryView]
+        fillRow(items(i), de2)
+        fillRow(items(minIdx), de1)
+      }
+    }
+    peer.setSortColumn(column)
+    peer.setSortDirection(if (ascending) SWT.UP else SWT.DOWN)
   }
 }
 

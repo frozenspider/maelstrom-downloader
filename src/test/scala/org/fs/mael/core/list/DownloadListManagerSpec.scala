@@ -36,7 +36,7 @@ class DownloadListManagerSpec
     )
     val serializer: DownloadListSerializer = new DownloadListSerializer {
       override def serialize(entries2: Iterable[DownloadEntry[_]]): String = {
-        assert(entries2.toSet === entries.toSet)
+        assert(entries2 === entries)
         "mySerializedString"
       }
 
@@ -50,7 +50,7 @@ class DownloadListManagerSpec
 
     // Load
     dlm.load()
-    assert(dlm.list() === entries.toSet)
+    assert(dlm.list() === entries)
 
     // Save
     dlm.save()
@@ -95,26 +95,26 @@ class DownloadListManagerSpec
     )
 
     dlm.add(entries(0))
-    assert(dlm.list() === Set(entries(0)))
+    assert(dlm.list() === Seq(entries(0)))
     assert(eventMgr.events.size === 1)
     assert(eventMgr.events(0) === Added(entries(0)))
     assert(eventMgr.events(0) !== Added(entries(1)))
 
     dlm.remove(entries(0))
-    assert(dlm.list() === Set.empty)
+    assert(dlm.list() === Seq.empty)
     assert(eventMgr.events.size === 2)
     assert(eventMgr.events(1) === Removed(entries(0)))
     assert(eventMgr.events(1) !== Removed(entries(1)))
 
     dlm.add(entries(0))
     dlm.add(entries(1))
-    assert(dlm.list() === entries.toSet)
+    assert(dlm.list() === entries)
     assert(eventMgr.events.size === 4)
     assert(eventMgr.events(2) === Added(entries(0)))
     assert(eventMgr.events(3) === Added(entries(1)))
 
     dlm.removeAll(entries)
-    assert(dlm.list() === Set.empty)
+    assert(dlm.list() === Seq.empty)
     assert(eventMgr.events.size === 6)
     assert(eventMgr.events(4) === Removed(entries(0)))
     assert(eventMgr.events(5) === Removed(entries(1)))

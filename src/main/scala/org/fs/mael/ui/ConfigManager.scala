@@ -19,7 +19,7 @@ import org.fs.mael.core.utils.CoreUtils._
 class ConfigManager(val file: File) {
   import ConfigManager._
 
-  val store = new PreferenceStore().withCode { store => // TODO: Link to file
+  val store = new PreferenceStore().withCode { store =>
     import ConfigOptions._
     file.getParentFile.mkdirs()
     store.setFilename(file.getAbsolutePath)
