@@ -12,6 +12,8 @@ import scala.util.Random
 import org.apache.http._
 import org.apache.http.entity._
 import org.fs.mael.core.Status
+import org.fs.mael.core.checksum.Checksum
+import org.fs.mael.core.checksum.ChecksumType
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.Events
 import org.fs.mael.core.event.PriorityEvent
@@ -388,6 +390,7 @@ class HttpBackendDownloaderSpec
       uri                 = uri,
       location            = tmpDir,
       filenameOption      = Some(filename),
+      checksumOption      = Some(Checksum("123", ChecksumType.MD5)),
       comment             = "my comment",
       backendSpecificData = new HttpEntryData
     )

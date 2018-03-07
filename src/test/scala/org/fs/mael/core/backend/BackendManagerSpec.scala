@@ -68,9 +68,9 @@ class BackendManagerSpec
     backendMgr += (backend1, 1)
     backendMgr += (backend2, 2)
     val universalUri = uri(1)
-    val de1 = backend1.create(universalUri, new File("1"), None, "comment1")
-    val de2 = backend2.create(universalUri, new File("2"), None, "comment2")
-    val de3 = backend3.create(universalUri, new File("3"), None, "comment3")
+    val de1 = backend1.create(universalUri, new File("1"), None, None, "comment1")
+    val de2 = backend2.create(universalUri, new File("2"), None, None, "comment2")
+    val de3 = backend3.create(universalUri, new File("3"), None, None, "comment3")
 
     val pair1 = backendMgr.getCastedPair(de1)
     assert(pair1.backend === backend1)

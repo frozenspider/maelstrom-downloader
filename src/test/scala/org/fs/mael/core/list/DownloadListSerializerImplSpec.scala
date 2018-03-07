@@ -7,6 +7,8 @@ import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.backend.http.HttpEntryData
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.BackendManager
+import org.fs.mael.core.checksum.Checksum
+import org.fs.mael.core.checksum.ChecksumType
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
@@ -42,6 +44,7 @@ class DownloadListSerializerImplSpec
     assertSingularSerializationWorks(createDE("all-simple-fields") { de =>
       de.location = new File("c:/ewq\\:c").getAbsoluteFile
       de.filenameOption = Some("c:/ewq\\:c")
+      de.checksumOption = Some(Checksum("1abcde", ChecksumType.SHA1))
       de.comment = "My\nmulti-line\ncomment"
       de.status = Status.Error
       de.sizeOption = Some(12345)
@@ -124,6 +127,6 @@ class DownloadListSerializerImplSpec
     val loc = new File(System.getProperty("java.io.tmpdir"))
     val uri = new URI(uriString)
     val backend = backendMgr.findFor(uri).get
-    backend.create(uri, loc, None, "").withCode(code)
+    backend.create(uri, loc, None, None, "").withCode(code)
   }
 }
