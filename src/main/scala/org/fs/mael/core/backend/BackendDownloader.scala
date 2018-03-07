@@ -58,7 +58,7 @@ abstract class BackendDownloader[BSED <: BackendSpecificEntryData](protected val
       addLogAndFire(de, LogEntry.info("Download complete"))
     } else {
       changeStatusAndFire(de, Status.Error)
-      addLogAndFire(de, LogEntry.info("Checksum doesn't match"))
+      addLogAndFire(de, LogEntry.error("Checksum doesn't match"))
     }
   }
 
