@@ -30,14 +30,13 @@ import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
 
 class MainFrame(
-  shell:           Shell,
+  display:         Display,
   resources:       Resources,
   cfgMgr:          ConfigManager,
   backendMgr:      BackendManager,
   downloadListMgr: DownloadListManager,
   eventMgr:        EventManager
 ) extends Logging {
-  private val display = shell.getDisplay
 
   private var mainTable: DownloadsTable = _
   private var logTable: LogTable = _
@@ -48,18 +47,18 @@ class MainFrame(
   /** When the download progress update was rendered for the last time, used to avoid excessive load */
   private var lastProgressUpdateTS: Long = System.currentTimeMillis
 
-  def init(): Unit = {
-    shell.addListener(SWT.Close, onWindowClose)
+  val peer: Shell = new Shell(display).withCode { peer =>
+    peer.addListener(SWT.Close, onWindowClose)
 
     // Layout
 
-    shell.setLayout(new FillLayout(SWT.VERTICAL).withCode { layout =>
+    peer.setLayout(new FillLayout(SWT.VERTICAL).withCode { layout =>
       layout.spacing = 0
     })
 
-    val menu = new Menu(shell, SWT.BAR)
+    val menu = new Menu(peer, SWT.BAR)
 
-    val group = new Composite(shell, SWT.NONE)
+    val group = new Composite(peer, SWT.NONE)
     group.setLayout(new GridLayout().withCode { layout =>
       layout.horizontalSpacing = 0
       layout.verticalSpacing = 0
@@ -79,22 +78,22 @@ class MainFrame(
 
     // Init
 
-    fillMenu(menu)
-    fillToolbar(toolbar)
-    fillMainTable(mainTable)
+    fillMenu(menu, peer)
+    fillToolbar(toolbar, peer)
+    fillMainTable(mainTable, peer)
 
     mainTable.init(downloadListMgr.list())
     mainTable.peer.setFocus()
 
-    shell.setImage(resources.mainIcon)
-    shell.setText(BuildInfo.fullPrettyName)
-    shell.setSize(1000, 600)
-    centerOnScreen(shell)
+    peer.setImage(resources.mainIcon)
+    peer.setText(BuildInfo.fullPrettyName)
+    peer.setSize(1000, 600)
+    centerOnScreen(peer)
 
     eventMgr.subscribe(subscriber)
   }
 
-  private def fillMenu(menu: Menu): Unit = {
+  private def fillMenu(menu: Menu, shell: Shell): Unit = {
     val parent = menu.getParent
     parent.setMenuBar(menu)
 
@@ -121,7 +120,7 @@ class MainFrame(
     }
   }
 
-  private def fillToolbar(toolbar: ToolBar): Unit = {
+  private def fillToolbar(toolbar: ToolBar, shell: Shell): Unit = {
     val btnAdd = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnAdd =>
       btnAdd.setText("Add")
       btnAdd.addListener(SWT.Selection, e => {
@@ -159,7 +158,7 @@ class MainFrame(
     })
   }
 
-  private def fillMainTable(mainTable: DownloadsTable): Unit = {
+  private def fillMainTable(mainTable: DownloadsTable, shell: Shell): Unit = {
     val menu = new Menu(mainTable.peer).withCode { menu =>
       val parent = mainTable.peer
       parent.setMenu(menu)
@@ -213,7 +212,7 @@ class MainFrame(
       lhm.put("Cancel", -1)
     }
     // TODO: Extract into helper?
-    val result = MessageDialogWithToggle.open(MessageDialog.CONFIRM, shell,
+    val result = MessageDialogWithToggle.open(MessageDialog.CONFIRM, peer,
       "What to do?",
       "Choose an action on window close",
       "Remember my decision",
@@ -239,7 +238,7 @@ class MainFrame(
 
   private def minimize(closeEventOption: Option[Event]): Unit = {
     closeEventOption foreach (_.doit = false)
-    shell.setMinimized(true)
+    peer.setMinimized(true)
   }
 
   private def tryExit(closeEvent: Event): Unit = {
@@ -249,7 +248,7 @@ class MainFrame(
     try {
       val running = getRunningEntities()
       if (running.size > 0) {
-        val confirmed = MessageDialog.openConfirm(shell, "Confirmation",
+        val confirmed = MessageDialog.openConfirm(peer, "Confirmation",
           s"You have ${running.size} active download(s). Are you sure you wish to quit?")
 
         if (!confirmed) {
@@ -259,7 +258,7 @@ class MainFrame(
             val pair = backendMgr.getCastedPair(de)
             pair.backend.downloader.stop(pair.de)
           }
-          shell.setVisible(false)
+          peer.setVisible(false)
           val terminatedNormally = waitUntil(2000) { getRunningEntities().size == 0 }
           if (!terminatedNormally) {
             log.error("Couldn't stop all downloads before exiting")
@@ -268,17 +267,17 @@ class MainFrame(
       }
       if (closeEvent.doit) {
         downloadListMgr.save()
-        shell.dispose()
+        peer.dispose()
       }
     } catch {
       case ex: Exception =>
         log.error("Error terminating an application", ex)
-        showError(shell, message = ex.getMessage)
+        showError(peer, message = ex.getMessage)
     }
   }
 
   private def tryDeleteSelectedDownloads(): Unit = {
-    val confirmed = MessageDialog.openConfirm(shell, "Confirmation",
+    val confirmed = MessageDialog.openConfirm(peer, "Confirmation",
       s"Are you sure you wish to delete selected downloads?")
     if (confirmed) {
       val selected = mainTable.selectedEntries
@@ -303,8 +302,8 @@ class MainFrame(
 
   /** Execute code in UI thread iff UI is not disposed yet */
   private def syncExecSafely(code: => Unit): Unit =
-    if (!shell.isDisposed) display.syncExec { () =>
-      if (!shell.isDisposed) code
+    if (!peer.isDisposed) display.syncExec { () =>
+      if (!peer.isDisposed) code
     }
 
   //
@@ -319,7 +318,7 @@ class MainFrame(
 
     override def fired(event: EventForUi): Unit = event match {
       case Added(de) => syncExecSafely {
-        if (!shell.isDisposed) {
+        if (!peer.isDisposed) {
           mainTable.add(de)
         }
       }

@@ -91,9 +91,8 @@ object MaelstromDownloaderMain extends App with Logging {
     downloadListMgr: DownloadListManager,
     eventMgr:        EventManager
   ): Shell = {
-    new Shell(display).withCode { shell =>
-      (new MainFrame(shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)).init()
-    }
+    val ui = new MainFrame(display, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
+    ui.peer
   }
 
   def uiLoop(shell: Shell): Unit = {
