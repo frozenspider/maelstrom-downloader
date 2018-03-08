@@ -71,7 +71,7 @@ class MainFrame(
     val sashForm = new SashForm(group, SWT.VERTICAL)
     sashForm.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true))
 
-    mainTable = new DownloadsTable(sashForm, resources)
+    mainTable = new DownloadsTable(sashForm, resources, cfgMgr)
     logTable = new LogTable(sashForm, resources)
 
     sashForm.setWeights(Array(10, 10))
@@ -251,7 +251,7 @@ class MainFrame(
   }
 
   private def tryExit(closeEvent: Event): Unit = {
-    def getRunningEntities(): Set[_ <: DownloadEntryView] = {
+    def getRunningEntities(): Seq[_ <: DownloadEntryView] = {
       downloadListMgr.list().filter(_.status == Status.Running)
     }
     try {
@@ -349,7 +349,7 @@ class MainFrame(
         // We assume this is only called by event manager processing thread, so no additional sync needed
         if (System.currentTimeMillis() - lastProgressUpdateTS > ProgressUpdateThresholdMs) {
           syncExecSafely {
-            // TODO: Optimize
+            // TODO: Optimize?
             mainTable.update(de)
           }
           lastProgressUpdateTS = System.currentTimeMillis()

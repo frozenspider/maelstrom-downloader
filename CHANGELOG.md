@@ -1,4 +1,5 @@
 ### SNAPSHOT
+* Added ability to sort a download list by any column
 * Added ability to verify a download with a hash checksum
 * Added ability to delete downloads with their local files
 * Added ability to edit download properties

@@ -11,6 +11,8 @@ object ConfigOptions {
 
   val DownloadPath: SimpleConfigOption[String] = SimpleConfigOption("main.downloadPath")
   val NetworkTimeout: SimpleConfigOption[Int] = SimpleConfigOption("main.networkTimeoutMs")
+  val SortColumn: SimpleConfigOption[String] = SimpleConfigOption("view.sortColumn")
+  val SortAsc: SimpleConfigOption[Boolean] = SimpleConfigOption("view.sortAsc")
   val ActionOnWindowClose: CustomConfigOption[OnWindowClose, String] = new CustomConfigOption[OnWindowClose, String]("main.actionOnWindowClose") {
     def toRepr(v: OnWindowClose): String = v.id
     def fromRepr(v: String): OnWindowClose = OnWindowClose.values.find(_.id == v).get
