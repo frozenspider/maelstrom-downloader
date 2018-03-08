@@ -10,6 +10,8 @@ import org.eclipse.jface.dialogs.MessageDialog
 import org.eclipse.jface.dialogs.MessageDialogWithToggle
 import org.eclipse.swt._
 import org.eclipse.swt.custom.SashForm
+import org.eclipse.swt.events.ShellAdapter
+import org.eclipse.swt.events.ShellEvent
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.BuildInfo
@@ -24,12 +26,12 @@ import org.fs.mael.core.event.UiSubscriber
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components._
+import org.fs.mael.ui.prefs.GlobalPreferences
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.Hotkey
 import org.fs.mael.ui.utils.Hotkey._
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
-import org.fs.mael.ui.prefs.GlobalPreferences
 
 class MainFrame(
   display:         Display,
@@ -52,6 +54,13 @@ class MainFrame(
 
   val peer: Shell = new Shell(display).withCode { peer =>
     peer.addListener(SWT.Close, onWindowClose)
+    peer.addShellListener(new ShellAdapter {
+      override def shellIconified(e: ShellEvent): Unit = {
+        // Note: this might be called second time from minimize, but that's not a problem
+        e.doit = false
+        minimize(None)
+      }
+    })
 
     // Layout
 
@@ -239,7 +248,7 @@ class MainFrame(
   }
 
   private def onWindowClose(closeEvent: Event): Unit = {
-    import GlobalPreferences.OnWindowClose._
+    import org.fs.mael.ui.prefs.GlobalPreferences.OnWindowClose._
     cfgMgr(GlobalPreferences.OnWindowCloseBehavior) match {
       case Undefined => promptWindowClose(closeEvent)
       case Close     => tryExit(closeEvent)
@@ -248,8 +257,8 @@ class MainFrame(
   }
 
   private def promptWindowClose(closeEvent: Event): Unit = {
-    import GlobalPreferences._
     import java.util.LinkedHashMap
+    import org.fs.mael.ui.prefs.GlobalPreferences._
     val lhm = new LinkedHashMap[String, Integer].withCode { lhm =>
       lhm.put(OnWindowClose.Minimize.prettyName, 1)
       lhm.put(OnWindowClose.Close.prettyName, 2)
@@ -282,7 +291,15 @@ class MainFrame(
 
   private def minimize(closeEventOption: Option[Event]): Unit = {
     closeEventOption foreach (_.doit = false)
-    peer.setMinimized(true)
+    import org.fs.mael.ui.prefs.GlobalPreferences._
+    (closeEventOption, cfgMgr(MinimizeToTrayBehavior)) match {
+      case (_, MinimizeToTray.Always) =>
+        peer.setVisible(false)
+      case (Some(e), MinimizeToTray.OnClose) =>
+        peer.setVisible(false)
+      case _ =>
+        peer.setMinimized(true)
+    }
   }
 
   private def tryExit(closeEvent: Event): Unit = {
