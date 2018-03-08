@@ -1,11 +1,13 @@
 package org.fs.mael.ui.components
 
-import java.text.Collator
-import java.util.Locale
-
 import org.eclipse.swt.SWT
 import org.eclipse.swt.graphics.Color
-import org.eclipse.swt.widgets._
+import org.eclipse.swt.widgets.Composite
+import org.eclipse.swt.widgets.Event
+import org.eclipse.swt.widgets.Listener
+import org.eclipse.swt.widgets.Table
+import org.eclipse.swt.widgets.TableColumn
+import org.eclipse.swt.widgets.TableItem
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.ConfigManager
@@ -22,14 +24,14 @@ class DownloadsTable(
   cfgMgr:    ConfigManager
 ) extends MUiComponent[Table](parent) {
 
-  private val columnDefs: IndexedSeq[DownloadsTable.ColumnDef] = {
+  private val columnDefs: IndexedSeq[ColumnDef[_]] = {
     IndexedSeq(
-      ColumnDef("file-name", "File Name", de => de.displayName),
-      ColumnDef("dl-percent", "%", downloadEntityFormat.downloadedPercent, 45, false),
-      ColumnDef("dl-value", "Downloaded", downloadEntityFormat.downloadedSize),
-      ColumnDef("file-size", "Size", downloadEntityFormat.size, 80),
-      ColumnDef("comment", "Comment", de => de.comment, 200),
-      ColumnDef("date-created", "Added", de => de.dateCreated.toString(resources.dateTimeFmt), 120)
+      ColumnDef("file-name", "File Name", _.displayName)(),
+      ColumnDef("dl-percent", "%", _.downloadedPercentOption, 45, false)(_ map (_ + "%") getOrElse ""),
+      ColumnDef("dl-value", "Downloaded", _.downloadedSizeOption)(Format.fmtSizeOptionPretty),
+      ColumnDef("file-size", "Size", _.sizeOption, 80)(Format.fmtSizeOptionPretty),
+      ColumnDef("comment", "Comment", _.comment, 200)(),
+      ColumnDef("date-created", "Added", _.dateCreated, 120)(_.toString(resources.dateTimeFmt))
     )
   }
 
@@ -109,9 +111,12 @@ class DownloadsTable(
   }
 
   def update(de: DownloadEntryView): Unit = {
+    // TODO: Avoid excessive sorting when download progress is updated? 
     indexOfOption(de) match {
-      case Some(idx) => fillRow(peer.getItem(idx), de)
-      case None      => // NOOP
+      case Some(idx) =>
+        fillRow(peer.getItem(idx), de)
+        sortContent()
+      case None => // NOOP
     }
   }
 
@@ -124,7 +129,7 @@ class DownloadsTable(
     row.setData(de)
     row.setImage(0, resources.icon(de.status))
     columnDefs.zipWithIndex.foreach {
-      case (cd, i) => row.setText(i, cd.fmt(de))
+      case (cd, i) => row.setText(i, cd.getFormattedValue(de))
     }
     if (de.supportsResumingOption == Some(false)) {
       // Would be better to add red-ish border, but that's non-trivial
@@ -148,16 +153,18 @@ class DownloadsTable(
     val oldSelectedData = peer.getSelection.map(_.de).toSet
     val asc = peer.getSortDirection == SWT.UP
     val colIdx = peer.getColumns.indexOf(peer.getSortColumn)
-    val collator = Collator.getInstance(Locale.getDefault)
+    val colDef = peer.getColumn(colIdx).columnDef
     val items = peer.getItems
     // Selection sort
     for (i <- 0 until (items.length - 1)) {
       var minIdx = i
-      var minValue = items(minIdx).getText(colIdx)
+      val x = colDef.getValue(items(minIdx).de)
+      var minValue = items(minIdx).de
       for (j <- (i + 1) until items.length) {
-        val value = items(j).getText(colIdx)
+        val y = colDef.getValue(items(j).de)
+        val value = items(j).de
         val shouldSwap: Boolean = {
-          val cmp = collator.compare(minValue, value) match {
+          val cmp = colDef.compare(minValue, value) match {
             case 0 =>
               // Equal elements are compared by date added
               items(minIdx).de.dateCreated compare items(j).de.dateCreated
@@ -217,48 +224,33 @@ class DownloadsTable(
   }
 
   private implicit class RichTableColumn(tc: TableColumn) {
-    def columnDef: DownloadsTable.ColumnDef = {
-      tc.getData.asInstanceOf[DownloadsTable.ColumnDef]
+    def columnDef: ColumnDef[_] = {
+      tc.getData.asInstanceOf[ColumnDef[_]]
     }
   }
 }
 
 object DownloadsTable {
-  private case class ColumnDef(
+  private case class ColumnDef[T: Ordering](
     id:        String, // Used to uniquely identify column
     name:      String,
-    fmt:       DownloadEntryView => String,
-    width:     Int                         = 0,
-    resizable: Boolean                     = true
-  )()
+    getValue:  DownloadEntryView => T,
+    width:     Int                    = 0,
+    resizable: Boolean                = true
+  )(fmt: T => String = (x: T) => x.toString) {
+    implicit val ordering = implicitly[Ordering[T]]
+    def compare(de1: DownloadEntryView, de2: DownloadEntryView): Int = ordering.compare(getValue(de1), getValue(de2))
+    def getFormattedValue(de: DownloadEntryView) = fmt(getValue(de))
+  }
 
-  private object downloadEntityFormat {
-    def size(de: DownloadEntryView): String = {
-      de.sizeOption map fmtSizePretty getOrElse ""
-    }
-
-    def downloadedSize(de: DownloadEntryView): String = {
-      if (!de.sections.isEmpty) {
-        fmtSizePretty(de.downloadedSize)
-      } else {
-        ""
-      }
-    }
-
-    def downloadedPercent(de: DownloadEntryView): String = {
-      val downloadedSize = de.downloadedSize
-      de.sizeOption match {
-        case Some(totalSize) =>
-          val percent = downloadedSize * 100 / totalSize
-          percent + "%"
-        case _ =>
-          ""
-      }
-    }
-
-    private def fmtSizePretty(size: Long): String = {
+  private object Format {
+    def fmtSizePretty(size: Long): String = {
       val groups = size.toString.reverse.grouped(3).map(_.reverse).toSeq.reverse
       groups.mkString("", " ", " B")
+    }
+
+    def fmtSizeOptionPretty(sizeOption: Option[Long]): String = {
+      sizeOption map fmtSizePretty getOrElse ""
     }
   }
 }

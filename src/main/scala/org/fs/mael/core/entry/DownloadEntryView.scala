@@ -49,7 +49,21 @@ trait DownloadEntryView {
   def sizeOption: Option[Long]
 
   def downloadedSize: Long = {
-    sections.values.sum
+    downloadedSizeOption getOrElse 0
+  }
+
+  def downloadedSizeOption: Option[Long] = {
+    if (!sections.isEmpty) Some(sections.values.sum) else None
+  }
+
+  def downloadedPercentOption: Option[Int] = {
+    sizeOption match {
+      case Some(totalSize) =>
+        val percent = downloadedSize * 100 / totalSize
+        Some(percent.toInt)
+      case _ =>
+        None
+    }
   }
 
   /** Whether resuming is supported, if known */
