@@ -71,7 +71,7 @@ class MainFrame(
     val sashForm = new SashForm(group, SWT.VERTICAL)
     sashForm.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true))
 
-    mainTable = new DownloadsTable(sashForm, resources)
+    mainTable = new DownloadsTable(sashForm, resources, cfgMgr)
     logTable = new LogTable(sashForm, resources)
 
     sashForm.setWeights(Array(10, 10))

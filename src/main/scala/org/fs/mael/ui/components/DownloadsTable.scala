@@ -8,6 +8,9 @@ import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.widgets._
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.ui.ConfigManager
+import org.fs.mael.ui.ConfigOptions
+import org.fs.mael.ui.components.DownloadsTable._
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.SwtUtils._
 
@@ -15,23 +18,22 @@ import com.github.nscala_time.time.Imports._
 
 class DownloadsTable(
   parent:    Composite,
-  resources: Resources
+  resources: Resources,
+  cfgMgr:    ConfigManager
 ) extends MUiComponent[Table](parent) {
 
-  private val columnDefs: IndexedSeq[DownloadsTable.DownloadColumnDef] = {
-    import DownloadsTable.{ DownloadColumnDef => CD, _ => _ }
+  private val columnDefs: IndexedSeq[DownloadsTable.ColumnDef] = {
     IndexedSeq(
-      CD("File Name", de => de.displayName),
-      CD("%", downloadEntityFormat.downloadedPercent, 45, false),
-      CD("Downloaded", downloadEntityFormat.downloadedSize),
-      CD("Size", downloadEntityFormat.size, 80),
-      CD("Comment", de => de.comment, 200),
-      CD("Added", de => de.dateCreated.toString(resources.dateTimeFmt), 120)
+      ColumnDef("file-name", "File Name", de => de.displayName),
+      ColumnDef("dl-percent", "%", downloadEntityFormat.downloadedPercent, 45, false),
+      ColumnDef("dl-value", "Downloaded", downloadEntityFormat.downloadedSize),
+      ColumnDef("file-size", "Size", downloadEntityFormat.size, 80),
+      ColumnDef("comment", "Comment", de => de.comment, 200),
+      ColumnDef("date-created", "Added", de => de.dateCreated.toString(resources.dateTimeFmt), 120)
     )
   }
 
   override val peer: Table = {
-    // TODO: Make table sortable
     val table = new Table(parent, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION).withCode { table =>
       table.setLinesVisible(true)
       table.setHeaderVisible(true)
@@ -39,23 +41,22 @@ class DownloadsTable(
 
     columnDefs.foreach { cd =>
       val c = new TableColumn(table, SWT.NONE)
+      c.setData(cd)
       c.setText(cd.name)
       c.setWidth(cd.width)
       c.setResizable(cd.resizable)
       c.addListener(SWT.Selection, sortListener)
     }
 
-    // TODO: Remember sort column/direction
-
     installDefaultHotkeys(table)
     table
   }
 
+  loadSorting()
+
   /** Return all selected entries */
   def selectedEntries: Seq[DownloadEntryView] = {
-    peer.getSelection map (_.getData match {
-      case de: DownloadEntryView => de
-    })
+    peer.getSelection map (_.de)
   }
 
   /** Return a singular selected entry. If multiple entries are selected, returns {@code None}. */
@@ -68,9 +69,9 @@ class DownloadsTable(
   }
 
   def indexOfOption(de: DownloadEntryView): Option[Int] = {
-    peer.getItems.indexWhere(_.getData match {
-      case de2: DownloadEntryView if de2.id == de.id => true
-      case _                                         => false
+    peer.getItems.indexWhere(_.de match {
+      case de2 if de2.id == de.id => true
+      case _                      => false
     }) match {
       case -1 => None
       case x  => Some(x)
@@ -80,11 +81,13 @@ class DownloadsTable(
   def init(entries: Iterable[DownloadEntryView]): Unit = {
     require(peer.getItemCount == 0, "Table isn't empty")
     val sorted = entries.toSeq.sortBy(_.dateCreated)
+    require(sorted.map(_.dateCreated).distinct == sorted.map(_.dateCreated), "Download list contains entries with the same created date")
     sorted.foreach { de =>
       val newRow = new TableItem(peer, SWT.NONE)
       fillRow(newRow, de)
     }
     adjustColumnWidths()
+    sortContent()
     fireSelectionUpdated()
   }
 
@@ -94,11 +97,15 @@ class DownloadsTable(
     peer.deselectAll()
     peer.showItem(newRow)
     peer.select(peer.getItems.indexOf(newRow))
+    sortContent()
     fireSelectionUpdated()
   }
 
   def remove(de: DownloadEntryView): Unit = {
-    indexOfOption(de) map (peer.remove) foreach { _ => fireSelectionUpdated() }
+    indexOfOption(de) foreach { idx =>
+      peer.remove(idx)
+      fireSelectionUpdated()
+    }
   }
 
   def update(de: DownloadEntryView): Unit = {
@@ -129,12 +136,58 @@ class DownloadsTable(
     peer.getColumns.filter(_.getWidth == 0).map(_.pack())
   }
 
-  private lazy val sortListener: Listener = e => {
+  /** Sort table content by the given column in the given direction */
+  private def sortContent(column: TableColumn, asc: Boolean): Unit = {
+    peer.setSortColumn(column)
+    peer.setSortDirection(if (asc) SWT.UP else SWT.DOWN)
+    sortContent()
+  }
+
+  /** Sort table content according to currently set sort column and direction */
+  private def sortContent(): Unit = {
+    val oldSelectedData = peer.getSelection.map(_.de).toSet
+    val asc = peer.getSortDirection == SWT.UP
+    val colIdx = peer.getColumns.indexOf(peer.getSortColumn)
     val collator = Collator.getInstance(Locale.getDefault)
-    val column = e.widget.asInstanceOf[TableColumn]
-    val colIdx = peer.getColumns.indexOf(column)
     val items = peer.getItems
-    val ascending =
+    // Selection sort
+    for (i <- 0 until (items.length - 1)) {
+      var minIdx = i
+      var minValue = items(minIdx).getText(colIdx)
+      for (j <- (i + 1) until items.length) {
+        val value = items(j).getText(colIdx)
+        val shouldSwap: Boolean = {
+          val cmp = collator.compare(minValue, value) match {
+            case 0 =>
+              // Equal elements are compared by date added
+              items(minIdx).de.dateCreated compare items(j).de.dateCreated
+            case x => x
+          }
+          assert(cmp != 0)
+          (asc && cmp > 0) || (!asc && cmp < 0)
+        }
+        if (shouldSwap) {
+          minIdx = j
+          minValue = value
+        }
+      }
+      if (minIdx != i) {
+        // Swap rows
+        val de1 = items(i).de
+        val de2 = items(minIdx).de
+        fillRow(items(i), de2)
+        fillRow(items(minIdx), de1)
+      }
+    }
+    peer.setSortColumn(peer.getColumn(colIdx))
+    peer.setSortDirection(if (asc) SWT.UP else SWT.DOWN)
+    val newSelectedData = peer.getItems filter (item => oldSelectedData.contains(item.de))
+    peer.setSelection(newSelectedData)
+  }
+
+  private lazy val sortListener: Listener = e => {
+    val column = e.widget.asInstanceOf[TableColumn]
+    val asc =
       if (peer.getSortColumn == column) {
         peer.getSortDirection match {
           case SWT.UP   => false
@@ -143,33 +196,36 @@ class DownloadsTable(
       } else {
         true
       }
-    // Selection sort
-    for (i <- 0 until (items.length - 1)) {
-      var minIdx = i
-      var minValue = items(minIdx).getText(colIdx)
-      for (j <- (i + 1) until items.length) {
-        val value = items(j).getText(colIdx)
-        val cmp = collator.compare(minValue, value)
-        if ((ascending && cmp > 0) || (!ascending && cmp < 0)) {
-          minIdx = j
-          minValue = value
-        }
-      }
-      if (minIdx != i) {
-        // Swap rows
-        val de1 = items(i).getData.asInstanceOf[DownloadEntryView]
-        val de2 = items(minIdx).getData.asInstanceOf[DownloadEntryView]
-        fillRow(items(i), de2)
-        fillRow(items(minIdx), de1)
-      }
+    sortContent(column, asc)
+    cfgMgr.setProperty(ConfigOptions.SortColumn, column.columnDef.id)
+    cfgMgr.setProperty(ConfigOptions.SortAsc, asc)
+  }
+
+  private def loadSorting() = {
+    val colId = cfgMgr.getProperty(ConfigOptions.SortColumn)
+    val asc = cfgMgr.getProperty(ConfigOptions.SortAsc)
+    val colOption = peer.getColumns.find(_.columnDef.id == colId)
+    colOption foreach { col =>
+      sortContent(col, asc)
     }
-    peer.setSortColumn(column)
-    peer.setSortDirection(if (ascending) SWT.UP else SWT.DOWN)
+  }
+
+  private implicit class RichTableItem(ti: TableItem) {
+    def de: DownloadEntryView = {
+      ti.getData.asInstanceOf[DownloadEntryView]
+    }
+  }
+
+  private implicit class RichTableColumn(tc: TableColumn) {
+    def columnDef: DownloadsTable.ColumnDef = {
+      tc.getData.asInstanceOf[DownloadsTable.ColumnDef]
+    }
   }
 }
 
 object DownloadsTable {
-  private case class DownloadColumnDef(
+  private case class ColumnDef(
+    id:        String, // Used to uniquely identify column
     name:      String,
     fmt:       DownloadEntryView => String,
     width:     Int                         = 0,

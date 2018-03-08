@@ -30,6 +30,8 @@ class ConfigManager(val file: File) {
       }
     })
     store.setDefault(NetworkTimeout.id, 0)
+    store.setDefault(SortColumn.id, "date-created")
+    store.setDefault(SortAsc.id, true)
     store.setDefault(ActionOnWindowClose.id, OnWindowClose.Undefined.id)
     try {
       store.load()
@@ -104,7 +106,8 @@ object ConfigManager {
         ConfigOptions.OnWindowClose.values.map { o =>
           Array(o.prettyName, o.id)
         }.toArray,
-        getFieldEditorParent(), true).withCode { field =>
+        getFieldEditorParent(), true
+      ).withCode { field =>
         addField(field)
       }
     }
