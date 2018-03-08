@@ -17,7 +17,7 @@ class DownloadListManager(
   file:       File,
   eventMgr:   EventManager
 ) {
-  private var entries: Set[DownloadEntry[_]] = Set.empty
+  private var entries: IndexedSeq[DownloadEntry[_]] = IndexedSeq.empty
 
   def load(): Unit = {
     this.synchronized {
@@ -33,6 +33,7 @@ class DownloadListManager(
   }
 
   // TODO: Autosave
+  // TODO: Only save last 100 (?) entries from download log
   def save(): Unit = {
     this.synchronized {
       require(!file.exists || file.canWrite, "Can't write to this file")
@@ -57,14 +58,16 @@ class DownloadListManager(
           de
         case de =>
           de
-      }.toSet
+      }.toIndexedSeq
     }
   }
 
   /** Add a new entry to a download list, firing an event */
   def add(de: DownloadEntry[_]): Unit = {
     this.synchronized {
-      entries += de
+      if (!entries.contains(de)) {
+        entries = entries :+ de
+      }
       eventMgr.fireAdded(de)
     }
   }
@@ -72,25 +75,20 @@ class DownloadListManager(
   /** Remove an existing entry from a download list, firing an event */
   def remove(de: DownloadEntryView): Unit = {
     this.synchronized {
-      de match {
-        case de: DownloadEntry[_] =>
-          entries -= de
-          eventMgr.fireRemoved(de)
-      }
+      entries = entries.filter(_ != de)
+      eventMgr.fireRemoved(de)
     }
   }
 
   /** Remove existing entries from a download list, firing events */
   def removeAll(des: Iterable[DownloadEntryView]): Unit = {
     this.synchronized {
-      des.foreach {
-        case de: DownloadEntry[_] => entries -= de
-      }
+      des.foreach (de => entries = entries.filter(_ != de))
       des foreach eventMgr.fireRemoved
     }
   }
 
-  def list(): Set[DownloadEntry[_]] = {
+  def list(): IndexedSeq[DownloadEntry[_]] = {
     this.synchronized {
       entries
     }

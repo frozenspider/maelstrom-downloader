@@ -1,3 +1,14 @@
+### 0.2
+* Added ability to specify download filename
+* Added ability to specify a hash checksum to verify a downloaded file integrity
+* Added ability to delete downloads with their local files
+* Added ability to sort a download list by any column
+* Added ability to edit download properties
+  * Changing location or filename will cause the file to be moved, in a safe way and with a progress bar
+* Reworked download location selection in Add Download dialog
+* Fixed issue with HTTP downloader starving for data
+* Fixed issue with line wrapping not working in download properties
+
 ### 0.1.2
 * Fixed exit button in top menu not working 
 

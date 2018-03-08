@@ -2,7 +2,7 @@ maelstrom-downloader
 =======================
 
 [![Build Status](https://travis-ci.org/frozenspider/maelstrom-downloader.svg?branch=master)](https://travis-ci.org/frozenspider/maelstrom-downloader)
-[![codecov.io](http://codecov.io/github/frozenspider/maelstrom-downloader/coverage.svg?branch=master)](http://codecov.io/github/frozenspider/maelstrom-downloader?branch=master)
+[![codecov](https://codecov.io/gh/frozenspider/maelstrom-downloader/branch/master/graph/badge.svg)](https://codecov.io/gh/frozenspider/maelstrom-downloader)
 
 Advanced cross-platform download manager.
 

@@ -11,11 +11,11 @@ import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
 
 class ResourcesImpl(display: Display) extends Resources {
-  override def dateTimeFmt: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
+  override lazy val dateTimeFmt: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
 
-  override def dateFmt: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd")
+  override lazy val dateFmt: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd")
 
-  override def timeFmt: DateTimeFormatter = DateTimeFormat.forPattern("HH:mm:ss")
+  override lazy val timeFmt: DateTimeFormatter = DateTimeFormat.forPattern("HH:mm:ss")
 
   override def logColor(tpe: LogEntry.Type, display: Display): Color = tpe match {
     case LogEntry.Info     => new Color(display, 0xE4, 0xF1, 0xFF)
@@ -24,7 +24,7 @@ class ResourcesImpl(display: Display) extends Resources {
     case LogEntry.Error    => new Color(display, 0xFF, 0xDD, 0xDD)
   }
 
-  override def mainIcon: Image = icons.main
+  override lazy val mainIcon: Image = icons.main
 
   override def icon(status: Status): Image = status match {
     case Status.Running  => icons.play
@@ -40,36 +40,67 @@ class ResourcesImpl(display: Display) extends Resources {
     case LogEntry.Error    => icons.errorCircle
   }
 
-  private def loadImage(name: String): Image = {
+  private def loadImageData(name: String): ImageData = {
     val stream = this.getClass.getResourceAsStream("/icons/" + name)
     try {
-      new Image(display, new ImageData(stream))
+      new ImageData(stream)
     } finally {
       stream.close()
     }
   }
 
-  private def rescale(image: Image, sizes: (Int, Int) = (16, 16)): Image = {
-    new Image(display, image.getImageData.scaledTo(16, 16))
-  }
-
   object icons {
-    val main: Image = loadImage("main.ico")
+    lazy val main: Image = loadImageData("main.ico").toImage()
 
-    val play: Image = rescale(loadImage("play.png"))
-    val stop: Image = rescale(loadImage("stop.png"))
-    val error: Image = rescale(loadImage("error.png"))
-    val check: Image = rescale(loadImage("check.png"))
+    lazy val play: Image = loadImageData("play.png").scaledTo(16, 16).toImage()
+    lazy val stop: Image = loadImageData("stop.png").scaledTo(16, 16).toImage()
+    lazy val error: Image = loadImageData("error.png").scaledTo(16, 16).toImage()
+    lazy val check: Image = loadImageData("check.png").scaledTo(16, 16).toImage()
 
-    val info: Image = rescale(loadImage("info.png"))
-    val request: Image = rescale(loadImage("request.png"))
-    val response: Image = rescale(loadImage("response.png"))
-    val errorCircle: Image = rescale(loadImage("error-circle.png"))
+    lazy val info: Image = loadImageData("info.png").scaledTo(16, 16).toImage()
+    lazy val request: Image = loadImageData("request.png").scaledTo(16, 16).toImage()
+    lazy val response: Image = loadImageData("response.png").scaledTo(16, 16).toImage()
+    lazy val errorCircle: Image = loadImageData("error-circle.png").scaledTo(16, 16).toImage()
 
-    val empty: Image = {
+    lazy val empty: Image = {
       new Image(display, new Image(display, 1, 1).getImageData.withCode { idt =>
         idt.setAlpha(0, 0, 0)
       })
+    }
+  }
+
+  private implicit class ImageDataExt(id: ImageData) {
+    def toImage(): Image = new Image(display, id)
+
+    def withStroke(alpha: Int = 0x50): ImageData = {
+      def getAlpha(x: Int, y: Int): Int = {
+        if (x < 0 || x >= id.width || y < 0 || y >= id.height) {
+          0x00
+        } else id.getAlpha(x, y)
+      }
+      def isOuterBorder(x: Int, y: Int): Boolean = {
+        getAlpha(x, y) == 0x00 && (
+          getAlpha(x - 1, y + 0) > 0x00 ||
+          getAlpha(x + 1, y + 0) > 0x00 ||
+          getAlpha(x + 0, y - 1) > 0x00 ||
+          getAlpha(x + 0, y + 1) > 0x00 ||
+          getAlpha(x - 1, y - 1) > 0x00 ||
+          getAlpha(x + 1, y + 1) > 0x00 ||
+          getAlpha(x + 1, y - 1) > 0x00 ||
+          getAlpha(x - 1, y + 1) > 0x00 ||
+          false
+        )
+      }
+      val copy = id.clone().asInstanceOf[ImageData]
+      for {
+        x <- 0 until copy.width
+        y <- 0 until copy.height
+        if isOuterBorder(x, y)
+      } {
+        copy.setAlpha(x, y, alpha)
+        copy.setPixel(x, y, 0x000000)
+      }
+      copy
     }
   }
 }

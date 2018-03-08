@@ -4,6 +4,8 @@ import java.awt.Desktop
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 
+import scala.util.Random
+
 import org.eclipse.jface.dialogs.MessageDialog
 import org.eclipse.jface.dialogs.MessageDialogWithToggle
 import org.eclipse.swt._
@@ -14,7 +16,9 @@ import org.fs.mael.BuildInfo
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.entry.DownloadEntryView
+import org.fs.mael.core.event.EventForUi
 import org.fs.mael.core.event.EventManager
+import org.fs.mael.core.event.Events._
 import org.fs.mael.core.event.UiSubscriber
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.utils.CoreUtils._
@@ -26,14 +30,13 @@ import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
 
 class MainFrame(
-  shell:           Shell,
+  display:         Display,
   resources:       Resources,
   cfgMgr:          ConfigManager,
   backendMgr:      BackendManager,
   downloadListMgr: DownloadListManager,
   eventMgr:        EventManager
 ) extends Logging {
-  private val display = shell.getDisplay
 
   private var mainTable: DownloadsTable = _
   private var logTable: LogTable = _
@@ -44,18 +47,18 @@ class MainFrame(
   /** When the download progress update was rendered for the last time, used to avoid excessive load */
   private var lastProgressUpdateTS: Long = System.currentTimeMillis
 
-  def init(): Unit = {
-    shell.addListener(SWT.Close, onWindowClose)
+  val peer: Shell = new Shell(display).withCode { peer =>
+    peer.addListener(SWT.Close, onWindowClose)
 
     // Layout
 
-    shell.setLayout(new FillLayout(SWT.VERTICAL).withCode { layout =>
+    peer.setLayout(new FillLayout(SWT.VERTICAL).withCode { layout =>
       layout.spacing = 0
     })
 
-    createMenu(shell)
+    val menu = new Menu(peer, SWT.BAR)
 
-    val group = new Composite(shell, SWT.NONE)
+    val group = new Composite(peer, SWT.NONE)
     group.setLayout(new GridLayout().withCode { layout =>
       layout.horizontalSpacing = 0
       layout.verticalSpacing = 0
@@ -63,34 +66,38 @@ class MainFrame(
       layout.marginHeight = 0
     })
 
-    createToolbar(group)
+    val toolbar = new ToolBar(group, SWT.FLAT)
 
     val sashForm = new SashForm(group, SWT.VERTICAL)
     sashForm.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true))
 
-    createMainTable(sashForm)
-    createDetailsPanel(sashForm)
+    mainTable = new DownloadsTable(sashForm, resources, cfgMgr)
+    logTable = new LogTable(sashForm, resources)
 
     sashForm.setWeights(Array(10, 10))
 
     // Init
 
+    fillMenu(menu, peer)
+    fillToolbar(toolbar, peer)
+    fillMainTable(mainTable, peer)
+
     mainTable.init(downloadListMgr.list())
     mainTable.peer.setFocus()
 
-    shell.setImage(resources.mainIcon)
-    shell.setText(BuildInfo.fullPrettyName)
-    shell.setSize(1000, 600)
-    centerOnScreen(shell)
+    peer.setImage(resources.mainIcon)
+    peer.setText(BuildInfo.fullPrettyName)
+    peer.setSize(1000, 600)
+    centerOnScreen(peer)
 
     eventMgr.subscribe(subscriber)
   }
 
-  private def createMenu(parent: Decorations): Unit = {
-    val bar = new Menu(parent, SWT.BAR)
-    parent.setMenuBar(bar)
+  private def fillMenu(menu: Menu, shell: Shell): Unit = {
+    val parent = menu.getParent
+    parent.setMenuBar(menu)
 
-    new MenuItem(bar, SWT.CASCADE).withCode { menuItem =>
+    new MenuItem(menu, SWT.CASCADE).withCode { menuItem =>
       menuItem.setText("&File")
 
       val submenu = new Menu(parent, SWT.DROP_DOWN)
@@ -101,7 +108,7 @@ class MainFrame(
       itemExit.addListener(SWT.Selection, tryExit)
     }
 
-    new MenuItem(bar, SWT.CASCADE).withCode { menuItem =>
+    new MenuItem(menu, SWT.CASCADE).withCode { menuItem =>
       menuItem.setText("&Service")
 
       val submenu = new Menu(parent, SWT.DROP_DOWN)
@@ -113,38 +120,35 @@ class MainFrame(
     }
   }
 
-  private def createToolbar(parent: Composite): Unit = {
-    val toolbar = new ToolBar(parent, SWT.FLAT)
-
+  private def fillToolbar(toolbar: ToolBar, shell: Shell): Unit = {
     val btnAdd = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnAdd =>
       btnAdd.setText("Add")
       btnAdd.addListener(SWT.Selection, e => {
-        val dialog = new Shell(shell, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL)
-        new AddDownloadFrame(dialog, cfgMgr, backendMgr, downloadListMgr)
-        dialog.open()
+        val dialog = new EditDownloadDialog(None, shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
+        dialog.peer.open()
       })
     }
 
     btnStart = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnStart =>
       btnStart.setText("Start")
-      btnStart.setEnabled(false)
       btnStart.addListener(SWT.Selection, e => {
         mainTable.selectedEntries map { de =>
           val pair = backendMgr.getCastedPair(de)
           pair.backend.downloader.start(pair.de, cfgMgr.getProperty(ConfigOptions.NetworkTimeout))
         }
       })
+      btnStart.forDownloads(_ exists (_.status.canBeStarted))
     }
 
     btnStop = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnStop =>
       btnStop.setText("Stop")
-      btnStop.setEnabled(false)
       btnStop.addListener(SWT.Selection, e => {
         mainTable.selectedEntries map { de =>
           val pair = backendMgr.getCastedPair(de)
           pair.backend.downloader.stop(pair.de)
         }
       })
+      btnStop.forDownloads(_ exists (_.status.canBeStopped))
     }
 
     toolbar.pack()
@@ -154,9 +158,7 @@ class MainFrame(
     })
   }
 
-  private def createMainTable(parent: Composite): Unit = {
-    mainTable = new DownloadsTable(parent, resources)
-
+  private def fillMainTable(mainTable: DownloadsTable, shell: Shell): Unit = {
     val menu = new Menu(mainTable.peer).withCode { menu =>
       val parent = mainTable.peer
       parent.setMenu(menu)
@@ -169,25 +171,36 @@ class MainFrame(
         copyUris()
       }
 
+      new MenuItem(menu, SWT.SEPARATOR)
+
       createMenuItem(menu, "Delete", parent, Some(Hotkey(Key.Delete))) {
         if (mainTable.peer.getSelectionCount > 0) {
-          tryDeleteSelectedDownloads()
+          tryDeleteSelectedDownloads(false)
         }
       }
 
-      // TODO: Delete with file
+      createMenuItem(menu, "Delete with file", parent, Some(Hotkey(Shift, Key.Delete))) {
+        if (mainTable.peer.getSelectionCount > 0) {
+          tryDeleteSelectedDownloads(true)
+        }
+      }
+
+      new MenuItem(menu, SWT.SEPARATOR)
+
+      val openProps = createMenuItem(menu, "Properties", parent, None) {
+        val deOption = mainTable.selectedEntryOption
+        require(deOption.isDefined)
+        val dialog = new EditDownloadDialog(deOption, shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
+        dialog.peer.open()
+      }.forSingleDownloads()
+      mainTable.peer.addListener(SWT.MouseDoubleClick, e => openProps.notifyListeners(SWT.Selection, e))
+
       // TODO: Restart
-      // TODO: Properties
     }
 
     mainTable.peer.addListener(SWT.Selection, e => {
       logTable.render(mainTable.selectedEntryOption)
     })
-    mainTable.peer.addListener(SWT.Selection, e => updateButtonsEnabledState())
-  }
-
-  private def createDetailsPanel(parent: Composite): Unit = {
-    logTable = new LogTable(parent, resources)
   }
 
   private def onWindowClose(closeEvent: Event): Unit = {
@@ -208,7 +221,7 @@ class MainFrame(
       lhm.put("Cancel", -1)
     }
     // TODO: Extract into helper?
-    val result = MessageDialogWithToggle.open(MessageDialog.CONFIRM, shell,
+    val result = MessageDialogWithToggle.open(MessageDialog.CONFIRM, peer,
       "What to do?",
       "Choose an action on window close",
       "Remember my decision",
@@ -234,17 +247,17 @@ class MainFrame(
 
   private def minimize(closeEventOption: Option[Event]): Unit = {
     closeEventOption foreach (_.doit = false)
-    shell.setMinimized(true)
+    peer.setMinimized(true)
   }
 
   private def tryExit(closeEvent: Event): Unit = {
-    def getRunningEntities(): Set[_ <: DownloadEntryView] = {
+    def getRunningEntities(): Seq[_ <: DownloadEntryView] = {
       downloadListMgr.list().filter(_.status == Status.Running)
     }
     try {
       val running = getRunningEntities()
       if (running.size > 0) {
-        val confirmed = MessageDialog.openConfirm(shell, "Confirmation",
+        val confirmed = MessageDialog.openConfirm(peer, "Confirmation",
           s"You have ${running.size} active download(s). Are you sure you wish to quit?")
 
         if (!confirmed) {
@@ -254,7 +267,7 @@ class MainFrame(
             val pair = backendMgr.getCastedPair(de)
             pair.backend.downloader.stop(pair.de)
           }
-          shell.setVisible(false)
+          peer.setVisible(false)
           val terminatedNormally = waitUntil(2000) { getRunningEntities().size == 0 }
           if (!terminatedNormally) {
             log.error("Couldn't stop all downloads before exiting")
@@ -263,21 +276,25 @@ class MainFrame(
       }
       if (closeEvent.doit) {
         downloadListMgr.save()
-        shell.dispose()
+        peer.dispose()
       }
     } catch {
       case ex: Exception =>
         log.error("Error terminating an application", ex)
-        showError(shell, message = ex.getMessage)
+        showError(peer, message = ex.getMessage)
     }
   }
 
-  private def tryDeleteSelectedDownloads(): Unit = {
-    val confirmed = MessageDialog.openConfirm(shell, "Confirmation",
-      s"Are you sure you wish to delete selected downloads?")
+  private def tryDeleteSelectedDownloads(withFile: Boolean): Unit = {
+    val msg = "Are you sure you wish to delete selected downloads" +
+      (if (withFile) " AND thier corresponding files?" else "?")
+    val confirmed = MessageDialog.openConfirm(peer, "Confirmation", msg)
     if (confirmed) {
       val selected = mainTable.selectedEntries
       downloadListMgr.removeAll(selected)
+      if (withFile) {
+        selected foreach (_.fileOption foreach (_.delete()))
+      }
     }
   }
 
@@ -294,12 +311,13 @@ class MainFrame(
     locations foreach Desktop.getDesktop.open
   }
 
-  private def updateButtonsEnabledState(): Unit = {
-    btnStart.setEnabled(mainTable.selectedEntries exists (_.status.canBeStarted))
-    btnStop.setEnabled(mainTable.selectedEntries exists (_.status.canBeStopped))
-  }
-
   private def clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
+
+  /** Execute code in UI thread iff UI is not disposed yet */
+  private def syncExecSafely(code: => Unit): Unit =
+    if (!peer.isDisposed) display.syncExec { () =>
+      if (!peer.isDisposed) code
+    }
 
   //
   // Subscriber trait
@@ -311,34 +329,27 @@ class MainFrame(
     // TODO: Make per-download?
     val ProgressUpdateThresholdMs = 100
 
-    import org.fs.mael.core.event.EventForUi
-    import org.fs.mael.core.event.Events._
-
-    def fired(event: EventForUi): Unit = event match {
+    override def fired(event: EventForUi): Unit = event match {
       case Added(de) => syncExecSafely {
-        if (!shell.isDisposed) {
+        if (!peer.isDisposed) {
           mainTable.add(de)
-          logTable.render(mainTable.selectedEntryOption)
-          updateButtonsEnabledState()
         }
       }
 
       case Removed(de) => syncExecSafely {
         mainTable.remove(de)
-        updateButtonsEnabledState()
       }
 
       case StatusChanged(de, prevStatus) => syncExecSafely {
         // Full row update
         mainTable.update(de)
-        updateButtonsEnabledState()
       }
 
       case Progress(de) =>
         // We assume this is only called by event manager processing thread, so no additional sync needed
         if (System.currentTimeMillis() - lastProgressUpdateTS > ProgressUpdateThresholdMs) {
           syncExecSafely {
-            // TODO: Optimize
+            // TODO: Optimize?
             mainTable.update(de)
           }
           lastProgressUpdateTS = System.currentTimeMillis()
@@ -354,11 +365,28 @@ class MainFrame(
         }
       }
     }
+  }
 
-    /** Execute code in UI thread iff UI is not disposed yet */
-    private def syncExecSafely(code: => Unit): Unit =
-      if (!shell.isDisposed) display.syncExec { () =>
-        if (!shell.isDisposed) code
-      }
+  private implicit class ItemExt[T <: { def setEnabled(b: Boolean): Unit }](item: T) {
+    def forSingleDownloads(): T = {
+      mainTable.peer.addListener(SWT.Selection, e => {
+        item.setEnabled(mainTable.peer.getSelectionCount == 1)
+      })
+      item
+    }
+
+    def forDownloads(condition: Seq[DownloadEntryView] => Boolean): T = {
+      mainTable.peer.addListener(SWT.Selection, e => {
+        item.setEnabled(condition(mainTable.selectedEntries))
+      })
+      eventMgr.subscribe(new UiSubscriber {
+        override val subscriberId = "_event_forDownloads_" + Random.alphanumeric.take(20).mkString
+        override def fired(event: EventForUi): Unit = event match {
+          case StatusChanged(_, _) => syncExecSafely(item.setEnabled(condition(mainTable.selectedEntries)))
+          case _                   => // NOOP
+        }
+      })
+      item
+    }
   }
 }

@@ -7,6 +7,7 @@ import java.util.UUID
 import scala.collection.MapLike
 
 import org.fs.mael.core.Status
+import org.fs.mael.core.checksum.Checksum
 
 import com.github.nscala_time.time.Imports._
 
@@ -32,6 +33,12 @@ trait DownloadEntryView {
 
   def filenameOption: Option[String]
 
+  def fileOption: Option[File] = {
+    filenameOption map (filename => new File(location, filename))
+  }
+
+  def checksumOption: Option[Checksum]
+
   def comment: String
 
   /** File name of download if known, display name otherwise */
@@ -42,7 +49,21 @@ trait DownloadEntryView {
   def sizeOption: Option[Long]
 
   def downloadedSize: Long = {
-    sections.values.sum
+    downloadedSizeOption getOrElse 0
+  }
+
+  def downloadedSizeOption: Option[Long] = {
+    if (!sections.isEmpty) Some(sections.values.sum) else None
+  }
+
+  def downloadedPercentOption: Option[Int] = {
+    sizeOption match {
+      case Some(totalSize) =>
+        val percent = downloadedSize * 100 / totalSize
+        Some(percent.toInt)
+      case _ =>
+        None
+    }
   }
 
   /** Whether resuming is supported, if known */

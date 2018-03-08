@@ -9,7 +9,10 @@ package org.fs.mael.core.event
  * @author FS
  */
 trait EventSubscriber {
+  type EventType <: PriorityEvent
   val subscriberId: String
+
+  def fired(event: EventType): Unit
 
   override final def equals(obj: Any): Boolean = obj match {
     case es: EventSubscriber => this.subscriberId == es.subscriberId

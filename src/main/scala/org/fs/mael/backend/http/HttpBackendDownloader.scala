@@ -1,6 +1,5 @@
 package org.fs.mael.backend.http
 
-import java.io.File
 import java.io.RandomAccessFile
 import java.net.SocketException
 import java.net.SocketTimeoutException
@@ -38,6 +37,7 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
+import org.fs.mael.core.utils.CoreUtils
 import org.slf4s.Logging
 
 class HttpBackendDownloader(
@@ -109,6 +109,8 @@ class HttpBackendDownloader(
 
     this.setDaemon(true)
 
+    private val partial = de.downloadedSize > 0
+
     override def run(): Unit = {
       try {
         runInner()
@@ -125,90 +127,26 @@ class HttpBackendDownloader(
           throw new UserFriendlyException(s"Can't create path ${de.location}")
         }
         addLogAndFire(de, LogEntry.info("Starting download..."))
-        val cookieStore = new BasicCookieStore()
-        val connManager = createConnManager(timeoutMs)
-        val httpClient = {
-          val clientBuilder = HttpClients.custom()
-            .setDefaultCookieStore(cookieStore)
-            .setConnectionManager(connManager)
-          clientBuilder.build()
+
+        if (partial) {
+          assert(de.filenameOption.isDefined)
+          if (!de.fileOption.get.exists())
+            throw new UserFriendlyException(s"File is missing")
         }
-
-        val partial = de.downloadedSize > 0
-
         if (partial && !de.supportsResumingOption.getOrElse(true)) {
           de.sections.clear()
           addLogAndFire(de, LogEntry.info("Resuming is not supported, starting over"))
         }
 
-        val req = {
-          val rb = RequestBuilder.get(de.uri)
-          if (partial) {
-            // Note that range upper-bound is inclusive
-            rb.addHeader(HttpHeaders.RANGE, "bytes=" + de.downloadedSize + "-")
-          }
-          rb.build()
+        if (partial && de.sizeOption == Some(de.downloadedSize)) {
+          // File already fully downloaded, probably a checksum error
+        } else {
+          contactServerAndDownload()
         }
 
-        val res = httpClient.execute(req)
-        try {
-          val responseCode = res.getStatusLine.getStatusCode
-          val entity = doChecked {
-            if ((!partial && responseCode != HttpStatus.SC_OK) || (partial && responseCode != HttpStatus.SC_PARTIAL_CONTENT)) {
-              throw new UserFriendlyException(s"Server responded with an error")
-            }
-            res.getEntity
-          }
-
-          val filename = de.filenameOption getOrElse {
-            val filename = deduceFilename(res)
-            doChecked {
-              de.filenameOption = Some(filename)
-              eventMgr.fireDetailsChanged(de)
-            }
-            filename
-          }
-
-          val contentLengthOption = entity.getContentLength match {
-            case x if x > 0 => Some(x)
-            case _          => None
-          }
-          val reportedSizeOption = contentLengthOption map (x => if (partial) x + de.downloadedSize else x)
-          reportedSizeOption map { reportedSize =>
-            doChecked {
-              de.sizeOption match {
-                case None =>
-                  de.sizeOption = Some(reportedSize)
-                  eventMgr.fireDetailsChanged(de)
-                case Some(prevSize) if prevSize != reportedSize =>
-                  throw new UserFriendlyException("File size on server changed")
-                case _ => // NOOP
-              }
-            }
-          }
-
-          doChecked {
-            de.supportsResumingOption = Some(
-              if (partial && responseCode == HttpStatus.SC_PARTIAL_CONTENT)
-                true
-              else
-                Option(res.getFirstHeader(HttpHeaders.ACCEPT_RANGES)) map (_.getValue == "bytes") getOrElse false
-            )
-            eventMgr.fireDetailsChanged(de)
-            if (!de.supportsResumingOption.get) {
-              addLogAndFire(de, LogEntry.info("Server doesn't support resuming"))
-            }
-          }
-
-          downloadEntity(req, entity, partial)
-
-          // If no exception is thrown
-          changeStatusAndFire(de, Status.Complete)
-          addLogAndFire(de, LogEntry.info("Download complete"))
-          log.info(s"Download complete: ${de.uri} (${de.id})")
-        } finally {
-          res.close()
-        }
+        // If no exception is thrown
+        checkIntegrityAndComplete(de)
+        log.info(s"Download complete: ${de.uri} (${de.id})")
       } catch {
         case ex: UserFriendlyException =>
           errorLogAndFire(de, ex.getMessage)
@@ -226,7 +164,82 @@ class HttpBackendDownloader(
       }
     }
 
-    def deduceFilename(res: HttpResponse): String = {
+    private def contactServerAndDownload(): Unit = {
+      val cookieStore = new BasicCookieStore()
+      val connManager = createConnManager(timeoutMs)
+      val httpClient = {
+        val clientBuilder = HttpClients.custom()
+          .setDefaultCookieStore(cookieStore)
+          .setConnectionManager(connManager)
+        clientBuilder.build()
+      }
+
+      val req = {
+        val rb = RequestBuilder.get(de.uri)
+        if (partial) {
+          // Note that range upper-bound is inclusive
+          rb.addHeader(HttpHeaders.RANGE, "bytes=" + de.downloadedSize + "-")
+        }
+        rb.build()
+      }
+
+      val res = httpClient.execute(req)
+      try {
+        val responseCode = res.getStatusLine.getStatusCode
+        val entity = doChecked {
+          if ((!partial && responseCode != HttpStatus.SC_OK) || (partial && responseCode != HttpStatus.SC_PARTIAL_CONTENT)) {
+            throw new UserFriendlyException(s"Server responded with an error")
+          }
+          res.getEntity
+        }
+
+        val filename = de.filenameOption getOrElse {
+          val filename = deduceFilename(res)
+          doChecked {
+            de.filenameOption = Some(filename)
+            eventMgr.fireDetailsChanged(de)
+          }
+          filename
+        }
+
+        val contentLengthOption = entity.getContentLength match {
+          case x if x > 0 => Some(x)
+          case _          => None
+        }
+        val reportedSizeOption = contentLengthOption map (x => if (partial) x + de.downloadedSize else x)
+        reportedSizeOption map { reportedSize =>
+          doChecked {
+            de.sizeOption match {
+              case None =>
+                de.sizeOption = Some(reportedSize)
+                eventMgr.fireDetailsChanged(de)
+              case Some(prevSize) if prevSize != reportedSize =>
+                throw new UserFriendlyException("File size on server changed")
+              case _ => // NOOP
+            }
+          }
+        }
+
+        doChecked {
+          de.supportsResumingOption = Some(
+            if (partial && responseCode == HttpStatus.SC_PARTIAL_CONTENT)
+              true
+            else
+              Option(res.getFirstHeader(HttpHeaders.ACCEPT_RANGES)) map (_.getValue == "bytes") getOrElse false
+          )
+          eventMgr.fireDetailsChanged(de)
+          if (!de.supportsResumingOption.get) {
+            addLogAndFire(de, LogEntry.info("Server doesn't support resuming"))
+          }
+        }
+
+        downloadEntity(req, entity)
+      } finally {
+        res.close()
+      }
+    }
+
+    private def deduceFilename(res: HttpResponse): String = {
       {
         // If filename is specified in Content-Disposition header
         Option(res.getFirstHeader("Content-Disposition")).flatMap(h => {
@@ -246,21 +259,20 @@ class HttpBackendDownloader(
           case _                 => None
         }
       } map { fn =>
-        // Replace invalid filename characters
-        fn replaceAll ("[\\\\/:*?\"<>|]", "_")
+        CoreUtils.asValidFilename(fn)
       } getOrElse {
         // When everything else fails - generate a filename from UUID
         "file-" + de.id.toString.toUpperCase
       }
     }
 
-    private def downloadEntity(req: HttpUriRequest, entity: HttpEntity, partial: Boolean): Unit = {
-      val file = instantiateFile(partial)
+    private def downloadEntity(req: HttpUriRequest, entity: HttpEntity): Unit = {
+      val file = instantiateFile()
       try {
         de.sizeOption map file.setLength
-        file.seek(de.downloadedSize /*+ 1*/ )
+        file.seek(de.downloadedSize)
 
-        val bufferSize = 10 * 1024 // 10 Kb
+        val bufferSize = 1 * 1024 // 1 KB
 
         val is = entity.getContent
         try {
@@ -287,12 +299,12 @@ class HttpBackendDownloader(
       }
     }
 
-    private def instantiateFile(partial: Boolean): RandomAccessFile = {
-      val f = new File(de.location, de.filenameOption.get)
-      if (partial && !f.exists) {
-        throw new UserFriendlyException(s"File is missing")
-      } else if (!partial && f.exists) {
+    private def instantiateFile(): RandomAccessFile = {
+      val f = de.fileOption.get
+      if (!partial && f.exists) {
         throw new UserFriendlyException(s"File already exists")
+      } else if (partial) {
+        assert(f.exists) // Was checked before
       }
       f.createNewFile()
       if (!f.canWrite) {

@@ -11,6 +11,7 @@ object TestUtils extends Assertions {
     assert(de1.uri === de2.uri)
     assert(de1.location === de2.location)
     assert(de1.filenameOption === de2.filenameOption)
+    assert(de1.checksumOption === de2.checksumOption)
     assert(de1.comment === de2.comment)
     assert(de1.status === de2.status)
     assert(de1.sizeOption === de2.sizeOption)

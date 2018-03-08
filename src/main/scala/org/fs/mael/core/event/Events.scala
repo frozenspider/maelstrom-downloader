@@ -6,22 +6,28 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.entry.LogEntry
 
-sealed abstract class PriorityEvent(val priority: Int) {
+sealed trait PriorityEvent {
+  def priority: Int
   def msg: String
-  var order: Long = -1
-
-  override def toString(): String = {
-    val fullName = this.getClass.getName
-    val lastSepIdx = fullName.lastIndexWhere(c => c == '.' || c == '$')
-    s"${fullName.drop(lastSepIdx + 1)}($priority, $order, $msg)"
-  }
+  def order: Long
+  def order_=(v: Long): Unit
 }
 
-sealed trait EventForUi
+sealed trait EventForUi extends PriorityEvent
 
-sealed trait EventForBackend
+sealed trait EventForBackend extends PriorityEvent
 
 object Events {
+  protected sealed abstract class PriorityEventImpl(val priority: Int) extends PriorityEvent {
+    def msg: String
+    var order: Long = -1
+
+    override def toString(): String = {
+      val fullName = this.getClass.getName
+      val lastSepIdx = fullName.lastIndexWhere(c => c == '.' || c == '$')
+      s"${fullName.drop(lastSepIdx + 1)}($priority, $order, $msg)"
+    }
+  }
 
   //
   // UI events
@@ -30,7 +36,7 @@ object Events {
   /** Download entry configuration changed */
   case class ConfigChanged(
     de: DownloadEntry[_ <: BackendSpecificEntryData]
-  ) extends PriorityEvent(Int.MaxValue) with EventForBackend {
+  ) extends PriorityEventImpl(Int.MaxValue) with EventForBackend {
     override def msg = "Config changed for " + de.uri
   }
 
@@ -43,7 +49,7 @@ object Events {
    *
    * Should be fired by download list manager.
    */
-  case class Added(de: DownloadEntryView) extends PriorityEvent(100) with EventForUi {
+  case class Added(de: DownloadEntryView) extends PriorityEventImpl(100) with EventForUi {
     override def msg = "Added " + de.uri
   }
 
@@ -52,7 +58,7 @@ object Events {
    *
    * Should be fired by download list manager.
    */
-  case class Removed(de: DownloadEntryView) extends PriorityEvent(100) with EventForUi {
+  case class Removed(de: DownloadEntryView) extends PriorityEventImpl(100) with EventForUi {
     override def msg = "Removed " + de.uri
   }
 
@@ -65,7 +71,7 @@ object Events {
    *
    * Should be fired by backend.
    */
-  case class StatusChanged(de: DownloadEntryView, prevStatus: Status) extends PriorityEvent(100) with EventForUi {
+  case class StatusChanged(de: DownloadEntryView, prevStatus: Status) extends PriorityEventImpl(100) with EventForUi {
     override def msg = "Status of " + de.uri + " changed from " + prevStatus + " to " + de.status
   }
 
@@ -74,7 +80,7 @@ object Events {
    *
    * Should be fired by backend.
    */
-  case class DetailsChanged(de: DownloadEntryView) extends PriorityEvent(50) with EventForUi {
+  case class DetailsChanged(de: DownloadEntryView) extends PriorityEventImpl(50) with EventForUi {
     override def msg = "Details changed for " + de.uri
   }
 
@@ -83,7 +89,7 @@ object Events {
    *
    * Should be fired by backend.
    */
-  case class Logged(de: DownloadEntryView, entry: LogEntry) extends PriorityEvent(20) with EventForUi {
+  case class Logged(de: DownloadEntryView, entry: LogEntry) extends PriorityEventImpl(20) with EventForUi {
     override def msg = "Log entry added for " + de.uri
   }
 
@@ -94,7 +100,7 @@ object Events {
    *
    * (Note that these events will be fired much more often than UI would wish to process.)
    */
-  case class Progress(de: DownloadEntryView) extends PriorityEvent(Int.MinValue) with EventForUi {
+  case class Progress(de: DownloadEntryView) extends PriorityEventImpl(Int.MinValue) with EventForUi {
     override def msg = "Progress for " + de.uri
   }
 

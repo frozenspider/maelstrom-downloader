@@ -7,6 +7,7 @@ import java.util.UUID
 import scala.collection.mutable
 
 import org.fs.mael.core.Status
+import org.fs.mael.core.checksum.Checksum
 
 import com.github.nscala_time.time.Imports._
 
@@ -24,6 +25,7 @@ class DownloadEntry[ED <: BackendSpecificEntryData] private (
   var uri:                  URI,
   var location:             File,
   var filenameOption:       Option[String],
+  var checksumOption:       Option[Checksum],
   var comment:              String,
   val backendSpecificData:  ED
 ) extends DownloadEntryView with DownloadEntryLoggableView {
@@ -51,10 +53,11 @@ object DownloadEntry {
     uri:                 URI,
     location:            File,
     filenameOption:      Option[String],
+    checksumOption:      Option[Checksum],
     comment:             String,
     backendSpecificData: ED
   ) = {
-    new DownloadEntry[ED](UUID.randomUUID(), DateTime.now(), backendId, uri, location, filenameOption, comment, backendSpecificData)
+    new DownloadEntry[ED](UUID.randomUUID(), DateTime.now(), backendId, uri, location, filenameOption, checksumOption, comment, backendSpecificData)
   }
 
   def load[ED <: BackendSpecificEntryData](
@@ -64,9 +67,10 @@ object DownloadEntry {
     uri:                 URI,
     location:            File,
     filenameOption:      Option[String],
+    checksumOption:      Option[Checksum],
     comment:             String,
     backendSpecificData: ED
   ) = {
-    new DownloadEntry[ED](id, dateCreated, backendId, uri, location, filenameOption, comment, backendSpecificData)
+    new DownloadEntry[ED](id, dateCreated, backendId, uri, location, filenameOption, checksumOption, comment, backendSpecificData)
   }
 }

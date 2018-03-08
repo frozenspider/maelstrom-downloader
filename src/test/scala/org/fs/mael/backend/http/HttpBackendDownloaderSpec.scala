@@ -12,6 +12,8 @@ import scala.util.Random
 import org.apache.http._
 import org.apache.http.entity._
 import org.fs.mael.core.Status
+import org.fs.mael.core.checksum.Checksum
+import org.fs.mael.core.checksum.ChecksumType
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.Events
 import org.fs.mael.core.event.PriorityEvent
@@ -68,6 +70,7 @@ class HttpBackendDownloaderSpec
 
   test("regular download of 5 bytes") {
     val de = createDownloadEntry
+    de.checksumOption = Some(Checksum(ChecksumType.MD5, "7cfdd07889b3295d6a550914ab35e068"))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
     server.respondWith(serveContentNormally(expectedBytes))
 
@@ -82,6 +85,7 @@ class HttpBackendDownloaderSpec
 
   test("download 5 bytes, stop, download 5 more") {
     val de = createDownloadEntry
+    de.checksumOption = Some(Checksum(ChecksumType.MD5, "70903e79b7575e3f4e7ffa15c2608ac7"))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
     server.respondWith { (req, res) =>
       serveContentNormally(expectedBytes)(req, res)
@@ -115,6 +119,7 @@ class HttpBackendDownloaderSpec
 
   test("download 5 bytes, stop, redownload file with unsupported resuming") {
     val de = createDownloadEntry
+    de.checksumOption = Some(Checksum(ChecksumType.MD5, "70903e79b7575e3f4e7ffa15c2608ac7"))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
     server.respondWith(serveContentNormally(expectedBytes))
 
@@ -301,6 +306,7 @@ class HttpBackendDownloaderSpec
     downloader.stop(de)
     await.stopped()
 
+    assert(server.reqCounter === 1)
     assert(getLocalFileOption(de).isDefined && getLocalFileOption(de).get.exists)
     getLocalFileOption(de).get.delete()
 
@@ -310,7 +316,7 @@ class HttpBackendDownloaderSpec
     downloader.start(de, 999999)
     await.firedAndStopped()
 
-    assert(server.reqCounter === 2)
+    assert(server.reqCounter === 1) // No request is issued
     assertLastLogEntry(de, "file")
   }
 
@@ -327,6 +333,24 @@ class HttpBackendDownloaderSpec
     assertLastLogEntry(de, "path")
   }
 
+  test("failure - checksum doesn't match") {
+    val de = createDownloadEntry
+    de.checksumOption = Some(Checksum(ChecksumType.MD5, "7cfdd07889b3295d6a550914ab35e067"))
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+    server.respondWith(serveContentNormally(expectedBytes))
+
+    expectStatusChangeEvents(de, Status.Running, Status.Error)
+    downloader.start(de, 999999)
+    await.firedAndStopped()
+
+    assert(readLocalFile(de) === expectedBytes)
+    assert(server.reqCounter === 1)
+    assert(transferMgr.bytesRead === 5)
+    assertLastLogEntry(de, "match")
+  }
+
+  // WARNING: Unstable test!
+  // server.reqCounter is sometimes 0
   test("failure - request timeout") {
     val de = createDownloadEntry
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
@@ -344,6 +368,8 @@ class HttpBackendDownloaderSpec
     assertLastLogEntry(de, "timed out")
   }
 
+  // WARNING: Unstable test!
+  // server.reqCounter is sometimes 2
   test("failure - server unexpectedly disconnected") {
     val de = createDownloadEntry
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
@@ -387,6 +413,7 @@ class HttpBackendDownloaderSpec
       uri                 = uri,
       location            = tmpDir,
       filenameOption      = Some(filename),
+      checksumOption      = None,
       comment             = "my comment",
       backendSpecificData = new HttpEntryData
     )

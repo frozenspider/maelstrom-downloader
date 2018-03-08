@@ -2,9 +2,9 @@ package org.fs.mael.ui.utils
 
 import org.eclipse.swt.SWT
 import org.eclipse.swt.events.KeyEvent
+import org.eclipse.swt.graphics.FontData
 import org.eclipse.swt.graphics.Rectangle
 import org.eclipse.swt.widgets._
-import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.utils.Hotkey._
 
 object SwtUtils {
@@ -97,6 +97,20 @@ object SwtUtils {
     if (table.getItemCount > 0) {
       table.showItem(table.getItem(table.getItemCount - 1))
     }
+  }
+
+  val monospacedFontData: FontData = {
+    // Taken from https://bugs.eclipse.org/bugs/show_bug.cgi?id=48055
+    val osName = System.getProperty("os.name")
+    val wsNameLC = SWT.getPlatform.toLowerCase
+    val fd = (osName, wsNameLC) match {
+      case ("Linux", "gtk")                   => new FontData("Monospace", 10, SWT.NORMAL)
+      case ("Linux", _)                       => new FontData("adobe-courier", 12, SWT.NORMAL)
+      case (os, _) if os startsWith "Windows" => new FontData("Courier New", 10, SWT.NORMAL)
+      case ("Mac OS X", _)                    => new FontData("Monaco", 11, SWT.NORMAL)
+      case _                                  => new FontData("Courier New", 10, SWT.NORMAL)
+    }
+    fd
   }
 
   //
