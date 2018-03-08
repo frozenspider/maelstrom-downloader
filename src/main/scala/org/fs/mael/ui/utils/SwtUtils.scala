@@ -2,6 +2,7 @@ package org.fs.mael.ui.utils
 
 import org.eclipse.swt.SWT
 import org.eclipse.swt.events.KeyEvent
+import org.eclipse.swt.events.TypedEvent
 import org.eclipse.swt.graphics.FontData
 import org.eclipse.swt.graphics.Rectangle
 import org.eclipse.swt.widgets._
@@ -43,28 +44,24 @@ object SwtUtils {
     }
   }
 
-  def createMenuItem(menu: Menu, text: String, parent: Control, hOption: Option[Hotkey])(action: => Unit): MenuItem = {
+  def createMenuItem(menu: Menu, text: String, parent: Control, hOption: Option[Hotkey])(action: Event => Unit): MenuItem = {
     val mi = new MenuItem(menu, SWT.NONE)
-    mi.addListener(SWT.Selection, e => {
-      action
-      e.doit = false
-    })
+    mi.addListener(SWT.Selection, e => action(e))
     mi.setText(text)
     hOption foreach { h =>
       mi.setText(mi.getText + "\t" + h)
       mi.setAccelerator(h.modOption map (_.code | h.key.accelCode) getOrElse (h.key.accelCode))
 
-      installHotkey(parent, h)(e => {
-        action
-        e.doit = false
-      })
+      installHotkey(parent, h)(action)
     }
     mi
   }
 
-  def installHotkey(c: Control, h: Hotkey)(action: KeyEvent => Unit): Unit = {
+  def installHotkey(c: Control, h: Hotkey)(action: Event => Unit): Unit = {
     c.addKeyListener(keyPressed {
-      case e if h.isApplied(e) => action(e)
+      case e if h.isApplied(e) =>
+        action(toEvent(e))
+        e.doit = false
     })
   }
 
@@ -116,6 +113,16 @@ object SwtUtils {
   //
   // More general stuff
   //
+
+  /** Shitty SWT design makes this necessary */
+  def toEvent(te: TypedEvent): Event = {
+    val e = new Event
+    e.display = te.display
+    e.widget = te.widget
+    e.time = te.time
+    e.data = te.data
+    e
+  }
 
   def partialListener(pf: PartialFunction[Event, Unit]): Listener =
     e => pf applyOrElse (e, NoopAny2UnitPF)

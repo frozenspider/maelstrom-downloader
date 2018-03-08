@@ -40,6 +40,7 @@ class MainFrame(
   eventMgr:        EventManager
 ) extends Logging {
 
+  private val trayOption = Option(display.getSystemTray)
   private var mainTable: DownloadsTable = _
   private var logTable: LogTable = _
 
@@ -80,6 +81,8 @@ class MainFrame(
 
     // Init
 
+    trayOption foreach (tray => initTray(tray, peer))
+
     fillMenu(menu, peer)
     fillToolbar(toolbar, peer)
     fillMainTable(mainTable, peer)
@@ -93,6 +96,33 @@ class MainFrame(
     centerOnScreen(peer)
 
     eventMgr.subscribe(subscriber)
+  }
+
+  private def initTray(tray: Tray, shell: Shell): Unit = {
+    val item = new TrayItem(tray, SWT.NONE)
+    // TODO: Update if pref are changed
+    if (cfgMgr(GlobalPreferences.ShowTrayIconBehavior) == GlobalPreferences.ShowTrayIcon.WhenNeeded) {
+      item.setVisible(false)
+    }
+    def show(e: Event): Unit = {
+      shell.setVisible(true)
+      shell.setMinimized(false)
+      shell.forceActive()
+    }
+    item.setImage(resources.mainIcon)
+    item.setToolTipText(BuildInfo.prettyName)
+    item.addListener(SWT.Show, e => System.out.println("show"))
+    item.addListener(SWT.Hide, e => System.out.println("hide"))
+    item.addListener(SWT.Selection, show)
+
+    val menu = new Menu(shell, SWT.POP_UP)
+    createMenuItem(menu, "Show main window", shell, None)(show).withCode { item =>
+      menu.setDefaultItem(item)
+    }
+    new MenuItem(menu, SWT.SEPARATOR)
+    createMenuItem(menu, "Exit", shell, None)(tryExit)
+
+    item.addListener(SWT.MenuDetect, e => menu.setVisible(true))
   }
 
   private def fillMenu(menu: Menu, shell: Shell): Unit = {
@@ -165,23 +195,23 @@ class MainFrame(
       val parent = mainTable.peer
       parent.setMenu(menu)
 
-      createMenuItem(menu, "Open folder", parent, None) {
+      createMenuItem(menu, "Open folder", parent, None) { e =>
         openFolders()
       }
 
-      createMenuItem(menu, "Copy download URI", parent, Some(Hotkey(Ctrl, Key('C')))) {
+      createMenuItem(menu, "Copy download URI", parent, Some(Hotkey(Ctrl, Key('C')))) { e =>
         copyUris()
       }
 
       new MenuItem(menu, SWT.SEPARATOR)
 
-      createMenuItem(menu, "Delete", parent, Some(Hotkey(Key.Delete))) {
+      createMenuItem(menu, "Delete", parent, Some(Hotkey(Key.Delete))) { e =>
         if (mainTable.peer.getSelectionCount > 0) {
           tryDeleteSelectedDownloads(false)
         }
       }
 
-      createMenuItem(menu, "Delete with file", parent, Some(Hotkey(Shift, Key.Delete))) {
+      createMenuItem(menu, "Delete with file", parent, Some(Hotkey(Shift, Key.Delete))) { e =>
         if (mainTable.peer.getSelectionCount > 0) {
           tryDeleteSelectedDownloads(true)
         }
@@ -189,7 +219,7 @@ class MainFrame(
 
       new MenuItem(menu, SWT.SEPARATOR)
 
-      val openProps = createMenuItem(menu, "Properties", parent, None) {
+      val openProps = createMenuItem(menu, "Properties", parent, None) { e =>
         val deOption = mainTable.selectedEntryOption
         require(deOption.isDefined)
         val dialog = new EditDownloadDialog(deOption, shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
@@ -210,7 +240,7 @@ class MainFrame(
 
   private def onWindowClose(closeEvent: Event): Unit = {
     import GlobalPreferences.OnWindowClose._
-    cfgMgr(GlobalPreferences.ActionOnWindowClose) match {
+    cfgMgr(GlobalPreferences.OnWindowCloseBehavior) match {
       case Undefined => promptWindowClose(closeEvent)
       case Close     => tryExit(closeEvent)
       case Minimize  => minimize(Some(closeEvent))
@@ -241,7 +271,7 @@ class MainFrame(
     } else {
       val Some(action) = actionOption
       if (result.getToggleState) {
-        cfgMgr.set(ActionOnWindowClose, action)
+        cfgMgr.set(OnWindowCloseBehavior, action)
       }
       (action: @unchecked) match {
         case OnWindowClose.Close    => tryExit(closeEvent)
