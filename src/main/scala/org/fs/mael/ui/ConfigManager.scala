@@ -15,6 +15,7 @@ import org.eclipse.jface.preference.PreferenceStore
 import org.eclipse.jface.preference.RadioGroupFieldEditor
 import org.eclipse.swt.widgets.Shell
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.ui.components.RichFieldEditorPreferencePage
 
 class ConfigManager(val file: File) {
   import ConfigManager._
@@ -89,28 +90,21 @@ class ConfigManager(val file: File) {
 }
 
 object ConfigManager {
-  class MainPage extends FieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
+  class MainPage extends RichFieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
     def createFieldEditors(): Unit = {
-      new DirectoryFieldEditor(ConfigOptions.DownloadPath.id, "Download path:", getFieldEditorParent).withCode { field =>
-        addField(field)
+      row(ConfigOptions.DownloadPath) { (option, parent) =>
+        new DirectoryFieldEditor(option.id, "Download path:", parent)
       }
 
-      new IntegerFieldEditor(ConfigOptions.NetworkTimeout.id, "Network timeout (ms, 0 means no timeout):", getFieldEditorParent()).withCode { field =>
-        field.setValidRange(0, 7 * 24 * 60 * 60 * 1000) // Up to one week
-        addField(field)
+      row(ConfigOptions.NetworkTimeout) { (option, parent) =>
+        new IntegerFieldEditor(option.id, "Network timeout (ms, 0 means no timeout):", parent).withCode { field =>
+          field.setValidRange(0, 7 * 24 * 60 * 60 * 1000) // Up to one week
+        }
       }
 
-      // Add a radio group field
-      new RadioGroupFieldEditor(
-        ConfigOptions.ActionOnWindowClose.id,
-        "Action on window close:", 5,
-        ConfigOptions.OnWindowClose.values.map { o =>
-          Array(o.prettyName, o.id)
-        }.toArray,
-        getFieldEditorParent(), true
-      ).withCode { field =>
-        addField(field)
-      }
+      radioRow("Action on window close:", ConfigOptions.ActionOnWindowClose)
+
+      radioRow("Minimize to tray:", ConfigOptions.MinimizeToTrayBehaviour)
     }
   }
 }

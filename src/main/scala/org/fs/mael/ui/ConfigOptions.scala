@@ -8,7 +8,7 @@ object ConfigOptions {
     def toRepr(v: T): Repr
     def fromRepr(v: Repr): T
   }
-  class RadioConfigOption[T <: RadioOption](id: String, values: Seq[T]) extends CustomConfigOption[T, String](id) {
+  class RadioConfigOption[T <: RadioOption](id: String, val values: Seq[T]) extends CustomConfigOption[T, String](id) {
     def toRepr(v: T): String = v.id
     def fromRepr(v: String): T = values.find(_.id == v).get
   }
