@@ -14,7 +14,7 @@ class ConfigManager(val file: File) {
   import ConfigManager._
 
   val store = new PreferenceStore().withCode { store =>
-    import ConfigOption._
+    import ConfigSetting._
     file.getParentFile.mkdirs()
     store.setFilename(file.getAbsolutePath)
     try {
@@ -25,54 +25,54 @@ class ConfigManager(val file: File) {
   }
 
   /**
-   * Initialize default values for the given config option.
+   * Initialize default values for the given config setting.
    * Invoking this multiple times is safe and does nothing.
    */
-  def initDefault(option: ConfigOption[_]): Unit = {
-    ConfigManager.initDefault(store, option)
+  def initDefault(setting: ConfigSetting[_]): Unit = {
+    ConfigManager.initDefault(store, setting)
   }
 
-  def apply[T: TypeTag](option: ConfigOption.SimpleConfigOption[T]): T = {
-    initDefault(option)
+  def apply[T: TypeTag](setting: ConfigSetting.SimpleConfigSetting[T]): T = {
+    initDefault(setting)
     // Somewhat dirty hack to overcome type erasure
     (typeOf[T] match {
-      case t if t =:= typeOf[Boolean] => store.getBoolean(option.id)
-      case t if t =:= typeOf[Int]     => store.getInt(option.id)
-      case t if t =:= typeOf[Long]    => store.getLong(option.id)
-      case t if t =:= typeOf[Double]  => store.getDouble(option.id)
-      case t if t =:= typeOf[String]  => store.getString(option.id)
+      case t if t =:= typeOf[Boolean] => store.getBoolean(setting.id)
+      case t if t =:= typeOf[Int]     => store.getInt(setting.id)
+      case t if t =:= typeOf[Long]    => store.getLong(setting.id)
+      case t if t =:= typeOf[Double]  => store.getDouble(setting.id)
+      case t if t =:= typeOf[String]  => store.getString(setting.id)
     }).asInstanceOf[T]
   } ensuring (_ != null)
 
-  def apply[T, Repr: TypeTag](option: ConfigOption.CustomConfigOption[T, Repr]): T = {
-    val repr = apply[Repr](option.asReprOption)
-    option.fromRepr(repr)
+  def apply[T, Repr: TypeTag](setting: ConfigSetting.CustomConfigSetting[T, Repr]): T = {
+    val repr = apply[Repr](setting.asReprSetting)
+    setting.fromRepr(repr)
   }
 
-  def set[T: TypeTag](option: ConfigOption.SimpleConfigOption[T], value: T): Unit = {
+  def set[T: TypeTag](setting: ConfigSetting.SimpleConfigSetting[T], value: T): Unit = {
     // Somewhat dirty hack to overcome type erasure
     (typeOf[T] match {
-      case t if t =:= typeOf[Boolean] => store.setValue(option.id, value.asInstanceOf[Boolean])
-      case t if t =:= typeOf[Int]     => store.setValue(option.id, value.asInstanceOf[Int])
-      case t if t =:= typeOf[Long]    => store.setValue(option.id, value.asInstanceOf[Long])
-      case t if t =:= typeOf[Double]  => store.setValue(option.id, value.asInstanceOf[Double])
-      case t if t =:= typeOf[String]  => store.setValue(option.id, value.asInstanceOf[String])
+      case t if t =:= typeOf[Boolean] => store.setValue(setting.id, value.asInstanceOf[Boolean])
+      case t if t =:= typeOf[Int]     => store.setValue(setting.id, value.asInstanceOf[Int])
+      case t if t =:= typeOf[Long]    => store.setValue(setting.id, value.asInstanceOf[Long])
+      case t if t =:= typeOf[Double]  => store.setValue(setting.id, value.asInstanceOf[Double])
+      case t if t =:= typeOf[String]  => store.setValue(setting.id, value.asInstanceOf[String])
     }).asInstanceOf[T]
     store.save()
   }
 
-  def set[T, Repr: TypeTag](option: ConfigOption.CustomConfigOption[T, Repr], value: T): Unit = {
-    set[Repr](option.asReprOption, option.toRepr(value))
+  def set[T, Repr: TypeTag](setting: ConfigSetting.CustomConfigSetting[T, Repr], value: T): Unit = {
+    set[Repr](setting.asReprSetting, setting.toRepr(value))
   }
 
-  def addConfigChangedListener[T](option: ConfigOption[T])(f: ConfigChangedEvent[T] => Unit): Unit = {
+  def addConfigChangedListener[T](setting: ConfigSetting[T])(f: ConfigChangedEvent[T] => Unit): Unit = {
     store.addPropertyChangeListener(e => e match {
-      case e if e.getProperty == option.id =>
-        option match {
-          case option: ConfigOption.SimpleConfigOption[T] =>
+      case e if e.getProperty == setting.id =>
+        setting match {
+          case setting: ConfigSetting.SimpleConfigSetting[T] =>
             f(ConfigChangedEvent[T](e.getOldValue.asInstanceOf[T], e.getNewValue.asInstanceOf[T]))
-          case option: ConfigOption.CustomConfigOption[T, _] =>
-            notifyCustomConfigChanged(option, e, f)
+          case setting: ConfigSetting.CustomConfigSetting[T, _] =>
+            notifyCustomConfigChanged(setting, e, f)
         }
       case _ =>
       // NOOP
@@ -81,11 +81,11 @@ class ConfigManager(val file: File) {
 
   // This is needed to encapsulate types
   private def notifyCustomConfigChanged[T, Repr](
-    option: ConfigOption.CustomConfigOption[T, Repr],
-    e:      PropertyChangeEvent,
-    f:      ConfigChangedEvent[T] => Unit
+    setting: ConfigSetting.CustomConfigSetting[T, Repr],
+    e:       PropertyChangeEvent,
+    f:       ConfigChangedEvent[T] => Unit
   ): Unit = {
-    f(ConfigChangedEvent[T](option.fromRepr(e.getOldValue.asInstanceOf[Repr]), option.fromRepr(e.getNewValue.asInstanceOf[Repr])))
+    f(ConfigChangedEvent[T](setting.fromRepr(e.getOldValue.asInstanceOf[Repr]), setting.fromRepr(e.getNewValue.asInstanceOf[Repr])))
   }
 }
 
@@ -93,22 +93,22 @@ object ConfigManager {
   case class ConfigChangedEvent[T](oldValue: T, newValue: T)
 
   /**
-   * Initialize default values for the given config option.
+   * Initialize default values for the given config setting.
    * Invoking this multiple times is safe and does nothing.
    */
-  def initDefault(store: IPreferenceStore, option: ConfigOption[_]): Unit = {
-    option match {
-      case option: ConfigOption.SimpleConfigOption[_] =>
-        val oldDefault = store.getDefaultBoolean(option.id)
-        option.default match {
-          case default: Boolean => initDefault(store, option.id, default)
-          case default: Int     => initDefault(store, option.id, default)
-          case default: Long    => initDefault(store, option.id, default)
-          case default: Double  => initDefault(store, option.id, default)
-          case default: String  => initDefault(store, option.id, default)
+  def initDefault(store: IPreferenceStore, setting: ConfigSetting[_]): Unit = {
+    setting match {
+      case setting: ConfigSetting.SimpleConfigSetting[_] =>
+        val oldDefault = store.getDefaultBoolean(setting.id)
+        setting.default match {
+          case default: Boolean => initDefault(store, setting.id, default)
+          case default: Int     => initDefault(store, setting.id, default)
+          case default: Long    => initDefault(store, setting.id, default)
+          case default: Double  => initDefault(store, setting.id, default)
+          case default: String  => initDefault(store, setting.id, default)
         }
-      case option: ConfigOption.CustomConfigOption[_, _] =>
-        initDefault(store, option.asReprOption)
+      case setting: ConfigSetting.CustomConfigSetting[_, _] =>
+        initDefault(store, setting.asReprSetting)
     }
   }
 

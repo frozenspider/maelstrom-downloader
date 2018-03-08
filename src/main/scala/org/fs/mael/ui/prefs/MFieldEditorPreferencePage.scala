@@ -5,29 +5,29 @@ import org.eclipse.jface.preference.FieldEditorPreferencePage
 import org.eclipse.jface.preference.RadioGroupFieldEditor
 import org.eclipse.swt.widgets.Composite
 import org.fs.mael.core.config.ConfigManager
-import org.fs.mael.core.config.ConfigOption
+import org.fs.mael.core.config.ConfigSetting
 
 abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPreferencePage(style) {
   /**
-   * Initialize a default value for the given config option.
+   * Initialize a default value for the given config setting.
    * Please use this if an element is added manually rather than through helpers defined here
    */
-  protected def initOption(option: ConfigOption[_]): Unit = {
-    ConfigManager.initDefault(getPreferenceStore, option)
+  protected def initSetting(setting: ConfigSetting[_]): Unit = {
+    ConfigManager.initDefault(getPreferenceStore, setting)
   }
 
-  def row[CO <: ConfigOption[_], FE <: FieldEditor](option: CO)(createEditor: (CO, Composite) => FE): FE = {
-    initOption(option)
-    val editor = createEditor(option, getFieldEditorParent)
+  def row[CS <: ConfigSetting[_], FE <: FieldEditor](setting: CS)(createEditor: (CS, Composite) => FE): FE = {
+    initSetting(setting)
+    val editor = createEditor(setting, getFieldEditorParent)
     addField(editor)
     editor
   }
 
-  def radioRow[RV <: ConfigOption.RadioValue](title: String, option: ConfigOption.RadioConfigOption[RV]): RadioGroupFieldEditor = {
-    row(option) { (option, parent) =>
+  def radioRow[RV <: ConfigSetting.RadioValue](title: String, setting: ConfigSetting.RadioConfigSetting[RV]): RadioGroupFieldEditor = {
+    row(setting) { (setting, parent) =>
       new RadioGroupFieldEditor(
-        option.id, title, option.values.size,
-        option.values.map { o => Array(o.prettyName, o.id) }.toArray,
+        setting.id, title, setting.values.size,
+        setting.values.map { o => Array(o.prettyName, o.id) }.toArray,
         parent, true
       )
     }
