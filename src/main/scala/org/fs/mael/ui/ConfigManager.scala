@@ -33,6 +33,7 @@ class ConfigManager(val file: File) {
     store.setDefault(SortColumn.id, "date-created")
     store.setDefault(SortAsc.id, true)
     store.setDefault(ActionOnWindowClose.id, OnWindowClose.Undefined.id)
+    store.setDefault(MinimizeToTrayBehaviour.id, MinimizeToTray.Never.id)
     try {
       store.load()
     } catch {
