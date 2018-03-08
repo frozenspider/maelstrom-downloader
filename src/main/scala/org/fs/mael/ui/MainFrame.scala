@@ -136,7 +136,7 @@ class MainFrame(
       btnStart.addListener(SWT.Selection, e => {
         mainTable.selectedEntries map { de =>
           val pair = backendMgr.getCastedPair(de)
-          pair.backend.downloader.start(pair.de, cfgMgr.getProperty(GlobalPreferences.NetworkTimeout))
+          pair.backend.downloader.start(pair.de, cfgMgr(GlobalPreferences.NetworkTimeout))
         }
       })
       btnStart.forDownloads(_ exists (_.status.canBeStarted))
@@ -210,7 +210,7 @@ class MainFrame(
 
   private def onWindowClose(closeEvent: Event): Unit = {
     import GlobalPreferences.OnWindowClose._
-    cfgMgr.getProperty(GlobalPreferences.ActionOnWindowClose) match {
+    cfgMgr(GlobalPreferences.ActionOnWindowClose) match {
       case Undefined => promptWindowClose(closeEvent)
       case Close     => tryExit(closeEvent)
       case Minimize  => minimize(Some(closeEvent))
@@ -241,7 +241,7 @@ class MainFrame(
     } else {
       val Some(action) = actionOption
       if (result.getToggleState) {
-        cfgMgr.setProperty(ActionOnWindowClose, action)
+        cfgMgr.set(ActionOnWindowClose, action)
       }
       (action: @unchecked) match {
         case OnWindowClose.Close    => tryExit(closeEvent)

@@ -130,7 +130,7 @@ trait CoreUtils {
     fn replaceAll ("[\\\\/:*?\"<>|]", "_")
   }
 
-  implicit class RichAnyRef[T <: AnyRef](ref: T) {
+  implicit class RichAnyRef[T](ref: T) {
     /** Execute arbitrary code block and return the value itself */
     def withCode(code: T => Unit): T = {
       code(ref)

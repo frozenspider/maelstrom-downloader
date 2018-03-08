@@ -89,7 +89,7 @@ class EditDownloadDialog(
 
     locationInput = new DirectoryFieldEditor("", "", locationRow).withCode { editor =>
       editor.getLabelControl(locationRow).dispose()
-      editor.setStringValue(cfgMgr.getProperty(GlobalPreferences.DownloadPath))
+      editor.setStringValue(cfgMgr(GlobalPreferences.DownloadPath))
       editor.setEmptyStringAllowed(false)
     }
 

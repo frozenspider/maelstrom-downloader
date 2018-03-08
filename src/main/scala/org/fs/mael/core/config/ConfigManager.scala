@@ -5,6 +5,7 @@ import java.io.FileNotFoundException
 
 import scala.reflect.runtime.universe._
 
+import org.eclipse.jface.preference.IPreferenceStore
 import org.eclipse.jface.preference.PreferenceStore
 import org.fs.mael.core.utils.CoreUtils._
 
@@ -14,19 +15,6 @@ class ConfigManager(val file: File) {
     import ConfigOption._
     file.getParentFile.mkdirs()
     store.setFilename(file.getAbsolutePath)
-    // FIXME
-    ???
-    //    store.setDefault(DownloadPath.id, {
-    //      sys.props("os.name") match {
-    //        case os if os startsWith "Windows" => sys.env("USERPROFILE") + "\\Downloads"
-    //        case _                             => sys.props("user.home") + "/downloads"
-    //      }
-    //    })
-    //    store.setDefault(NetworkTimeout.id, 0)
-    //    store.setDefault(SortColumn.id, "date-created")
-    //    store.setDefault(SortAsc.id, true)
-    //    store.setDefault(ActionOnWindowClose.id, OnWindowClose.Undefined.id)
-    //    store.setDefault(MinimizeToTrayBehaviour.id, MinimizeToTray.Never.id)
     try {
       store.load()
     } catch {
@@ -34,7 +22,13 @@ class ConfigManager(val file: File) {
     }
   }
 
-  def getProperty[T: TypeTag](option: ConfigOption.SimpleConfigOption[T]): T = {
+  /** Initialize default values for the given config option. Invoking this multiple times is safe. */
+  def initDefault(option: ConfigOption[_]): Unit = {
+    ConfigManager.initDefault(store, option)
+  }
+
+  def apply[T: TypeTag](option: ConfigOption.SimpleConfigOption[T]): T = {
+    initDefault(option)
     // Somewhat dirty hack to overcome type erasure
     (typeOf[T] match {
       case t if t =:= typeOf[Boolean] => store.getBoolean(option.id)
@@ -43,14 +37,14 @@ class ConfigManager(val file: File) {
       case t if t =:= typeOf[Double]  => store.getDouble(option.id)
       case t if t =:= typeOf[String]  => store.getString(option.id)
     }).asInstanceOf[T]
-  }
+  } ensuring (_ != null)
 
-  def getProperty[T, Repr: TypeTag](option: ConfigOption.CustomConfigOption[T, Repr]): T = {
-    val repr = getProperty[Repr](option.asReprOption)
+  def apply[T, Repr: TypeTag](option: ConfigOption.CustomConfigOption[T, Repr]): T = {
+    val repr = apply[Repr](option.asReprOption)
     option.fromRepr(repr)
   }
 
-  def setProperty[T: TypeTag](option: ConfigOption.SimpleConfigOption[T], value: T): Unit = {
+  def set[T: TypeTag](option: ConfigOption.SimpleConfigOption[T], value: T): Unit = {
     // Somewhat dirty hack to overcome type erasure
     (typeOf[T] match {
       case t if t =:= typeOf[Boolean] => store.setValue(option.id, value.asInstanceOf[Boolean])
@@ -62,7 +56,24 @@ class ConfigManager(val file: File) {
     store.save()
   }
 
-  def setProperty[T, Repr: TypeTag](option: ConfigOption.CustomConfigOption[T, Repr], value: T): Unit = {
-    setProperty[Repr](option.asReprOption, option.toRepr(value))
+  def set[T, Repr: TypeTag](option: ConfigOption.CustomConfigOption[T, Repr], value: T): Unit = {
+    set[Repr](option.asReprOption, option.toRepr(value))
+  }
+}
+
+object ConfigManager {
+  def initDefault(store: IPreferenceStore, option: ConfigOption[_]): Unit = {
+    option match {
+      case option: ConfigOption.SimpleConfigOption[_] =>
+        option.default match {
+          case default: Boolean => store.setDefault(option.id, default)
+          case default: Int     => store.setDefault(option.id, default)
+          case default: Long    => store.setDefault(option.id, default)
+          case default: Double  => store.setDefault(option.id, default)
+          case default: String  => store.setDefault(option.id, default)
+        }
+      case option: ConfigOption.CustomConfigOption[_, _] =>
+        initDefault(store, option.asReprOption)
+    }
   }
 }

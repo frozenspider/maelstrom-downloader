@@ -5,7 +5,6 @@ import org.eclipse.jface.preference.FieldEditorPreferencePage
 import org.eclipse.jface.preference.IntegerFieldEditor
 import org.eclipse.jface.preference.PreferenceDialog
 import org.eclipse.jface.preference.PreferenceManager
-import org.eclipse.jface.preference.PreferenceNode
 import org.eclipse.swt.widgets.Shell
 import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.utils.CoreUtils._
@@ -14,8 +13,8 @@ class GlobalPreferences(val configMgr: ConfigManager) {
   import GlobalPreferences._
 
   val mgr = new PreferenceManager().withCode { mgr =>
-    def addRootPage(id: String, label: String, clazz: Class[_]): Unit = {
-      val page = new PreferenceNode("main", "Main", null, clazz.getName)
+    def addRootPage(id: String, label: String, clazz: Class[_ <: MFieldEditorPreferencePage]): Unit = {
+      val page = new MPreferenceNode("main", "Main", null, clazz)
       mgr.addToRoot(page)
     }
     addRootPage("main", "Main", classOf[MainPage])
@@ -31,14 +30,31 @@ class GlobalPreferences(val configMgr: ConfigManager) {
 object GlobalPreferences {
   import org.fs.mael.core.config.ConfigOption._
 
-  val DownloadPath: SimpleConfigOption[String] = SimpleConfigOption("main.downloadPath")
-  val NetworkTimeout: SimpleConfigOption[Int] = SimpleConfigOption("main.networkTimeoutMs")
-  val SortColumn: SimpleConfigOption[String] = SimpleConfigOption("view.sortColumn")
-  val SortAsc: SimpleConfigOption[Boolean] = SimpleConfigOption("view.sortAsc")
-  val ActionOnWindowClose: RadioConfigOption[OnWindowClose] =
-    new RadioConfigOption("main.actionOnWindowClose", OnWindowClose.values)
-  val MinimizeToTrayBehaviour: RadioConfigOption[MinimizeToTray] =
-    new RadioConfigOption("main.minimizeToTrayBehaviour", MinimizeToTray.values)
+  val DownloadPath: SimpleConfigOption[String] =
+    SimpleConfigOption("main.downloadPath", {
+      sys.props("os.name") match {
+        case os if os startsWith "Windows" => sys.env("USERPROFILE") + "\\Downloads"
+        case _                             => sys.props("user.home") + "/downloads"
+      }
+    })
+
+  val NetworkTimeout: SimpleConfigOption[Int] =
+    SimpleConfigOption("main.networkTimeoutMs", 0)
+
+  val OnWindowCloseBehavior: RadioConfigOption[OnWindowClose] =
+    new RadioConfigOption("main.onWindowClose", OnWindowClose.Undefined, OnWindowClose.values)
+
+  val MinimizeToTrayBehavior: RadioConfigOption[MinimizeToTray] =
+    new RadioConfigOption("main.minimizeToTray", MinimizeToTray.Never, MinimizeToTray.values)
+
+  val ShowTrayIconBehavior: RadioConfigOption[ShowTrayIcon] =
+    new RadioConfigOption("main.showTrayIcon", ShowTrayIcon.Always, ShowTrayIcon.values)
+
+  val SortColumn: SimpleConfigOption[String] =
+    SimpleConfigOption("view.sortColumn", "date-created")
+
+  val SortAsc: SimpleConfigOption[Boolean] =
+    SimpleConfigOption("view.sortAsc", true)
 
   sealed abstract class OnWindowClose(id: String, prettyName: String) extends RadioValue(id, prettyName)
   object OnWindowClose {
@@ -56,7 +72,14 @@ object GlobalPreferences {
     val values = Seq(Never, OnClose, Always)
   }
 
-  class MainPage extends RichFieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
+  sealed abstract class ShowTrayIcon(id: String, prettyName: String) extends RadioValue(id, prettyName)
+  object ShowTrayIcon {
+    object Always extends ShowTrayIcon("ALWAYS", "Always")
+    object WhenNeeded extends ShowTrayIcon("WHEN_NEEDED", "Only when minimized to tray")
+    val values = Seq(Always, WhenNeeded)
+  }
+
+  class MainPage extends MFieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
     def createFieldEditors(): Unit = {
       row(DownloadPath) { (option, parent) =>
         new DirectoryFieldEditor(option.id, "Download path:", parent)
@@ -68,9 +91,11 @@ object GlobalPreferences {
         }
       }
 
-      radioRow("Action on window close:", ActionOnWindowClose)
+      radioRow("Action on window close:", OnWindowCloseBehavior)
 
-      radioRow("Minimize to tray:", MinimizeToTrayBehaviour)
+      radioRow("Minimize to tray:", MinimizeToTrayBehavior)
+
+      radioRow("Show tray icon:", ShowTrayIconBehavior)
     }
   }
 }

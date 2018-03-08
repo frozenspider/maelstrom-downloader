@@ -204,13 +204,13 @@ class DownloadsTable(
         true
       }
     sortContent(column, asc)
-    cfgMgr.setProperty(GlobalPreferences.SortColumn, column.columnDef.id)
-    cfgMgr.setProperty(GlobalPreferences.SortAsc, asc)
+    cfgMgr.set(GlobalPreferences.SortColumn, column.columnDef.id)
+    cfgMgr.set(GlobalPreferences.SortAsc, asc)
   }
 
   private def loadSorting() = {
-    val colId = cfgMgr.getProperty(GlobalPreferences.SortColumn)
-    val asc = cfgMgr.getProperty(GlobalPreferences.SortAsc)
+    val colId = cfgMgr(GlobalPreferences.SortColumn)
+    val asc = cfgMgr(GlobalPreferences.SortAsc)
     val colOption = peer.getColumns.find(_.columnDef.id == colId)
     colOption foreach { col =>
       sortContent(col, asc)
