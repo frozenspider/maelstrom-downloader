@@ -199,7 +199,10 @@ class MainFrame(
     }
 
     mainTable.peer.addListener(SWT.Selection, e => {
-      logTable.render(mainTable.selectedEntryOption)
+      val selectedOption = mainTable.selectedEntryOption
+      if (selectedOption != logTable.currentOption) {
+        logTable.render(mainTable.selectedEntryOption)
+      }
     })
   }
 
