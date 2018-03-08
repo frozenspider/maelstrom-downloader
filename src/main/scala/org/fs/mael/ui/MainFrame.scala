@@ -43,6 +43,7 @@ class MainFrame(
 ) extends Logging {
 
   private val trayOption = Option(display.getSystemTray)
+  private var trayItem: TrayItem = _
   private var mainTable: DownloadsTable = _
   private var logTable: LogTable = _
 
@@ -108,22 +109,25 @@ class MainFrame(
   }
 
   private def initTray(tray: Tray, shell: Shell): Unit = {
-    val item = new TrayItem(tray, SWT.NONE)
+    trayItem = new TrayItem(tray, SWT.NONE)
+    trayItem.setImage(resources.mainIcon)
+    trayItem.setToolTipText(BuildInfo.prettyName)
+
     // TODO: Update if pref are changed
-    if (cfgMgr(GlobalPreferences.ShowTrayIconBehavior) == GlobalPreferences.ShowTrayIcon.WhenNeeded) {
-      item.setVisible(false)
+    val showWhenNeeded = {
+      import GlobalPreferences._
+      cfgMgr(ShowTrayIconBehavior) == ShowTrayIcon.WhenNeeded
     }
+    if (showWhenNeeded) trayItem.setVisible(false)
     def show(e: Event): Unit = {
+      if (showWhenNeeded) trayItem.setVisible(false)
       shell.setVisible(true)
       shell.setMinimized(false)
       shell.forceActive()
     }
-    item.setImage(resources.mainIcon)
-    item.setToolTipText(BuildInfo.prettyName)
-    item.addListener(SWT.Show, e => System.out.println("show"))
-    item.addListener(SWT.Hide, e => System.out.println("hide"))
-    item.addListener(SWT.Selection, show)
+    trayItem.addListener(SWT.Selection, show)
 
+    // TODO: Add more items
     val menu = new Menu(shell, SWT.POP_UP)
     createMenuItem(menu, "Show main window", shell, None)(show).withCode { item =>
       menu.setDefaultItem(item)
@@ -131,7 +135,7 @@ class MainFrame(
     new MenuItem(menu, SWT.SEPARATOR)
     createMenuItem(menu, "Exit", shell, None)(tryExit)
 
-    item.addListener(SWT.MenuDetect, e => menu.setVisible(true))
+    trayItem.addListener(SWT.MenuDetect, e => menu.setVisible(true))
   }
 
   private def fillMenu(menu: Menu, shell: Shell): Unit = {
@@ -292,14 +296,18 @@ class MainFrame(
   private def minimize(closeEventOption: Option[Event]): Unit = {
     closeEventOption foreach (_.doit = false)
     import org.fs.mael.ui.prefs.GlobalPreferences._
+    // Only minimize to tray if tray exists
     (closeEventOption, cfgMgr(MinimizeToTrayBehavior)) match {
-      case (_, MinimizeToTray.Always) =>
-        peer.setVisible(false)
-      case (Some(e), MinimizeToTray.OnClose) =>
-        peer.setVisible(false)
-      case _ =>
-        peer.setMinimized(true)
+      case (_, MinimizeToTray.Always) if trayOption.isDefined        => minimizeToTray()
+      case (Some(_), MinimizeToTray.OnClose) if trayOption.isDefined => minimizeToTray()
+      case _                                                         => peer.setMinimized(true)
     }
+  }
+
+  private def minimizeToTray(): Unit = {
+    require(trayOption.isDefined, "Can't minimize to non-existent tray!")
+    trayItem.setVisible(true)
+    peer.setVisible(false)
   }
 
   private def tryExit(closeEvent: Event): Unit = {
