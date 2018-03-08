@@ -8,11 +8,11 @@ import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Table
 import org.eclipse.swt.widgets.TableColumn
 import org.eclipse.swt.widgets.TableItem
+import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.utils.CoreUtils._
-import org.fs.mael.ui.ConfigManager
-import org.fs.mael.ui.ConfigOptions
 import org.fs.mael.ui.components.DownloadsTable._
+import org.fs.mael.ui.prefs.GlobalPreferences
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.SwtUtils._
 
@@ -204,13 +204,13 @@ class DownloadsTable(
         true
       }
     sortContent(column, asc)
-    cfgMgr.setProperty(ConfigOptions.SortColumn, column.columnDef.id)
-    cfgMgr.setProperty(ConfigOptions.SortAsc, asc)
+    cfgMgr.setProperty(GlobalPreferences.SortColumn, column.columnDef.id)
+    cfgMgr.setProperty(GlobalPreferences.SortAsc, asc)
   }
 
   private def loadSorting() = {
-    val colId = cfgMgr.getProperty(ConfigOptions.SortColumn)
-    val asc = cfgMgr.getProperty(ConfigOptions.SortAsc)
+    val colId = cfgMgr.getProperty(GlobalPreferences.SortColumn)
+    val asc = cfgMgr.getProperty(GlobalPreferences.SortAsc)
     val colOption = peer.getColumns.find(_.columnDef.id == colId)
     colOption foreach { col =>
       sortContent(col, asc)

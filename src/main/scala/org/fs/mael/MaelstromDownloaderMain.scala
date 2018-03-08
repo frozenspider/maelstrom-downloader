@@ -6,6 +6,7 @@ import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.core.backend.BackendManager
+import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.event.EventManagerImpl
 import org.fs.mael.core.list.DownloadListManager
@@ -13,7 +14,6 @@ import org.fs.mael.core.list.DownloadListSerializerImpl
 import org.fs.mael.core.transfer.SimpleTransferManager
 import org.fs.mael.core.transfer.TransferManager
 import org.fs.mael.core.utils.CoreUtils._
-import org.fs.mael.ui.ConfigManager
 import org.fs.mael.ui.MainFrame
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.resources.ResourcesImpl

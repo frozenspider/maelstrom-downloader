@@ -15,6 +15,7 @@ import org.eclipse.swt.widgets._
 import org.fs.mael.BuildInfo
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.BackendManager
+import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.event.EventForUi
 import org.fs.mael.core.event.EventManager
@@ -135,7 +136,7 @@ class MainFrame(
       btnStart.addListener(SWT.Selection, e => {
         mainTable.selectedEntries map { de =>
           val pair = backendMgr.getCastedPair(de)
-          pair.backend.downloader.start(pair.de, cfgMgr.getProperty(ConfigOptions.NetworkTimeout))
+          pair.backend.downloader.start(pair.de, cfgMgr.getProperty(GlobalPreferences.NetworkTimeout))
         }
       })
       btnStart.forDownloads(_ exists (_.status.canBeStarted))
@@ -208,8 +209,8 @@ class MainFrame(
   }
 
   private def onWindowClose(closeEvent: Event): Unit = {
-    import ConfigOptions.OnWindowClose._
-    cfgMgr.getProperty(ConfigOptions.ActionOnWindowClose) match {
+    import GlobalPreferences.OnWindowClose._
+    cfgMgr.getProperty(GlobalPreferences.ActionOnWindowClose) match {
       case Undefined => promptWindowClose(closeEvent)
       case Close     => tryExit(closeEvent)
       case Minimize  => minimize(Some(closeEvent))
@@ -217,7 +218,7 @@ class MainFrame(
   }
 
   private def promptWindowClose(closeEvent: Event): Unit = {
-    import ConfigOptions._
+    import GlobalPreferences._
     import java.util.LinkedHashMap
     val lhm = new LinkedHashMap[String, Integer].withCode { lhm =>
       lhm.put(OnWindowClose.Minimize.prettyName, 1)
@@ -240,7 +241,7 @@ class MainFrame(
     } else {
       val Some(action) = actionOption
       if (result.getToggleState) {
-        cfgMgr.setProperty(ConfigOptions.ActionOnWindowClose, action)
+        cfgMgr.setProperty(ActionOnWindowClose, action)
       }
       (action: @unchecked) match {
         case OnWindowClose.Close    => tryExit(closeEvent)

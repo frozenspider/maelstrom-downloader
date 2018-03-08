@@ -1,4 +1,4 @@
-package org.fs.mael.ui
+package org.fs.mael.core.config
 
 import java.io.File
 import java.io.FileNotFoundException
@@ -11,20 +11,22 @@ import org.fs.mael.core.utils.CoreUtils._
 class ConfigManager(val file: File) {
 
   val store = new PreferenceStore().withCode { store =>
-    import ConfigOptions._
+    import ConfigOption._
     file.getParentFile.mkdirs()
     store.setFilename(file.getAbsolutePath)
-    store.setDefault(DownloadPath.id, {
-      sys.props("os.name") match {
-        case os if os startsWith "Windows" => sys.env("USERPROFILE") + "\\Downloads"
-        case _                             => sys.props("user.home") + "/downloads"
-      }
-    })
-    store.setDefault(NetworkTimeout.id, 0)
-    store.setDefault(SortColumn.id, "date-created")
-    store.setDefault(SortAsc.id, true)
-    store.setDefault(ActionOnWindowClose.id, OnWindowClose.Undefined.id)
-    store.setDefault(MinimizeToTrayBehaviour.id, MinimizeToTray.Never.id)
+    // FIXME
+    ???
+    //    store.setDefault(DownloadPath.id, {
+    //      sys.props("os.name") match {
+    //        case os if os startsWith "Windows" => sys.env("USERPROFILE") + "\\Downloads"
+    //        case _                             => sys.props("user.home") + "/downloads"
+    //      }
+    //    })
+    //    store.setDefault(NetworkTimeout.id, 0)
+    //    store.setDefault(SortColumn.id, "date-created")
+    //    store.setDefault(SortAsc.id, true)
+    //    store.setDefault(ActionOnWindowClose.id, OnWindowClose.Undefined.id)
+    //    store.setDefault(MinimizeToTrayBehaviour.id, MinimizeToTray.Never.id)
     try {
       store.load()
     } catch {
@@ -32,7 +34,7 @@ class ConfigManager(val file: File) {
     }
   }
 
-  def getProperty[T: TypeTag](option: ConfigOptions.SimpleConfigOption[T]): T = {
+  def getProperty[T: TypeTag](option: ConfigOption.SimpleConfigOption[T]): T = {
     // Somewhat dirty hack to overcome type erasure
     (typeOf[T] match {
       case t if t =:= typeOf[Boolean] => store.getBoolean(option.id)
@@ -43,12 +45,12 @@ class ConfigManager(val file: File) {
     }).asInstanceOf[T]
   }
 
-  def getProperty[T, Repr: TypeTag](option: ConfigOptions.CustomConfigOption[T, Repr]): T = {
+  def getProperty[T, Repr: TypeTag](option: ConfigOption.CustomConfigOption[T, Repr]): T = {
     val repr = getProperty[Repr](option.asReprOption)
     option.fromRepr(repr)
   }
 
-  def setProperty[T: TypeTag](option: ConfigOptions.SimpleConfigOption[T], value: T): Unit = {
+  def setProperty[T: TypeTag](option: ConfigOption.SimpleConfigOption[T], value: T): Unit = {
     // Somewhat dirty hack to overcome type erasure
     (typeOf[T] match {
       case t if t =:= typeOf[Boolean] => store.setValue(option.id, value.asInstanceOf[Boolean])
@@ -60,7 +62,7 @@ class ConfigManager(val file: File) {
     store.save()
   }
 
-  def setProperty[T, Repr: TypeTag](option: ConfigOptions.CustomConfigOption[T, Repr], value: T): Unit = {
+  def setProperty[T, Repr: TypeTag](option: ConfigOption.CustomConfigOption[T, Repr], value: T): Unit = {
     setProperty[Repr](option.asReprOption, option.toRepr(value))
   }
 }

@@ -20,11 +20,13 @@ import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.checksum.ChecksumType
 import org.fs.mael.core.checksum.Checksums
+import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.ui.prefs.GlobalPreferences
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
@@ -87,7 +89,7 @@ class EditDownloadDialog(
 
     locationInput = new DirectoryFieldEditor("", "", locationRow).withCode { editor =>
       editor.getLabelControl(locationRow).dispose()
-      editor.setStringValue(cfgMgr.getProperty(ConfigOptions.DownloadPath))
+      editor.setStringValue(cfgMgr.getProperty(GlobalPreferences.DownloadPath))
       editor.setEmptyStringAllowed(false)
     }
 

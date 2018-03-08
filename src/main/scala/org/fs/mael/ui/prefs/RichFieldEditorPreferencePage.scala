@@ -4,7 +4,7 @@ import org.eclipse.jface.preference.FieldEditor
 import org.eclipse.jface.preference.FieldEditorPreferencePage
 import org.eclipse.jface.preference.RadioGroupFieldEditor
 import org.eclipse.swt.widgets.Composite
-import org.fs.mael.ui.ConfigOptions._
+import org.fs.mael.core.config.ConfigOption
 
 abstract class RichFieldEditorPreferencePage(style: Int) extends FieldEditorPreferencePage(style) {
   def row[CO <: ConfigOption[_], FE <: FieldEditor](option: CO)(createEditor: (CO, Composite) => FE): FE = {
@@ -13,7 +13,7 @@ abstract class RichFieldEditorPreferencePage(style: Int) extends FieldEditorPref
     editor
   }
 
-  def radioRow[T <: RadioOption](title: String, option: RadioConfigOption[T]): RadioGroupFieldEditor = {
+  def radioRow[RV <: ConfigOption.RadioValue](title: String, option: ConfigOption.RadioConfigOption[RV]): RadioGroupFieldEditor = {
     row(option) { (option, parent) =>
       new RadioGroupFieldEditor(
         option.id, title, option.values.size,
