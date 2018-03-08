@@ -28,6 +28,7 @@ import org.fs.mael.ui.utils.Hotkey
 import org.fs.mael.ui.utils.Hotkey._
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
+import org.fs.mael.ui.prefs.GlobalPreferences
 
 class MainFrame(
   display:         Display,
@@ -116,7 +117,7 @@ class MainFrame(
 
       val itemOptions = new MenuItem(submenu, SWT.PUSH)
       itemOptions.setText("Options")
-      itemOptions.addListener(SWT.Selection, e => cfgMgr.showDialog(shell))
+      itemOptions.addListener(SWT.Selection, e => new GlobalPreferences(cfgMgr).showDialog(shell))
     }
   }
 

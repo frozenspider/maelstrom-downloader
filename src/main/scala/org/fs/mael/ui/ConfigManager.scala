@@ -5,20 +5,10 @@ import java.io.FileNotFoundException
 
 import scala.reflect.runtime.universe._
 
-import org.eclipse.jface.preference.DirectoryFieldEditor
-import org.eclipse.jface.preference.FieldEditorPreferencePage
-import org.eclipse.jface.preference.IntegerFieldEditor
-import org.eclipse.jface.preference.PreferenceDialog
-import org.eclipse.jface.preference.PreferenceManager
-import org.eclipse.jface.preference.PreferenceNode
 import org.eclipse.jface.preference.PreferenceStore
-import org.eclipse.jface.preference.RadioGroupFieldEditor
-import org.eclipse.swt.widgets.Shell
 import org.fs.mael.core.utils.CoreUtils._
-import org.fs.mael.ui.components.RichFieldEditorPreferencePage
 
 class ConfigManager(val file: File) {
-  import ConfigManager._
 
   val store = new PreferenceStore().withCode { store =>
     import ConfigOptions._
@@ -40,20 +30,6 @@ class ConfigManager(val file: File) {
     } catch {
       case ex: FileNotFoundException => // NOOP
     }
-  }
-
-  val mgr = new PreferenceManager().withCode { mgr =>
-    def addRootPage(id: String, label: String, clazz: Class[_]): Unit = {
-      val page = new PreferenceNode("main", "Main", null, clazz.getName)
-      mgr.addToRoot(page)
-    }
-    addRootPage("main", "Main", classOf[MainPage])
-  }
-
-  def showDialog(parent: Shell): Unit = {
-    val dlg = new PreferenceDialog(parent, mgr)
-    dlg.setPreferenceStore(store)
-    dlg.open()
   }
 
   def getProperty[T: TypeTag](option: ConfigOptions.SimpleConfigOption[T]): T = {
@@ -86,25 +62,5 @@ class ConfigManager(val file: File) {
 
   def setProperty[T, Repr: TypeTag](option: ConfigOptions.CustomConfigOption[T, Repr], value: T): Unit = {
     setProperty[Repr](option.asReprOption, option.toRepr(value))
-  }
-}
-
-object ConfigManager {
-  class MainPage extends RichFieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
-    def createFieldEditors(): Unit = {
-      row(ConfigOptions.DownloadPath) { (option, parent) =>
-        new DirectoryFieldEditor(option.id, "Download path:", parent)
-      }
-
-      row(ConfigOptions.NetworkTimeout) { (option, parent) =>
-        new IntegerFieldEditor(option.id, "Network timeout (ms, 0 means no timeout):", parent).withCode { field =>
-          field.setValidRange(0, 7 * 24 * 60 * 60 * 1000) // Up to one week
-        }
-      }
-
-      radioRow("Action on window close:", ConfigOptions.ActionOnWindowClose)
-
-      radioRow("Minimize to tray:", ConfigOptions.MinimizeToTrayBehaviour)
-    }
   }
 }
