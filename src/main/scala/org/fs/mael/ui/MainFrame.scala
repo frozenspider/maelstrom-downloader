@@ -113,14 +113,13 @@ class MainFrame(
     trayItem.setImage(resources.mainIcon)
     trayItem.setToolTipText(BuildInfo.prettyName)
 
-    // TODO: Update if pref are changed
-    val showWhenNeeded = {
-      import GlobalPreferences._
-      cfgMgr(ShowTrayIconBehavior) == ShowTrayIcon.WhenNeeded
-    }
-    if (showWhenNeeded) trayItem.setVisible(false)
+    import GlobalPreferences._
+    cfgMgr.addConfigChangedListener(ShowTrayIconBehavior)(e => {
+      updateTrayIconVisibility(e.newValue)
+    })
+    updateTrayIconVisibility(cfgMgr(ShowTrayIconBehavior))
     def show(e: Event): Unit = {
-      if (showWhenNeeded) trayItem.setVisible(false)
+      updateTrayIconVisibility(cfgMgr(ShowTrayIconBehavior))
       shell.setVisible(true)
       shell.setMinimized(false)
       shell.forceActive()
@@ -136,6 +135,11 @@ class MainFrame(
     createMenuItem(menu, "Exit", shell, None)(tryExit)
 
     trayItem.addListener(SWT.MenuDetect, e => menu.setVisible(true))
+  }
+
+  private def updateTrayIconVisibility(setting: GlobalPreferences.ShowTrayIcon): Unit = {
+    val showWhenNeeded = setting == GlobalPreferences.ShowTrayIcon.WhenNeeded
+    trayItem.setVisible(!showWhenNeeded)
   }
 
   private def fillMenu(menu: Menu, shell: Shell): Unit = {
