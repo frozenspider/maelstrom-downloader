@@ -119,6 +119,17 @@ trait CoreUtils {
     }
   }
 
+  /** Check if filename contains illegal characters */
+  def isValidFilename(fn: String): Boolean = {
+    // Inefficient, but meh
+    fn == asValidFilename(fn)
+  }
+
+  /** Make a filename valid by replacing all illegal characters with {@code _} */
+  def asValidFilename(fn: String): String = {
+    fn replaceAll ("[\\\\/:*?\"<>|]", "_")
+  }
+
   implicit class RichAnyRef[T <: AnyRef](ref: T) {
     /** Execute arbitrary code block and return the value itself */
     def withCode(code: T => Unit): T = {

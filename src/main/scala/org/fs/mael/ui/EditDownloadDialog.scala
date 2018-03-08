@@ -41,6 +41,7 @@ class EditDownloadDialog(
 
   var uriInput: Text = _
   var locationInput: DirectoryFieldEditor = _
+  var filenameInput: Text = _
   var commentInput: Text = _
   var checksumDropdown: Combo = _
   var checksumInput: Text = _
@@ -58,6 +59,7 @@ class EditDownloadDialog(
       label.setText("URI:")
     }
 
+    // TODO: Would be nice to have word-breaking line wrap here, but it's highly non-trivial to implement
     uriInput = new Text(peer, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL | SWT.WRAP).withCode { input =>
       input.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_FILL).withCode { d =>
         d.heightHint = 50
@@ -87,6 +89,17 @@ class EditDownloadDialog(
       editor.getLabelControl(locationRow).dispose()
       editor.setStringValue(cfgMgr.getProperty(ConfigOptions.DownloadPath))
       editor.setEmptyStringAllowed(false)
+    }
+
+    filenameInput = new Text(peer, SWT.SINGLE | SWT.BORDER).withCode { input =>
+      input.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false))
+      input.setMessage("<Filename, leave blank to deduce automatically>")
+      input.addVerifyListener(e => {
+        // Remove all illegal characters
+        e.text = asValidFilename(e.text)
+      })
+      input.setToolTipText("")
+      installDefaultHotkeys(input)
     }
 
     new Label(peer, SWT.NONE).withCode { label =>
@@ -170,6 +183,8 @@ class EditDownloadDialog(
           input.setEditable(enabled)
         }
 
+        filenameInput.setText(de.filenameOption getOrElse "")
+
         checksumDropdown.setEnabled(de.status != Status.Complete)
         checksumInput.setEditable(de.status != Status.Complete)
 
@@ -206,6 +221,10 @@ class EditDownloadDialog(
       requireFriendly(locationInput.isValid, "Invalid location: " + locationInput.getErrorMessage)
       val locationString = locationInput.getStringValue.trim
       val location = new File(locationString)
+      val filenameOption = filenameInput.getText.trim match {
+        case "" => None
+        case s  => Some(s)
+      }
       val comment = commentInput.getText.trim
       val uri = new URI(uriString)
       val backend = deOption match {
@@ -234,8 +253,8 @@ class EditDownloadDialog(
         None
       }
       deOption match {
-        case None     => create(backend, uri, location, checksumOption, comment)
-        case Some(de) => edit(de, backend, uri, location, checksumOption, comment)
+        case None     => create(backend, uri, location, filenameOption, checksumOption, comment)
+        case Some(de) => edit(de, backend, uri, location, filenameOption, checksumOption, comment)
       }
       peer.dispose()
     } catch {
@@ -249,32 +268,50 @@ class EditDownloadDialog(
     }
   }
 
-  private def create(backend: Backend, uri: URI, location: File, checksumOption: Option[Checksum], comment: String): Unit = {
-    val entry = backend.create(uri, location, None, checksumOption, comment)
+  private def create(
+    backend:        Backend,
+    uri:            URI,
+    location:       File,
+    filenameOption: Option[String],
+    checksumOption: Option[Checksum],
+    comment:        String
+  ): Unit = {
+    val entry = backend.create(uri, location, filenameOption, checksumOption, comment)
     downloadListMgr.add(entry)
   }
 
-  private def edit(dev: DownloadEntryView, backend: Backend, uri: URI, location: File, checksumOption: Option[Checksum], comment: String): Unit = {
+  private def edit(
+    dev:            DownloadEntryView,
+    backend:        Backend,
+    uri:            URI,
+    location:       File,
+    filenameOption: Option[String],
+    checksumOption: Option[Checksum],
+    comment:        String
+  ): Unit = {
     val de = dev.asInstanceOf[DownloadEntry[backend.BSED]]
-    if (de.location != location) {
+    val newFilenameOption = filenameOption orElse de.filenameOption
+    if (location != de.location || filenameOption != de.filenameOption) {
       if (de.downloadedSize > 0) {
-        val Some(filename) = de.filenameOption
+        val Some(filename) = newFilenameOption
         val oldFile = de.fileOption.get
         if (oldFile.exists) {
           relocateWithProgress(oldFile, new File(location, filename))
         }
       }
       de.location = location
+      de.filenameOption = newFilenameOption
     }
     de.uri = uri
     de.checksumOption = checksumOption
     de.comment = comment
     downloadListMgr.save() // We don't want to lose changes
+    eventMgr.fireDetailsChanged(de)
     eventMgr.fireConfigChanged(de)
   }
 
   private def relocateWithProgress(from: File, to: File): Unit = {
-    requireFriendly(!to.exists, "File with the same name already exists in the new location")
+    requireFriendly(!to.exists, "File with the same name already exists in the specified location")
     (new ProgressMonitorDialog(peer)).run(true, true, monitor => {
       monitor.beginTask("Moving file", (from.length / 100).toInt)
       try {

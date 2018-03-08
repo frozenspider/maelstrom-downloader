@@ -1,6 +1,5 @@
 package org.fs.mael.backend.http
 
-import java.io.File
 import java.io.RandomAccessFile
 import java.net.SocketException
 import java.net.SocketTimeoutException
@@ -38,6 +37,7 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
+import org.fs.mael.core.utils.CoreUtils
 import org.slf4s.Logging
 
 class HttpBackendDownloader(
@@ -259,8 +259,7 @@ class HttpBackendDownloader(
           case _                 => None
         }
       } map { fn =>
-        // Replace invalid filename characters
-        fn replaceAll ("[\\\\/:*?\"<>|]", "_")
+        CoreUtils.asValidFilename(fn)
       } getOrElse {
         // When everything else fails - generate a filename from UUID
         "file-" + de.id.toString.toUpperCase

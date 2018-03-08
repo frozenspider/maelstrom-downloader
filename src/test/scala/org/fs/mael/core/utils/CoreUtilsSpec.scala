@@ -13,6 +13,7 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 import com.google.common.jimfs.Configuration
 import com.google.common.jimfs.Jimfs
 import org.fs.mael.core.UserFriendlyException
+import java.io.File
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class CoreUtilsSpec
@@ -20,6 +21,8 @@ class CoreUtilsSpec
   with TableDrivenPropertyChecks {
 
   import CoreUtils._
+
+  val tmpdir = sys.props("java.io.tmpdir")
 
   test("requireFriendly") {
     requireFriendly(true, "msg")
@@ -150,7 +153,6 @@ class CoreUtilsSpec
   }
 
   test("moveFile - same FS, normal execution") {
-    val tmpdir = sys.props("java.io.tmpdir")
     val fsConfigs = Table(
       (("FS", "from path", "to path")),
       (Jimfs.newFileSystem(Configuration.windows()), "c:\\foo\\file1.bin", "c:\\foo\\file2.bin"),
@@ -184,6 +186,21 @@ class CoreUtilsSpec
         Files.deleteIfExists(file1.getParent)
         Files.deleteIfExists(file2.getParent)
       }
+    }
+  }
+
+  test("valid filenames") {
+    val strings = Table(
+      (("illegal chars")),
+      "/", "\\", ":", "*", "?", "\"", "<", ">", "|"
+    )
+    forAll(strings) { s =>
+      val fn = "qwe" + s + ".rty"
+      assert(!isValidFilename(s))
+      assert(!isValidFilename(fn))
+      assert(asValidFilename(fn) === "qwe" + ("_" * s.length) + ".rty")
+      assert(isValidFilename(asValidFilename(fn)))
+      assert(new File(tmpdir, asValidFilename(fn)).getAbsoluteFile.getName === asValidFilename(fn))
     }
   }
 }
