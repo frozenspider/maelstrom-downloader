@@ -1,3 +1,5 @@
+### SNAPSHOT
+
 ### 0.2
 * Added ability to specify download filename
 * Added ability to specify a hash checksum to verify a downloaded file integrity
