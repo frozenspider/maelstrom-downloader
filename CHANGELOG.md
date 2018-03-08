@@ -6,6 +6,7 @@
   * Changing location will cause the file to be moved, in a safe way and with a progress bar
 * Reworked download location selection in Add Download dialog
 * Fixed issue with HTTP downloader starving for data
+* Fixed issue with line wrapping not working in download properties
 
 ### 0.1.2
 * Fixed exit button in top menu not working 

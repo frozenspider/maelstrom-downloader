@@ -58,7 +58,7 @@ class EditDownloadDialog(
       label.setText("URI:")
     }
 
-    uriInput = new Text(peer, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL).withCode { input =>
+    uriInput = new Text(peer, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL | SWT.WRAP).withCode { input =>
       input.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_FILL).withCode { d =>
         d.heightHint = 50
         d.widthHint = 500
@@ -124,9 +124,9 @@ class EditDownloadDialog(
       label.setText("Comment:")
     }
 
-    commentInput = new Text(peer, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL).withCode { input =>
+    commentInput = new Text(peer, SWT.MULTI | SWT.BORDER | SWT.V_SCROLL | SWT.WRAP).withCode { input =>
       input.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false).withCode { d =>
-        d.heightHint = 50
+        d.heightHint = 100
         d.widthHint = 500
       })
       installDefaultHotkeys(input)
@@ -180,6 +180,8 @@ class EditDownloadDialog(
           case None =>
           // NOOP
         }
+
+        commentInput.setText(de.comment)
 
       case None =>
         // Try to paste URL from clipboard
