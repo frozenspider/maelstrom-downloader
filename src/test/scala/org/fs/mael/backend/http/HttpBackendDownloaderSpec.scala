@@ -37,7 +37,7 @@ class HttpBackendDownloaderSpec
   private val eventMgr = new ControlledEventManager
   private val transferMgr = new ControlledTransferManager
 
-  private val downloader = new HttpBackendDownloader(eventMgr, transferMgr)
+  private val downloader = new HttpDownloader(eventMgr, transferMgr)
   private val tmpDir = new File(sys.props("java.io.tmpdir"))
   private var tmpFilenames = Seq.empty[String]
 

@@ -5,10 +5,13 @@ import java.net.URI
 
 import scala.reflect.ClassTag
 
+import org.eclipse.swt.widgets.TabFolder
 import org.fs.mael.core.backend.Backend
+import org.fs.mael.core.backend.BackendConfigUi
 import org.fs.mael.core.backend.BackendDataSerializer
 import org.fs.mael.core.backend.BackendDownloader
 import org.fs.mael.core.checksum.Checksum
+import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 
@@ -46,4 +49,7 @@ abstract class AbstractSimpleBackend[T <: BackendSpecificEntryData: ClassTag](
     DownloadEntry[BSED](id, uri, location, filenameOption, checksumOption, comment, emptyBsed)
   }
 
+  override def layoutConfig(tabFolder: TabFolder, cfgMgr: ConfigManager) = new BackendConfigUi[T] {
+    override def get(): BSED = emptyBsed
+  }
 }

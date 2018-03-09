@@ -40,7 +40,7 @@ import org.fs.mael.core.transfer.TransferManager
 import org.fs.mael.core.utils.CoreUtils
 import org.slf4s.Logging
 
-class HttpBackendDownloader(
+class HttpDownloader(
   override val eventMgr:    EventManager,
   override val transferMgr: TransferManager
 ) extends BackendDownloader[HttpEntryData](HttpBackend.Id) with Logging {
@@ -325,7 +325,7 @@ class HttpBackendDownloader(
             msg => doChecked(addLogAndFire(de, LogEntry.response(msg)))
           )
         )
-      val connMgr = new BasicHttpClientConnectionManager(HttpBackendDownloader.SocketFactoryRegistry, connFactory, null, null)
+      val connMgr = new BasicHttpClientConnectionManager(HttpDownloader.SocketFactoryRegistry, connFactory, null, null)
       connMgr.setSocketConfig(
         SocketConfig.custom()
           .setSoTimeout(connTimeoutMs)
@@ -342,7 +342,7 @@ class HttpBackendDownloader(
   }
 }
 
-object HttpBackendDownloader {
+object HttpDownloader {
   private val SocketFactoryRegistry: Registry[ConnectionSocketFactory] = RegistryBuilder.create[ConnectionSocketFactory]
     .register("http", PlainConnectionSocketFactory.getSocketFactory())
     .register("https", SSLConnectionSocketFactory.getSocketFactory())

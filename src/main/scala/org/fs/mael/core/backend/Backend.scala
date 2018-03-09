@@ -3,7 +3,9 @@ package org.fs.mael.core.backend
 import java.io.File
 import java.net.URI
 
+import org.eclipse.swt.widgets.TabFolder
 import org.fs.mael.core.checksum.Checksum
+import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 
@@ -22,6 +24,7 @@ trait Backend {
 
   def isSupported(uri: URI): Boolean
 
+  // FIXME: Add BSED
   /** Create a {@code DownloadEntry} from an URI */
   def create(uri: URI, location: File, filenameOption: Option[String], checksumOption: Option[Checksum], comment: String): DownloadEntry[BSED] = {
     require(isSupported(uri), "URI not supported")
@@ -31,6 +34,8 @@ trait Backend {
   def downloader: BackendDownloader[BSED]
 
   def dataSerializer: BackendDataSerializer[BSED]
+
+  def layoutConfig(tabFolder: TabFolder, cfgMgr: ConfigManager): BackendConfigUi[BSED]
 
   protected def createInner(uri: URI, location: File, filenameOption: Option[String], checksumOption: Option[Checksum], comment: String): DownloadEntry[BSED]
 }

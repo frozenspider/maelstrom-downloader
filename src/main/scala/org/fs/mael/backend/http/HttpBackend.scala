@@ -3,8 +3,11 @@ package org.fs.mael.backend.http
 import java.io.File
 import java.net.URI
 
+import org.eclipse.swt.widgets.TabFolder
+import org.fs.mael.backend.http.ui.HttpConfigUi
 import org.fs.mael.core.backend.Backend
 import org.fs.mael.core.checksum.Checksum
+import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
@@ -35,9 +38,11 @@ class HttpBackend(eventMgr: EventManager, transferMgr: TransferManager) extends 
     DownloadEntry(id, uri, location, filenameOption, checksumOption, comment, new HttpEntryData)
   }
 
-  override val downloader = new HttpBackendDownloader(eventMgr, transferMgr)
+  override val downloader = new HttpDownloader(eventMgr, transferMgr)
 
   override val dataSerializer = new HttpDataSerializer
+
+  override def layoutConfig(tabFolder: TabFolder, cfgMgr: ConfigManager) = new HttpConfigUi(tabFolder)
 }
 
 object HttpBackend {
