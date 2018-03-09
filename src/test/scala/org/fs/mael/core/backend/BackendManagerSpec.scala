@@ -5,6 +5,7 @@ import java.net.URI
 
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.test.stub.AbstractSimpleBackend
+import org.fs.mael.test.stub.FixedDataSerializer
 import org.fs.mael.test.stub.StubBackend
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
@@ -100,6 +101,7 @@ class BackendManagerSpec
     override def isSupported(uri: URI): Boolean =
       uri.getScheme == "uriType1"
     override val defaultData = new SpecificBackendEntryData
+    override val dataSerializer = new FixedDataSerializer(defaultData)
   }
 
   private class LessSpecificBackend extends AbstractSimpleBackend[LessSpecificBackendEntryData](
@@ -108,6 +110,7 @@ class BackendManagerSpec
     override def isSupported(uri: URI): Boolean =
       uri.getScheme == "uriType1" || uri.getScheme == "uriType2"
     override val defaultData = new LessSpecificBackendEntryData
+    override val dataSerializer = new FixedDataSerializer(defaultData)
   }
 
   class SpecificBackendEntryData extends BackendSpecificEntryData {

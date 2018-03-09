@@ -27,6 +27,11 @@ object StubBackend {
     override val backendId = Id
     var myParam: String = ""
 
+    def this(myParam: String) = {
+      this()
+      this.myParam = myParam
+    }
+
     override def equalsInner(that: BackendSpecificEntryData): Boolean = that match {
       case that: StubEntryData => this.myParam == that.myParam
       case _                   => false
@@ -37,15 +42,11 @@ object StubBackend {
 
   object StubDataSerializer extends BackendDataSerializer[StubEntryData] {
     override def serializeFields(ed: StubEntryData): Seq[JField] = {
-      Seq(
-        JField("myParam", JString(ed.myParam))
-      )
+      Seq(JField("myParam", JString(ed.myParam)))
     }
 
     override def deserialize(jObj: JObject): StubEntryData = {
-      val ed = new StubEntryData
-      ed.myParam = (jObj \ "myParam").extract[String]
-      ed
+      new StubEntryData((jObj \ "myParam").extract[String])
     }
   }
 }

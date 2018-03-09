@@ -25,8 +25,6 @@ abstract class AbstractSimpleBackend[T <: BackendSpecificEntryData: ClassTag](
     ct.runtimeClass.asInstanceOf[Class[BSED]]
   }
 
-  override def dataSerializer: BackendDataSerializer[BSED] = new StubDataSerializer(defaultData)
-
   override def downloader: BackendDownloader[BSED] = new BackendDownloader[BSED](id) {
     override def eventMgr = ???
     override def transferMgr = ???

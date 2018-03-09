@@ -14,7 +14,6 @@ import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.core.Status
-import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.core.backend.Backend
 import org.fs.mael.core.backend.BackendConfigUi
 import org.fs.mael.core.backend.BackendManager
@@ -42,18 +41,19 @@ class EditDownloadDialog(
   eventMgr:        EventManager
 ) extends Logging {
 
-  var tabFolder: TabFolder = _
+  private var tabFolder: TabFolder = _
 
-  var uriInput: Text = _
-  var locationInput: DirectoryFieldEditor = _
-  var filenameInput: Text = _
-  var commentInput: Text = _
-  var checksumDropdown: Combo = _
-  var checksumInput: Text = _
+  private var uriInput: Text = _
+  private var locationInput: DirectoryFieldEditor = _
+  private var filenameInput: Text = _
+  private var commentInput: Text = _
+  private var checksumDropdown: Combo = _
+  private var checksumInput: Text = _
 
-  var goAdvanced: () => Unit = _
-  var backendOption: Option[Backend] = deOption map (de => backendMgr(de.backendId))
-  var backendCfgUi: Option[BackendConfigUi[_]] = None
+  /** Switch to advanced mode, enabling backend-specific config options */
+  private var goAdvanced: () => Unit = _
+  private var backendOption: Option[Backend] = deOption map (de => backendMgr(de.backendId))
+  private var backendCfgUiOption: Option[BackendConfigUi[_]] = None
 
   val peer = new Shell(parent, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL).withCode { shell =>
     if (!deOption.isDefined) {
@@ -267,10 +267,11 @@ class EditDownloadDialog(
   private def advancedClicked(advancedButton: Button, okButton: Button, cancelButton: Button): Unit = {
     tryShowingError(peer, log) {
       val backend = getBackend(getUri())
-      // From now on, backend is fixed
+      // From now on, backend is frozen
       backendOption = Some(backend)
-      backendCfgUi = Some(backend.layoutConfig(tabFolder))
-      // Re-do buttons layout
+      backendCfgUiOption = Some(backend.layoutConfig(tabFolder))
+
+      // Re-do buttons layout, hiding "advanced" button
       advancedButton.dispose()
       okButton.getLayoutData.asInstanceOf[RowData].width = 150
       cancelButton.getLayoutData.asInstanceOf[RowData].width = 150
@@ -306,7 +307,7 @@ class EditDownloadDialog(
         None
       }
       // TODO: Actually use it
-      val dataOption = backendCfgUi map (_.get.asInstanceOf[backend.BSED])
+      val dataOption = backendCfgUiOption map (_.get.asInstanceOf[backend.BSED])
       deOption match {
         case None     => create(backend, uri, location, filenameOption, checksumOption, comment)(dataOption)
         case Some(de) => edit(de, backend, uri, location, filenameOption, checksumOption, comment)(dataOption)
