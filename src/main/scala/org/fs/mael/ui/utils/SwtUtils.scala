@@ -6,7 +6,9 @@ import org.eclipse.swt.events.TypedEvent
 import org.eclipse.swt.graphics.FontData
 import org.eclipse.swt.graphics.Rectangle
 import org.eclipse.swt.widgets._
+import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.ui.utils.Hotkey._
+import org.slf4s.Logger
 
 object SwtUtils {
   def getCurrentMonitor(c: Control): Monitor = {
@@ -66,6 +68,20 @@ object SwtUtils {
   }
 
   def getArea(r: Rectangle): Int = r.height * r.width
+
+  def tryShowingError(shell: Shell, log: Logger)(code: => Unit): Unit = {
+    try {
+      code
+    } catch {
+      case ex: InterruptedException =>
+      // Cancelled by user, do nothing
+      case ex: UserFriendlyException =>
+        showError(shell, message = ex.getMessage)
+      case ex: Throwable =>
+        log.error("Unexpected error", ex)
+        showError(shell, message = ex.toString)
+    }
+  }
 
   def showError(shell: Shell, title: String = "Error", message: String): Unit = {
     val popup = new MessageBox(shell, SWT.ICON_ERROR | SWT.OK);
