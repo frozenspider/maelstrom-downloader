@@ -10,11 +10,14 @@ import org.eclipse.jface.dialogs.MessageDialog
 import org.eclipse.jface.dialogs.MessageDialogWithToggle
 import org.eclipse.swt._
 import org.eclipse.swt.custom.SashForm
+import org.eclipse.swt.events.ShellAdapter
+import org.eclipse.swt.events.ShellEvent
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.BuildInfo
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.BackendManager
+import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.event.EventForUi
 import org.fs.mael.core.event.EventManager
@@ -23,6 +26,7 @@ import org.fs.mael.core.event.UiSubscriber
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components._
+import org.fs.mael.ui.prefs.GlobalPreferences
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.Hotkey
 import org.fs.mael.ui.utils.Hotkey._
@@ -38,6 +42,8 @@ class MainFrame(
   eventMgr:        EventManager
 ) extends Logging {
 
+  private val trayOption = Option(display.getSystemTray)
+  private var trayItem: TrayItem = _
   private var mainTable: DownloadsTable = _
   private var logTable: LogTable = _
 
@@ -49,6 +55,13 @@ class MainFrame(
 
   val peer: Shell = new Shell(display).withCode { peer =>
     peer.addListener(SWT.Close, onWindowClose)
+    peer.addShellListener(new ShellAdapter {
+      override def shellIconified(e: ShellEvent): Unit = {
+        // Note: this might be called second time from minimize, but that's not a problem
+        e.doit = false
+        minimize(None)
+      }
+    })
 
     // Layout
 
@@ -78,6 +91,8 @@ class MainFrame(
 
     // Init
 
+    trayOption foreach (tray => initTray(tray, peer))
+
     fillMenu(menu, peer)
     fillToolbar(toolbar, peer)
     fillMainTable(mainTable, peer)
@@ -91,6 +106,40 @@ class MainFrame(
     centerOnScreen(peer)
 
     eventMgr.subscribe(subscriber)
+  }
+
+  private def initTray(tray: Tray, shell: Shell): Unit = {
+    trayItem = new TrayItem(tray, SWT.NONE)
+    trayItem.setImage(resources.mainIcon)
+    trayItem.setToolTipText(BuildInfo.prettyName)
+
+    import GlobalPreferences._
+    cfgMgr.addConfigChangedListener(ShowTrayIconBehavior)(e => {
+      updateTrayIconVisibility(e.newValue)
+    })
+    updateTrayIconVisibility(cfgMgr(ShowTrayIconBehavior))
+    def show(e: Event): Unit = {
+      updateTrayIconVisibility(cfgMgr(ShowTrayIconBehavior))
+      shell.setVisible(true)
+      shell.setMinimized(false)
+      shell.forceActive()
+    }
+    trayItem.addListener(SWT.Selection, show)
+
+    // TODO: Add more items
+    val menu = new Menu(shell, SWT.POP_UP)
+    createMenuItem(menu, "Show main window", shell, None)(show).withCode { item =>
+      menu.setDefaultItem(item)
+    }
+    new MenuItem(menu, SWT.SEPARATOR)
+    createMenuItem(menu, "Exit", shell, None)(tryExit)
+
+    trayItem.addListener(SWT.MenuDetect, e => menu.setVisible(true))
+  }
+
+  private def updateTrayIconVisibility(setting: GlobalPreferences.ShowTrayIcon): Unit = {
+    val showWhenNeeded = setting == GlobalPreferences.ShowTrayIcon.WhenNeeded
+    trayItem.setVisible(!showWhenNeeded)
   }
 
   private def fillMenu(menu: Menu, shell: Shell): Unit = {
@@ -116,7 +165,7 @@ class MainFrame(
 
       val itemOptions = new MenuItem(submenu, SWT.PUSH)
       itemOptions.setText("Options")
-      itemOptions.addListener(SWT.Selection, e => cfgMgr.showDialog(shell))
+      itemOptions.addListener(SWT.Selection, e => new GlobalPreferences(cfgMgr).showDialog(shell))
     }
   }
 
@@ -134,7 +183,7 @@ class MainFrame(
       btnStart.addListener(SWT.Selection, e => {
         mainTable.selectedEntries map { de =>
           val pair = backendMgr.getCastedPair(de)
-          pair.backend.downloader.start(pair.de, cfgMgr.getProperty(ConfigOptions.NetworkTimeout))
+          pair.backend.downloader.start(pair.de, cfgMgr(GlobalPreferences.NetworkTimeout))
         }
       })
       btnStart.forDownloads(_ exists (_.status.canBeStarted))
@@ -163,23 +212,23 @@ class MainFrame(
       val parent = mainTable.peer
       parent.setMenu(menu)
 
-      createMenuItem(menu, "Open folder", parent, None) {
+      createMenuItem(menu, "Open folder", parent, None) { e =>
         openFolders()
       }
 
-      createMenuItem(menu, "Copy download URI", parent, Some(Hotkey(Ctrl, Key('C')))) {
+      createMenuItem(menu, "Copy download URI", parent, Some(Hotkey(Ctrl, Key('C')))) { e =>
         copyUris()
       }
 
       new MenuItem(menu, SWT.SEPARATOR)
 
-      createMenuItem(menu, "Delete", parent, Some(Hotkey(Key.Delete))) {
+      createMenuItem(menu, "Delete", parent, Some(Hotkey(Key.Delete))) { e =>
         if (mainTable.peer.getSelectionCount > 0) {
           tryDeleteSelectedDownloads(false)
         }
       }
 
-      createMenuItem(menu, "Delete with file", parent, Some(Hotkey(Shift, Key.Delete))) {
+      createMenuItem(menu, "Delete with file", parent, Some(Hotkey(Shift, Key.Delete))) { e =>
         if (mainTable.peer.getSelectionCount > 0) {
           tryDeleteSelectedDownloads(true)
         }
@@ -187,7 +236,7 @@ class MainFrame(
 
       new MenuItem(menu, SWT.SEPARATOR)
 
-      val openProps = createMenuItem(menu, "Properties", parent, None) {
+      val openProps = createMenuItem(menu, "Properties", parent, None) { e =>
         val deOption = mainTable.selectedEntryOption
         require(deOption.isDefined)
         val dialog = new EditDownloadDialog(deOption, shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
@@ -207,8 +256,8 @@ class MainFrame(
   }
 
   private def onWindowClose(closeEvent: Event): Unit = {
-    import ConfigOptions.OnWindowClose._
-    cfgMgr.getProperty(ConfigOptions.ActionOnWindowClose) match {
+    import org.fs.mael.ui.prefs.GlobalPreferences.OnWindowClose._
+    cfgMgr(GlobalPreferences.OnWindowCloseBehavior) match {
       case Undefined => promptWindowClose(closeEvent)
       case Close     => tryExit(closeEvent)
       case Minimize  => minimize(Some(closeEvent))
@@ -216,8 +265,8 @@ class MainFrame(
   }
 
   private def promptWindowClose(closeEvent: Event): Unit = {
-    import ConfigOptions._
     import java.util.LinkedHashMap
+    import org.fs.mael.ui.prefs.GlobalPreferences._
     val lhm = new LinkedHashMap[String, Integer].withCode { lhm =>
       lhm.put(OnWindowClose.Minimize.prettyName, 1)
       lhm.put(OnWindowClose.Close.prettyName, 2)
@@ -239,7 +288,7 @@ class MainFrame(
     } else {
       val Some(action) = actionOption
       if (result.getToggleState) {
-        cfgMgr.setProperty(ConfigOptions.ActionOnWindowClose, action)
+        cfgMgr.set(OnWindowCloseBehavior, action)
       }
       (action: @unchecked) match {
         case OnWindowClose.Close    => tryExit(closeEvent)
@@ -250,7 +299,19 @@ class MainFrame(
 
   private def minimize(closeEventOption: Option[Event]): Unit = {
     closeEventOption foreach (_.doit = false)
-    peer.setMinimized(true)
+    import org.fs.mael.ui.prefs.GlobalPreferences._
+    // Only minimize to tray if tray exists
+    (closeEventOption, cfgMgr(MinimizeToTrayBehavior)) match {
+      case (_, MinimizeToTray.Always) if trayOption.isDefined        => minimizeToTray()
+      case (Some(_), MinimizeToTray.OnClose) if trayOption.isDefined => minimizeToTray()
+      case _                                                         => peer.setMinimized(true)
+    }
+  }
+
+  private def minimizeToTray(): Unit = {
+    require(trayOption.isDefined, "Can't minimize to non-existent tray!")
+    trayItem.setVisible(true)
+    peer.setVisible(false)
   }
 
   private def tryExit(closeEvent: Event): Unit = {

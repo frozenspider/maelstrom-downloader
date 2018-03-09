@@ -1,4 +1,5 @@
 ### SNAPSHOT
+* Added tray icon and minimize to tray setting
 
 ### 0.2
 * Added ability to specify download filename
