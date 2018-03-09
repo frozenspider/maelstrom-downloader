@@ -7,6 +7,7 @@ import org.eclipse.swt.widgets.Shell
 import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.config.ConfigManager
+import org.fs.mael.core.config.FileBackedConfigManager
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.event.EventManagerImpl
 import org.fs.mael.core.list.DownloadListManager
@@ -39,7 +40,7 @@ object MaelstromDownloaderMain extends App with Logging {
       preloadClasses()
       // TODO: Show minimal splash screen
       val display = new Display()
-      val cfgMgr = new ConfigManager(mainConfigFile)
+      val cfgMgr = new FileBackedConfigManager(mainConfigFile)
       val resources = new ResourcesImpl(display)
       val eventMgr = new EventManagerImpl
       val backendMgr = new BackendManager

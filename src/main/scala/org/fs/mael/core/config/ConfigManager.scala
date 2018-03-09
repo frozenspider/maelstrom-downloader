@@ -1,28 +1,16 @@
 package org.fs.mael.core.config
 
-import java.io.File
-import java.io.FileNotFoundException
-
 import scala.reflect.runtime.universe._
 
 import org.eclipse.jface.preference.IPreferenceStore
-import org.eclipse.jface.preference.PreferenceStore
 import org.eclipse.jface.util.PropertyChangeEvent
-import org.fs.mael.core.utils.CoreUtils._
 
-class ConfigManager(val file: File) {
+trait ConfigManager {
   import ConfigManager._
 
-  val store = new PreferenceStore().withCode { store =>
-    import ConfigSetting._
-    file.getParentFile.mkdirs()
-    store.setFilename(file.getAbsolutePath)
-    try {
-      store.load()
-    } catch {
-      case ex: FileNotFoundException => // NOOP
-    }
-  }
+  val store: IPreferenceStore
+
+  def save(): Unit
 
   /**
    * Initialize default values for the given config setting.
@@ -58,7 +46,7 @@ class ConfigManager(val file: File) {
       case t if t =:= typeOf[Double]  => store.setValue(setting.id, value.asInstanceOf[Double])
       case t if t =:= typeOf[String]  => store.setValue(setting.id, value.asInstanceOf[String])
     }).asInstanceOf[T]
-    store.save()
+    save()
   }
 
   def set[T, Repr: TypeTag](setting: ConfigSetting.CustomConfigSetting[T, Repr], value: T): Unit = {
