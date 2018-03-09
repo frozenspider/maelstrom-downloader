@@ -45,7 +45,7 @@ object MaelstromDownloaderMain extends App with Logging {
       val eventMgr = new EventManagerImpl
       val backendMgr = new BackendManager
       val transferMgr = new SimpleTransferManager
-      initBackends(backendMgr, eventMgr, transferMgr)
+      initBackends(backendMgr, transferMgr, cfgMgr, eventMgr)
       val downloadListMgr = {
         val serializer = new DownloadListSerializerImpl(backendMgr)
         new DownloadListManager(serializer, downloadListFile, eventMgr)
@@ -78,10 +78,11 @@ object MaelstromDownloaderMain extends App with Logging {
 
   def initBackends(
     backendMgr:  BackendManager,
-    eventMgr:    EventManager,
-    transferMgr: TransferManager
+    transferMgr: TransferManager,
+    cfgMgr:      ConfigManager,
+    eventMgr:    EventManager
   ): Unit = {
-    backendMgr += (new HttpBackend(eventMgr, transferMgr), 0)
+    backendMgr += (new HttpBackend(transferMgr, cfgMgr, eventMgr), 0)
   }
 
   def initUi(

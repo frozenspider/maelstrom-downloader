@@ -12,7 +12,11 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
 
-class HttpBackend(eventMgr: EventManager, transferMgr: TransferManager) extends Backend {
+class HttpBackend(
+  transferMgr: TransferManager,
+  cfgMgr:      ConfigManager,
+  eventMgr:    EventManager
+) extends Backend {
   override type BSED = HttpEntryData
 
   override val dataClass: Class[BSED] = classOf[BSED]
@@ -28,21 +32,14 @@ class HttpBackend(eventMgr: EventManager, transferMgr: TransferManager) extends 
     }
   }
 
-  override protected def createInner(
-    uri:            URI,
-    location:       File,
-    filenameOption: Option[String],
-    checksumOption: Option[Checksum],
-    comment:        String
-  ): DownloadEntry[HttpEntryData] = {
-    DownloadEntry(id, uri, location, filenameOption, checksumOption, comment, new HttpEntryData)
-  }
-
   override val downloader = new HttpDownloader(eventMgr, transferMgr)
 
   override val dataSerializer = new HttpDataSerializer
 
-  override def layoutConfig(tabFolder: TabFolder, cfgMgr: ConfigManager) = new HttpConfigUi(tabFolder)
+  override def layoutConfig(tabFolder: TabFolder) = new HttpConfigUi(tabFolder, cfgMgr)
+
+  // FIXME: Use properties
+  override def defaultData: HttpEntryData = new HttpEntryData
 }
 
 object HttpBackend {

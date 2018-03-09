@@ -6,13 +6,13 @@ import org.fs.mael.core.backend.BackendDataSerializer
 import org.fs.mael.core.entry.BackendSpecificEntryData
 
 class StubBackend
-  extends AbstractSimpleBackend(
-    StubBackend.Id,
-    new StubBackend.StubEntryData
+  extends AbstractSimpleBackend[StubBackend.StubEntryData](
+    StubBackend.Id
   ) {
   override def isSupported(uri: URI): Boolean = true
   override val dataSerializer: BackendDataSerializer[StubBackend.StubEntryData] =
     StubBackend.StubDataSerializer
+  override val defaultData = new StubBackend.StubEntryData
 }
 
 object StubBackend {

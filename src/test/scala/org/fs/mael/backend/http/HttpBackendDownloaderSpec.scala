@@ -322,7 +322,7 @@ class HttpBackendDownloaderSpec
 
   test("failure - path is not accessible") {
     val de = createDownloadEntry
-    de.location = new File("?*|\0><'\"%:")
+    de.location = new File("?*|\u0000><'\"%:")
     server.respondWith(serveContentNormally(Array.empty[Byte]))
 
     expectStatusChangeEvents(de, Status.Running, Status.Error)

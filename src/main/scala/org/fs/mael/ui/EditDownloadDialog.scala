@@ -269,7 +269,7 @@ class EditDownloadDialog(
       val backend = getBackend(getUri())
       // From now on, backend is fixed
       backendOption = Some(backend)
-      backendCfgUi = Some(backend.layoutConfig(tabFolder, cfgMgr))
+      backendCfgUi = Some(backend.layoutConfig(tabFolder))
       // Re-do buttons layout
       advancedButton.dispose()
       okButton.getLayoutData.asInstanceOf[RowData].width = 150
@@ -306,10 +306,10 @@ class EditDownloadDialog(
         None
       }
       // TODO: Actually use it
-      val bsedOption = backendCfgUi map (_.get.asInstanceOf[backend.BSED])
+      val dataOption = backendCfgUi map (_.get.asInstanceOf[backend.BSED])
       deOption match {
-        case None     => create(backend, uri, location, filenameOption, checksumOption, comment)
-        case Some(de) => edit(de, backend, uri, location, filenameOption, checksumOption, comment)
+        case None     => create(backend, uri, location, filenameOption, checksumOption, comment)(dataOption)
+        case Some(de) => edit(de, backend, uri, location, filenameOption, checksumOption, comment)(dataOption)
       }
       peer.dispose()
     }
@@ -322,8 +322,8 @@ class EditDownloadDialog(
     filenameOption: Option[String],
     checksumOption: Option[Checksum],
     comment:        String
-  ): Unit = {
-    val entry = backend.create(uri, location, filenameOption, checksumOption, comment)
+  )(dataOption: Option[backend.BSED]): Unit = {
+    val entry = backend.create(uri, location, filenameOption, checksumOption, comment, dataOption)
     downloadListMgr.add(entry)
   }
 
@@ -335,7 +335,7 @@ class EditDownloadDialog(
     filenameOption: Option[String],
     checksumOption: Option[Checksum],
     comment:        String
-  ): Unit = {
+  )(dataOption: Option[backend.BSED]): Unit = {
     val de = dev.asInstanceOf[DownloadEntry[backend.BSED]]
     val newFilenameOption = filenameOption orElse de.filenameOption
     if (location != de.location || filenameOption != de.filenameOption) {
@@ -352,6 +352,9 @@ class EditDownloadDialog(
     de.uri = uri
     de.checksumOption = checksumOption
     de.comment = comment
+    dataOption foreach { data =>
+      de.backendSpecificData = data
+    }
     downloadListMgr.save() // We don't want to lose changes
     eventMgr.fireDetailsChanged(de)
     eventMgr.fireConfigChanged(de)

@@ -31,8 +31,8 @@ class DownloadListManagerSpec
 
     val backend = new StubBackend
     val entries = Seq(
-      backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1"),
-      backend.create(new URI("uri2"), new File("/a2"), None, Some(Checksum(ChecksumType.SHA1, "1abcde")), "comment2")
+      backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1", Some(new StubBackend.StubEntryData)),
+      backend.create(new URI("uri2"), new File("/a2"), None, Some(Checksum(ChecksumType.SHA1, "1abcde")), "comment2", None)
     )
     val serializer: DownloadListSerializer = new DownloadListSerializer {
       override def serialize(entries2: Iterable[DownloadEntry[_]]): String = {
@@ -70,7 +70,7 @@ class DownloadListManagerSpec
     )
     val entries = statuses.zipWithIndex.map {
       case (status, i) =>
-        backend.create(new URI("uri" + i), new File(""), None, None, "").withCode {
+        backend.create(new URI("uri" + i), new File(""), None, None, "", None).withCode {
           _.status = status
         }
     }
@@ -90,8 +90,8 @@ class DownloadListManagerSpec
 
     val backend = new StubBackend
     val entries = IndexedSeq(
-      backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1"),
-      backend.create(new URI("uri2"), new File("/a2"), None, Some(Checksum(ChecksumType.SHA1, "1abcde")), "comment2")
+      backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1", Some(new StubBackend.StubEntryData)),
+      backend.create(new URI("uri2"), new File("/a2"), None, Some(Checksum(ChecksumType.SHA1, "1abcde")), "comment2", None)
     )
 
     dlm.add(entries(0))

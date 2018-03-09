@@ -27,7 +27,7 @@ class DownloadEntry[ED <: BackendSpecificEntryData] private (
   var filenameOption:       Option[String],
   var checksumOption:       Option[Checksum],
   var comment:              String,
-  val backendSpecificData:  ED
+  var backendSpecificData:  ED
 ) extends DownloadEntryView with DownloadEntryLoggableView {
 
   var status: Status = Status.Stopped

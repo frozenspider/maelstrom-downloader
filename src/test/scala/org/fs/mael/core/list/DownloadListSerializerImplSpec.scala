@@ -9,6 +9,7 @@ import org.fs.mael.core.Status
 import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.checksum.ChecksumType
+import org.fs.mael.core.config.InMemoryConfigManager
 import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
@@ -31,7 +32,7 @@ class DownloadListSerializerImplSpec
 
   private val backendMgr = (new BackendManager).withCode { backendMgr =>
     backendMgr += (new StubBackend, Int.MinValue)
-    backendMgr += (new HttpBackend(eventMgr, new SimpleTransferManager), 0)
+    backendMgr += (new HttpBackend(new SimpleTransferManager, new InMemoryConfigManager, eventMgr), 0)
   }
 
   private val serializer = new DownloadListSerializerImpl(backendMgr)
@@ -127,6 +128,6 @@ class DownloadListSerializerImplSpec
     val loc = new File(System.getProperty("java.io.tmpdir"))
     val uri = new URI(uriString)
     val backend = backendMgr.findFor(uri).get
-    backend.create(uri, loc, None, None, "").withCode(code)
+    backend.create(uri, loc, None, None, "", None).withCode(code)
   }
 }

@@ -16,8 +16,7 @@ import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 
 abstract class AbstractSimpleBackend[T <: BackendSpecificEntryData: ClassTag](
-  override val id: String,
-  val emptyBsed:   T
+  override val id: String
 ) extends Backend {
   override type BSED = T
 
@@ -26,7 +25,7 @@ abstract class AbstractSimpleBackend[T <: BackendSpecificEntryData: ClassTag](
     ct.runtimeClass.asInstanceOf[Class[BSED]]
   }
 
-  override def dataSerializer: BackendDataSerializer[BSED] = new StubDataSerializer(emptyBsed)
+  override def dataSerializer: BackendDataSerializer[BSED] = new StubDataSerializer(defaultData)
 
   override def downloader: BackendDownloader[BSED] = new BackendDownloader[BSED](id) {
     override def eventMgr = ???
@@ -39,17 +38,7 @@ abstract class AbstractSimpleBackend[T <: BackendSpecificEntryData: ClassTag](
 
   def downloadStopped(de: DownloadEntry[BSED]): Unit = {}
 
-  override protected def createInner(
-    uri:            URI,
-    location:       File,
-    filenameOption: Option[String],
-    checksumOption: Option[Checksum],
-    comment:        String
-  ): DownloadEntry[BSED] = {
-    DownloadEntry[BSED](id, uri, location, filenameOption, checksumOption, comment, emptyBsed)
-  }
-
-  override def layoutConfig(tabFolder: TabFolder, cfgMgr: ConfigManager) = new BackendConfigUi[T] {
-    override def get(): BSED = emptyBsed
+  override def layoutConfig(tabFolder: TabFolder) = new BackendConfigUi[T] {
+    override def get(): BSED = defaultData
   }
 }

@@ -68,9 +68,9 @@ class BackendManagerSpec
     backendMgr += (backend1, 1)
     backendMgr += (backend2, 2)
     val universalUri = uri(1)
-    val de1 = backend1.create(universalUri, new File("1"), None, None, "comment1")
-    val de2 = backend2.create(universalUri, new File("2"), None, None, "comment2")
-    val de3 = backend3.create(universalUri, new File("3"), None, None, "comment3")
+    val de1 = backend1.create(universalUri, new File("1"), None, None, "comment1", None)
+    val de2 = backend2.create(universalUri, new File("2"), None, None, "comment2", None)
+    val de3 = backend3.create(universalUri, new File("3"), None, None, "comment3", None)
 
     val pair1 = backendMgr.getCastedPair(de1)
     assert(pair1.backend === backend1)
@@ -94,20 +94,20 @@ class BackendManagerSpec
 
   private def uri(idx: Int): URI = new URI(s"uriType${idx}://something")
 
-  private class SpecificBackend extends AbstractSimpleBackend(
-    "specific",
-    new SpecificBackendEntryData
+  private class SpecificBackend extends AbstractSimpleBackend[SpecificBackendEntryData](
+    "specific"
   ) {
     override def isSupported(uri: URI): Boolean =
       uri.getScheme == "uriType1"
+    override val defaultData = new SpecificBackendEntryData
   }
 
-  private class LessSpecificBackend extends AbstractSimpleBackend(
-    "less-specific",
-    new LessSpecificBackendEntryData
+  private class LessSpecificBackend extends AbstractSimpleBackend[LessSpecificBackendEntryData](
+    "less-specific"
   ) {
     override def isSupported(uri: URI): Boolean =
       uri.getScheme == "uriType1" || uri.getScheme == "uriType2"
+    override val defaultData = new LessSpecificBackendEntryData
   }
 
   class SpecificBackendEntryData extends BackendSpecificEntryData {

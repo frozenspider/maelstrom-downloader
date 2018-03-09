@@ -65,7 +65,7 @@ class EventManagerImplSpec
   test("events priority") {
     val stubBackend = new StubBackend
     val now = DateTime.now()
-    val de = stubBackend.create(new URI("some-uri"), new File(""), None, None, "")
+    val de = stubBackend.create(new URI("some-uri"), new File(""), None, None, "", None)
     eventMgr.test_pause()
     eventMgr.fireProgress(de) // 1
     eventMgr.fireDetailsChanged(de) // 2

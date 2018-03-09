@@ -24,18 +24,35 @@ trait Backend {
 
   def isSupported(uri: URI): Boolean
 
-  // FIXME: Add BSED
   /** Create a {@code DownloadEntry} from an URI */
-  def create(uri: URI, location: File, filenameOption: Option[String], checksumOption: Option[Checksum], comment: String): DownloadEntry[BSED] = {
+  def create(
+    uri:            URI,
+    location:       File,
+    filenameOption: Option[String],
+    checksumOption: Option[Checksum],
+    comment:        String,
+    dataOption:     Option[BSED]
+  ): DownloadEntry[BSED] = {
     require(isSupported(uri), "URI not supported")
-    createInner(uri, location, filenameOption, checksumOption, comment)
+    createInner(uri, location, filenameOption, checksumOption, comment, dataOption getOrElse defaultData)
   }
 
   def downloader: BackendDownloader[BSED]
 
   def dataSerializer: BackendDataSerializer[BSED]
 
-  def layoutConfig(tabFolder: TabFolder, cfgMgr: ConfigManager): BackendConfigUi[BSED]
+  def layoutConfig(tabFolder: TabFolder): BackendConfigUi[BSED]
 
-  protected def createInner(uri: URI, location: File, filenameOption: Option[String], checksumOption: Option[Checksum], comment: String): DownloadEntry[BSED]
+  protected def defaultData: BSED
+
+  protected def createInner(
+    uri:            URI,
+    location:       File,
+    filenameOption: Option[String],
+    checksumOption: Option[Checksum],
+    comment:        String,
+    data:           BSED
+  ): DownloadEntry[BSED] = {
+    DownloadEntry[BSED](id, uri, location, filenameOption, checksumOption, comment, data)
+  }
 }
