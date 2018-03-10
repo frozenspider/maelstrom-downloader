@@ -36,7 +36,7 @@ abstract class AbstractSimpleBackend[T <: BackendSpecificEntryData: ClassTag](
 
   def downloadStopped(de: DownloadEntry[BSED]): Unit = {}
 
-  override def layoutConfig(tabFolder: TabFolder) = new BackendConfigUi[T] {
-    override def get(): BSED = defaultData
+  override def layoutConfig(dataOption: Option[BSED], tabFolder: TabFolder) = new BackendConfigUi[T] {
+    override def get(): BSED = dataOption getOrElse defaultData
   }
 }

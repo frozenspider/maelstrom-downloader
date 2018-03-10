@@ -339,6 +339,10 @@ class MainFrame(
         }
       }
       if (closeEvent.doit) {
+        trayOption foreach { _ =>
+          // It was sometimes left visible in system tray after termination
+          trayItem.dispose()
+        }
         downloadListMgr.save()
         peer.dispose()
       }

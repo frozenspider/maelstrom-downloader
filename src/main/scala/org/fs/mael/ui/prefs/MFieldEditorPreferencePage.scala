@@ -8,6 +8,9 @@ import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.config.ConfigSetting
 
 abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPreferencePage(style) {
+  /** Making this method visible */
+  override def noDefaultAndApplyButton(): Unit = super.noDefaultAndApplyButton()
+
   /**
    * Initialize a default value for the given config setting.
    * Please use this if an element is added manually rather than through helpers defined here

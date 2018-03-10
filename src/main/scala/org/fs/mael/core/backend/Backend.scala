@@ -41,7 +41,7 @@ trait Backend {
 
   def dataSerializer: BackendDataSerializer[BSED]
 
-  def layoutConfig(tabFolder: TabFolder): BackendConfigUi[BSED]
+  def layoutConfig(dataOption: Option[BSED], tabFolder: TabFolder): BackendConfigUi[BSED]
 
   protected def defaultData: BSED
 

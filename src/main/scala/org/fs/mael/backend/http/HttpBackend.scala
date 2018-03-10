@@ -36,7 +36,7 @@ class HttpBackend(
 
   override val dataSerializer = new HttpDataSerializer
 
-  override def layoutConfig(tabFolder: TabFolder) = new HttpConfigUi(tabFolder, cfgMgr)
+  override def layoutConfig(dataOption: Option[BSED], tabFolder: TabFolder) = new HttpConfigUi(dataOption, tabFolder, cfgMgr)
 
   // FIXME: Use properties
   override def defaultData: HttpEntryData = new HttpEntryData

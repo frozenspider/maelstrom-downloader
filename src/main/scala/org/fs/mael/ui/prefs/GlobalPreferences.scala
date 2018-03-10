@@ -80,7 +80,7 @@ object GlobalPreferences {
   }
 
   class MainPage extends MFieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
-    def createFieldEditors(): Unit = {
+    override def createFieldEditors(): Unit = {
       row(DownloadPath) { (setting, parent) =>
         new DirectoryFieldEditor(setting.id, "Download path:", parent)
       }

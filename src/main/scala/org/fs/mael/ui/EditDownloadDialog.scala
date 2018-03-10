@@ -269,7 +269,8 @@ class EditDownloadDialog(
       val backend = getBackend(getUri())
       // From now on, backend is frozen
       backendOption = Some(backend)
-      backendCfgUiOption = Some(backend.layoutConfig(tabFolder))
+      val dataOption = deOption map (_.asInstanceOf[DownloadEntry[backend.BSED]].backendSpecificData)
+      backendCfgUiOption = Some(backend.layoutConfig(dataOption, tabFolder))
 
       // Re-do buttons layout, hiding "advanced" button
       advancedButton.dispose()
