@@ -21,6 +21,7 @@ import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.checksum.ChecksumType
 import org.fs.mael.core.checksum.Checksums
 import org.fs.mael.core.config.ConfigManager
+import org.fs.mael.core.config.InMemoryConfigManager
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.event.EventManager
@@ -53,7 +54,7 @@ class EditDownloadDialog(
   /** Switch to advanced mode, enabling backend-specific config options */
   private var goAdvanced: () => Unit = _
   private var backendOption: Option[Backend] = deOption map (de => backendMgr(de.backendId))
-  private var backendCfgUiOption: Option[BackendConfigUi[_]] = None
+  private var backendCfgUiOption: Option[BackendConfigUi] = None
 
   val peer = new Shell(parent, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL).withCode { shell =>
     if (!deOption.isDefined) {
@@ -269,8 +270,8 @@ class EditDownloadDialog(
       val backend = getBackend(getUri())
       // From now on, backend is frozen
       backendOption = Some(backend)
-      val dataOption = deOption map (_.asInstanceOf[DownloadEntry[backend.BSED]].backendSpecificData)
-      backendCfgUiOption = Some(backend.layoutConfig(dataOption, tabFolder))
+      val deCfgOption = deOption map (_.backendSpecificCfg)
+      backendCfgUiOption = Some(backend.layoutConfig(deCfgOption, tabFolder))
 
       // Re-do buttons layout, hiding "advanced" button
       advancedButton.dispose()
@@ -307,11 +308,10 @@ class EditDownloadDialog(
       } else {
         None
       }
-      // TODO: Actually use it
-      val dataOption = backendCfgUiOption map (_.get.asInstanceOf[backend.BSED])
+      val deCfgOption = backendCfgUiOption map (_.get())
       deOption match {
-        case None     => create(backend, uri, location, filenameOption, checksumOption, comment)(dataOption)
-        case Some(de) => edit(de, backend, uri, location, filenameOption, checksumOption, comment)(dataOption)
+        case None     => create(backend, uri, location, filenameOption, checksumOption, comment)(deCfgOption)
+        case Some(de) => edit(de, backend, uri, location, filenameOption, checksumOption, comment)(deCfgOption)
       }
       peer.dispose()
     }
@@ -324,8 +324,8 @@ class EditDownloadDialog(
     filenameOption: Option[String],
     checksumOption: Option[Checksum],
     comment:        String
-  )(dataOption: Option[backend.BSED]): Unit = {
-    val entry = backend.create(uri, location, filenameOption, checksumOption, comment, dataOption)
+  )(deCfgOption: Option[InMemoryConfigManager]): Unit = {
+    val entry = backend.create(uri, location, filenameOption, checksumOption, comment, deCfgOption)
     downloadListMgr.add(entry)
   }
 
@@ -337,8 +337,8 @@ class EditDownloadDialog(
     filenameOption: Option[String],
     checksumOption: Option[Checksum],
     comment:        String
-  )(dataOption: Option[backend.BSED]): Unit = {
-    val de = dev.asInstanceOf[DownloadEntry[backend.BSED]]
+  )(deCfgOption: Option[InMemoryConfigManager]): Unit = {
+    val de = dev.asInstanceOf[DownloadEntry]
     val newFilenameOption = filenameOption orElse de.filenameOption
     if (location != de.location || filenameOption != de.filenameOption) {
       if (de.downloadedSize > 0) {
@@ -354,8 +354,8 @@ class EditDownloadDialog(
     de.uri = uri
     de.checksumOption = checksumOption
     de.comment = comment
-    dataOption foreach { data =>
-      de.backendSpecificData = data
+    deCfgOption foreach { cfg =>
+      de.backendSpecificCfg.resetTo(cfg)
     }
     downloadListMgr.save() // We don't want to lose changes
     eventMgr.fireDetailsChanged(de)

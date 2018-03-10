@@ -10,7 +10,6 @@ import scala.io.Source
 import org.fs.mael.core.Status
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.checksum.ChecksumType
-import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.Events._
 import org.fs.mael.core.utils.CoreUtils._
@@ -31,16 +30,16 @@ class DownloadListManagerSpec
 
     val backend = new StubBackend
     val entries = Seq(
-      backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1", Some(new StubBackend.StubEntryData)),
+      backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1", Some(backend.defaultCfg)),
       backend.create(new URI("uri2"), new File("/a2"), None, Some(Checksum(ChecksumType.SHA1, "1abcde")), "comment2", None)
     )
     val serializer: DownloadListSerializer = new DownloadListSerializer {
-      override def serialize(entries2: Iterable[DownloadEntry[_]]): String = {
+      override def serialize(entries2: Iterable[DownloadEntry]): String = {
         assert(entries2 === entries)
         "mySerializedString"
       }
 
-      override def deserialize(entriesString: String): Seq[DownloadEntry[_ <: BackendSpecificEntryData]] = {
+      override def deserialize(entriesString: String): Seq[DownloadEntry] = {
         assert(entriesString === "myInitialString")
         entries
       }
@@ -90,7 +89,7 @@ class DownloadListManagerSpec
 
     val backend = new StubBackend
     val entries = IndexedSeq(
-      backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1", Some(new StubBackend.StubEntryData)),
+      backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1", Some(backend.defaultCfg)),
       backend.create(new URI("uri2"), new File("/a2"), None, Some(Checksum(ChecksumType.SHA1, "1abcde")), "comment2", None)
     )
 

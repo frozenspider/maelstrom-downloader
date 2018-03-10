@@ -6,18 +6,18 @@ import org.eclipse.swt.layout.GridLayout
 import org.eclipse.swt.widgets.Composite
 import org.eclipse.swt.widgets.TabFolder
 import org.eclipse.swt.widgets.TabItem
-import org.fs.mael.backend.http.HttpEntryData
 import org.fs.mael.backend.http.ui.HttpPreferences._
 import org.fs.mael.core.backend.BackendConfigUi
 import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.config.InMemoryConfigManager
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.backend.http.HttpBackend
 
 class HttpConfigUi(
-  dataOption: Option[HttpEntryData],
-  tabFolder:  TabFolder,
-  _cfgMgr:    ConfigManager
-) extends BackendConfigUi[HttpEntryData] {
+  cfgOption: Option[ConfigManager],
+  tabFolder: TabFolder,
+  _cfgMgr:   ConfigManager
+) extends BackendConfigUi {
 
   val cfgMgr = new InMemoryConfigManager
 
@@ -38,27 +38,15 @@ class HttpConfigUi(
     page
   }
 
-  // TODO: Integrate with preferences to automatically save/load from BSED?
   private def initialize(): Unit = {
-    dataOption match {
-      case Some(data) => initializeFromData(data)
-      case None       => initializeFromDefaults()
+    cfgOption match {
+      case Some(cfg) => cfgMgr.resetTo(cfg)
+      case None      => cfgMgr.resetTo(_cfgMgr, HttpBackend.Id)
     }
   }
 
-  private def initializeFromData(data: HttpEntryData): Unit = {
-    cfgMgr.set(UserAgent, data.userAgentOption)
-  }
-
-  private def initializeFromDefaults(): Unit = {
-    // TODO: Initialize with _cfgMgr
-    ???
-  }
-
-  override def get(): HttpEntryData = {
+  override def get(): InMemoryConfigManager = {
     requireFriendly(headersPage.performOk, "Some settings are invalid")
-    val result = new HttpEntryData
-    result.userAgentOption = cfgMgr(UserAgent)
-    result
+    cfgMgr
   }
 }

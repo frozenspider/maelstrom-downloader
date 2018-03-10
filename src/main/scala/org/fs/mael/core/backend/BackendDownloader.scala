@@ -4,13 +4,12 @@ import java.io.File
 
 import org.fs.mael.core.Status
 import org.fs.mael.core.checksum.Checksums
-import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
 
-abstract class BackendDownloader[BSED <: BackendSpecificEntryData](protected val backendId: String) {
+abstract class BackendDownloader(protected val backendId: String) {
 
   /** Thread group which should be used for downloading threads */
   protected lazy val dlThreadGroup = new ThreadGroup(backendId + "_download")
@@ -19,19 +18,19 @@ abstract class BackendDownloader[BSED <: BackendSpecificEntryData](protected val
    * Start downloading the given entry with the given timeout
    * @param timeoutMs operations timeout in millis, 0 stands for none
    */
-  def start(de: DownloadEntry[BSED], timeoutMs: Int): Unit = de.status match {
+  def start(de: DownloadEntry, timeoutMs: Int): Unit = de.status match {
     case s if s.canBeStarted => startInner(de, timeoutMs)
     case _                   => // NOOP
   }
 
-  def startInner(de: DownloadEntry[BSED], timeoutMs: Int): Unit
+  def startInner(de: DownloadEntry, timeoutMs: Int): Unit
 
-  def stop(de: DownloadEntry[BSED]): Unit = de.status match {
+  def stop(de: DownloadEntry): Unit = de.status match {
     case s if s.canBeStopped => stopInner(de)
     case _                   => // NOOP
   }
 
-  def stopInner(de: DownloadEntry[BSED]): Unit
+  def stopInner(de: DownloadEntry): Unit
 
   //
   // Helpers
@@ -45,7 +44,7 @@ abstract class BackendDownloader[BSED <: BackendSpecificEntryData](protected val
    * Should be invoked when download is complete.
    * Verifies the checksum hash (if any) and advances status to either Complete or Error.
    */
-  protected def checkIntegrityAndComplete(de: DownloadEntry[BSED]): Unit = {
+  protected def checkIntegrityAndComplete(de: DownloadEntry): Unit = {
     val passed = de.checksumOption match {
       case Some(checksum) =>
         addLogAndFire(de, LogEntry.info("Verifying checksum"))
@@ -62,12 +61,12 @@ abstract class BackendDownloader[BSED <: BackendSpecificEntryData](protected val
     }
   }
 
-  protected def addLogAndFire(de: DownloadEntry[BSED], logEntry: LogEntry): Unit = {
+  protected def addLogAndFire(de: DownloadEntry, logEntry: LogEntry): Unit = {
     de.addDownloadLogEntry(logEntry)
     eventMgr.fireLogged(de, logEntry)
   }
 
-  protected def changeStatusAndFire(de: DownloadEntry[BSED], newStatus: Status): Unit = {
+  protected def changeStatusAndFire(de: DownloadEntry, newStatus: Status): Unit = {
     val prevStatus = de.status
     de.status = newStatus
     eventMgr.fireStatusChanged(de, prevStatus)

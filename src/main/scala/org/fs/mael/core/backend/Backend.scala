@@ -5,8 +5,7 @@ import java.net.URI
 
 import org.eclipse.swt.widgets.TabFolder
 import org.fs.mael.core.checksum.Checksum
-import org.fs.mael.core.config.ConfigManager
-import org.fs.mael.core.entry.BackendSpecificEntryData
+import org.fs.mael.core.config.InMemoryConfigManager
 import org.fs.mael.core.entry.DownloadEntry
 
 /*
@@ -16,10 +15,6 @@ import org.fs.mael.core.entry.DownloadEntry
  * - backend-specific UI
  */
 trait Backend {
-  type BSED <: BackendSpecificEntryData
-
-  def dataClass: Class[BSED]
-
   val id: String
 
   def isSupported(uri: URI): Boolean
@@ -31,19 +26,17 @@ trait Backend {
     filenameOption: Option[String],
     checksumOption: Option[Checksum],
     comment:        String,
-    dataOption:     Option[BSED]
-  ): DownloadEntry[BSED] = {
+    cfgOption:      Option[InMemoryConfigManager]
+  ): DownloadEntry = {
     require(isSupported(uri), "URI not supported")
-    createInner(uri, location, filenameOption, checksumOption, comment, dataOption getOrElse defaultData)
+    createInner(uri, location, filenameOption, checksumOption, comment, cfgOption getOrElse defaultCfg)
   }
 
-  def downloader: BackendDownloader[BSED]
+  def downloader: BackendDownloader
 
-  def dataSerializer: BackendDataSerializer[BSED]
+  def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder): BackendConfigUi
 
-  def layoutConfig(dataOption: Option[BSED], tabFolder: TabFolder): BackendConfigUi[BSED]
-
-  protected def defaultData: BSED
+  protected def defaultCfg: InMemoryConfigManager
 
   protected def createInner(
     uri:            URI,
@@ -51,8 +44,8 @@ trait Backend {
     filenameOption: Option[String],
     checksumOption: Option[Checksum],
     comment:        String,
-    data:           BSED
-  ): DownloadEntry[BSED] = {
-    DownloadEntry[BSED](id, uri, location, filenameOption, checksumOption, comment, data)
+    cfg:            InMemoryConfigManager
+  ): DownloadEntry = {
+    DownloadEntry(id, uri, location, filenameOption, checksumOption, comment, cfg)
   }
 }

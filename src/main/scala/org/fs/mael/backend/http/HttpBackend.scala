@@ -1,14 +1,13 @@
 package org.fs.mael.backend.http
 
-import java.io.File
 import java.net.URI
 
 import org.eclipse.swt.widgets.TabFolder
 import org.fs.mael.backend.http.ui.HttpConfigUi
+import org.fs.mael.backend.http.ui.HttpPreferences
 import org.fs.mael.core.backend.Backend
-import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.config.ConfigManager
-import org.fs.mael.core.entry.DownloadEntry
+import org.fs.mael.core.config.InMemoryConfigManager
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
 
@@ -17,10 +16,6 @@ class HttpBackend(
   cfgMgr:      ConfigManager,
   eventMgr:    EventManager
 ) extends Backend {
-  override type BSED = HttpEntryData
-
-  override val dataClass: Class[BSED] = classOf[BSED]
-
   override val id: String = HttpBackend.Id
 
   override def isSupported(uri: URI): Boolean = {
@@ -34,14 +29,13 @@ class HttpBackend(
 
   override val downloader = new HttpDownloader(eventMgr, transferMgr)
 
-  override val dataSerializer = new HttpDataSerializer
+  override def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder) = new HttpConfigUi(cfgOption, tabFolder, cfgMgr)
 
-  override def layoutConfig(dataOption: Option[BSED], tabFolder: TabFolder) = new HttpConfigUi(dataOption, tabFolder, cfgMgr)
-
-  // FIXME: Use properties
-  override def defaultData: HttpEntryData = new HttpEntryData
+  override def defaultCfg: InMemoryConfigManager = {
+    new InMemoryConfigManager(cfgMgr, HttpBackend.Id)
+  }
 }
 
 object HttpBackend {
-  val Id = "http-https"
+  val Id = "http"
 }

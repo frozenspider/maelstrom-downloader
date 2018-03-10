@@ -1,14 +1,19 @@
 package org.fs.mael.core.config
 
+import java.io.ByteArrayOutputStream
+import java.util.Arrays
+
 import scala.reflect.runtime.universe._
 
+import org.apache.commons.lang3.builder.HashCodeBuilder
 import org.eclipse.jface.preference.IPreferenceStore
+import org.eclipse.jface.preference.PreferenceStore
 import org.eclipse.jface.util.PropertyChangeEvent
 
 trait ConfigManager {
   import ConfigManager._
 
-  val store: IPreferenceStore
+  val store: PreferenceStore
 
   def save(): Unit
 
@@ -89,6 +94,32 @@ trait ConfigManager {
   ): Unit = {
     f(ConfigChangedEvent[T](setting.fromRepr(e.getOldValue.asInstanceOf[Repr]), setting.fromRepr(e.getNewValue.asInstanceOf[Repr])))
   }
+
+  protected[config] def toByteArray: Array[Byte] = {
+    val baos = new ByteArrayOutputStream
+    store.save(baos, null)
+    baos.toByteArray()
+  }
+
+  def toSerialString: String = {
+    val baos = new ByteArrayOutputStream
+    store.save(baos, null)
+    // Charset is taken from java.util.Properties.store
+    baos.toString("8859_1").replace("\r\n", "\n")
+  }
+
+  override def toString(): String = {
+    val keys = store.preferenceNames().sorted
+    val content = keys map (k => s"k -> ${store.getString(k)}") mkString ", "
+    this.getClass.getSimpleName + "(" + content + ")"
+  }
+
+  override def equals(that: Any): Boolean = that match {
+    case that: ConfigManager => Arrays.equals(this.toByteArray, that.toByteArray)
+    case _                   => false
+  }
+
+  override def hashCode: Int = (new HashCodeBuilder).append(this.toByteArray).build()
 }
 
 object ConfigManager {

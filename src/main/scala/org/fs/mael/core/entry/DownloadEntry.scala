@@ -8,6 +8,7 @@ import scala.collection.mutable
 
 import org.fs.mael.core.Status
 import org.fs.mael.core.checksum.Checksum
+import org.fs.mael.core.config.InMemoryConfigManager
 
 import com.github.nscala_time.time.Imports._
 
@@ -18,7 +19,7 @@ import com.github.nscala_time.time.Imports._
  *
  * @author FS
  */
-class DownloadEntry[ED <: BackendSpecificEntryData] private (
+class DownloadEntry private (
   override val id:          UUID,
   override val dateCreated: DateTime,
   val backendId:            String,
@@ -27,7 +28,7 @@ class DownloadEntry[ED <: BackendSpecificEntryData] private (
   var filenameOption:       Option[String],
   var checksumOption:       Option[Checksum],
   var comment:              String,
-  var backendSpecificData:  ED
+  val backendSpecificCfg:   InMemoryConfigManager
 ) extends DownloadEntryView with DownloadEntryLoggableView {
 
   var status: Status = Status.Stopped
@@ -48,29 +49,29 @@ class DownloadEntry[ED <: BackendSpecificEntryData] private (
 }
 
 object DownloadEntry {
-  def apply[ED <: BackendSpecificEntryData](
-    backendId:           String,
-    uri:                 URI,
-    location:            File,
-    filenameOption:      Option[String],
-    checksumOption:      Option[Checksum],
-    comment:             String,
-    backendSpecificData: ED
+  def apply(
+    backendId:          String,
+    uri:                URI,
+    location:           File,
+    filenameOption:     Option[String],
+    checksumOption:     Option[Checksum],
+    comment:            String,
+    backendSpecificCfg: InMemoryConfigManager
   ) = {
-    new DownloadEntry[ED](UUID.randomUUID(), DateTime.now(), backendId, uri, location, filenameOption, checksumOption, comment, backendSpecificData)
+    new DownloadEntry(UUID.randomUUID(), DateTime.now(), backendId, uri, location, filenameOption, checksumOption, comment, backendSpecificCfg)
   }
 
-  def load[ED <: BackendSpecificEntryData](
-    id:                  UUID,
-    dateCreated:         DateTime,
-    backendId:           String,
-    uri:                 URI,
-    location:            File,
-    filenameOption:      Option[String],
-    checksumOption:      Option[Checksum],
-    comment:             String,
-    backendSpecificData: ED
+  def load(
+    id:                 UUID,
+    dateCreated:        DateTime,
+    backendId:          String,
+    uri:                URI,
+    location:           File,
+    filenameOption:     Option[String],
+    checksumOption:     Option[Checksum],
+    comment:            String,
+    backendSpecificCfg: InMemoryConfigManager
   ) = {
-    new DownloadEntry[ED](id, dateCreated, backendId, uri, location, filenameOption, checksumOption, comment, backendSpecificData)
+    new DownloadEntry(id, dateCreated, backendId, uri, location, filenameOption, checksumOption, comment, backendSpecificCfg)
   }
 }

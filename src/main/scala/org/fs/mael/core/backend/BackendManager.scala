@@ -41,11 +41,4 @@ class BackendManager {
       _backends map (_._1) find (_.isSupported(uri))
     }
   }
-
-  def getCastedPair(de: DownloadEntryView): BackendWithEntry = {
-    this.synchronized {
-      val backend = apply(de.backendId)
-      BackendWithEntry.apply(backend, de.asInstanceOf[DownloadEntry[_]])
-    }
-  }
 }

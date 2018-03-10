@@ -1,10 +1,12 @@
 package org.fs.mael.test
 
+import org.fs.mael.core.config.ConfigManager
+import org.fs.mael.core.config.ConfigSetting
 import org.fs.mael.core.entry.DownloadEntry
 import org.scalatest.Assertions
 
 object TestUtils extends Assertions {
-  def assertDownloadEntriesEqual(de1: DownloadEntry[_], de2: DownloadEntry[_]): Unit = {
+  def assertDownloadEntriesEqual(de1: DownloadEntry, de2: DownloadEntry): Unit = {
     assert(de1.id === de2.id)
     assert(de1.dateCreated === de2.dateCreated)
     assert(de1.backendId === de2.backendId)
@@ -21,6 +23,25 @@ object TestUtils extends Assertions {
     assert(de1.downloadedSize === de2.downloadedSize)
     assert(de1.downloadLog === de2.downloadLog)
     // Have to use plain old equals here
-    assert(de1.backendSpecificData == de2.backendSpecificData)
+    assert(de1.backendSpecificCfg === de2.backendSpecificCfg)
+  }
+
+  implicit class RighCfgMgr(cfgMgr: ConfigManager) {
+    import scala.reflect.runtime.universe._
+
+    def updated[T: TypeTag](setting: ConfigSetting.SimpleConfigSetting[T], value: T): ConfigManager = {
+      cfgMgr.set(setting, value)
+      cfgMgr
+    }
+
+    def updated(setting: ConfigSetting.OptionalStringConfigSetting, value: Option[String]): ConfigManager = {
+      cfgMgr.set(setting, value)
+      cfgMgr
+    }
+
+    def updated[T, Repr: TypeTag](setting: ConfigSetting.CustomConfigSetting[T, Repr], value: T): ConfigManager = {
+      cfgMgr.set(setting, value)
+      cfgMgr
+    }
   }
 }

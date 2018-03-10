@@ -32,6 +32,7 @@ import org.fs.mael.ui.utils.Hotkey
 import org.fs.mael.ui.utils.Hotkey._
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
+import org.fs.mael.core.entry.DownloadEntry
 
 class MainFrame(
   display:         Display,
@@ -181,9 +182,10 @@ class MainFrame(
     btnStart = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnStart =>
       btnStart.setText("Start")
       btnStart.addListener(SWT.Selection, e => {
-        mainTable.selectedEntries map { de =>
-          val pair = backendMgr.getCastedPair(de)
-          pair.backend.downloader.start(pair.de, cfgMgr(GlobalPreferences.NetworkTimeout))
+        mainTable.selectedEntries map { dev =>
+          val backend = backendMgr(dev.backendId)
+          val de = dev.asInstanceOf[DownloadEntry]
+          backend.downloader.start(de, cfgMgr(GlobalPreferences.NetworkTimeout))
         }
       })
       btnStart.forDownloads(_ exists (_.status.canBeStarted))
@@ -192,9 +194,10 @@ class MainFrame(
     btnStop = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnStop =>
       btnStop.setText("Stop")
       btnStop.addListener(SWT.Selection, e => {
-        mainTable.selectedEntries map { de =>
-          val pair = backendMgr.getCastedPair(de)
-          pair.backend.downloader.stop(pair.de)
+        mainTable.selectedEntries map { dev =>
+          val backend = backendMgr(dev.backendId)
+          val de = dev.asInstanceOf[DownloadEntry]
+          backend.downloader.stop(de)
         }
       })
       btnStop.forDownloads(_ exists (_.status.canBeStopped))
@@ -327,9 +330,10 @@ class MainFrame(
         if (!confirmed) {
           closeEvent.doit = false
         } else {
-          running foreach { de =>
-            val pair = backendMgr.getCastedPair(de)
-            pair.backend.downloader.stop(pair.de)
+          running foreach { dev =>
+            val backend = backendMgr(dev.backendId)
+            val de = dev.asInstanceOf[DownloadEntry]
+            backend.downloader.stop(de)
           }
           peer.setVisible(false)
           val terminatedNormally = waitUntil(2000) { getRunningEntities().size == 0 }

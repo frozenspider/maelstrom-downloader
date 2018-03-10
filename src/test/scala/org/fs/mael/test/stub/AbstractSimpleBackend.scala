@@ -1,42 +1,29 @@
 package org.fs.mael.test.stub
 
-import java.io.File
-import java.net.URI
-
-import scala.reflect.ClassTag
-
 import org.eclipse.swt.widgets.TabFolder
 import org.fs.mael.core.backend.Backend
 import org.fs.mael.core.backend.BackendConfigUi
-import org.fs.mael.core.backend.BackendDataSerializer
 import org.fs.mael.core.backend.BackendDownloader
-import org.fs.mael.core.checksum.Checksum
-import org.fs.mael.core.config.ConfigManager
-import org.fs.mael.core.entry.BackendSpecificEntryData
+import org.fs.mael.core.config.InMemoryConfigManager
 import org.fs.mael.core.entry.DownloadEntry
 
-abstract class AbstractSimpleBackend[T <: BackendSpecificEntryData: ClassTag](
+abstract class AbstractSimpleBackend(
   override val id: String
 ) extends Backend {
-  override type BSED = T
-
-  override def dataClass: Class[BSED] = {
-    val ct = implicitly[ClassTag[BSED]]
-    ct.runtimeClass.asInstanceOf[Class[BSED]]
-  }
-
-  override def downloader: BackendDownloader[BSED] = new BackendDownloader[BSED](id) {
+  override def downloader: BackendDownloader = new BackendDownloader(id) {
     override def eventMgr = ???
     override def transferMgr = ???
-    def startInner(de: DownloadEntry[BSED], timeoutSec: Int): Unit = downloadStarted(de, timeoutSec)
-    def stopInner(de: DownloadEntry[BSED]): Unit = downloadStopped(de)
+    def startInner(de: DownloadEntry, timeoutSec: Int): Unit = downloadStarted(de, timeoutSec)
+    def stopInner(de: DownloadEntry): Unit = downloadStopped(de)
   }
 
-  def downloadStarted(de: DownloadEntry[BSED], timeoutSec: Int): Unit = {}
+  def downloadStarted(de: DownloadEntry, timeoutSec: Int): Unit = {}
 
-  def downloadStopped(de: DownloadEntry[BSED]): Unit = {}
+  def downloadStopped(de: DownloadEntry): Unit = {}
 
-  override def layoutConfig(dataOption: Option[BSED], tabFolder: TabFolder) = new BackendConfigUi[T] {
-    override def get(): BSED = dataOption getOrElse defaultData
+  override def defaultCfg = new InMemoryConfigManager
+
+  override def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder) = new BackendConfigUi {
+    override def get(): InMemoryConfigManager = cfgOption getOrElse defaultCfg
   }
 }

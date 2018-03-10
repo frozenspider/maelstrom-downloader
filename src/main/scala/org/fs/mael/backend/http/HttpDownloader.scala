@@ -43,12 +43,11 @@ import org.slf4s.Logging
 class HttpDownloader(
   override val eventMgr:    EventManager,
   override val transferMgr: TransferManager
-) extends BackendDownloader[HttpEntryData](HttpBackend.Id) with Logging {
-  private type DE = DownloadEntry[HttpEntryData]
+) extends BackendDownloader(HttpBackend.Id) with Logging {
 
   private var threads: Seq[DownloadingThread] = Seq.empty
 
-  override def startInner(de: DE, timeoutMs: Int): Unit =
+  override def startInner(de: DownloadEntry, timeoutMs: Int): Unit =
     this.synchronized {
       if (threads exists (t => t.de == de && t.isAlive && !t.isInterrupted)) {
         val activeThreads = threads.filter(t => t.isAlive && !t.isInterrupted)
@@ -63,7 +62,7 @@ class HttpDownloader(
       }
     }
 
-  override def stopInner(de: DE): Unit = {
+  override def stopInner(de: DownloadEntry): Unit = {
     this.synchronized {
       val threadOption = threads find (_.de == de)
       threadOption match {
@@ -89,7 +88,7 @@ class HttpDownloader(
     }
   }
 
-  private def stopLogAndFire(de: DE, threadOption: Option[Thread]): Unit = {
+  private def stopLogAndFire(de: DownloadEntry, threadOption: Option[Thread]): Unit = {
     changeStatusAndFire(de, Status.Stopped)
     addLogAndFire(de, LogEntry.info("Download stopped"))
     threadOption match {
@@ -98,13 +97,13 @@ class HttpDownloader(
     }
   }
 
-  private def errorLogAndFire(de: DE, msg: String): Unit = {
+  private def errorLogAndFire(de: DownloadEntry, msg: String): Unit = {
     changeStatusAndFire(de, Status.Error)
     addLogAndFire(de, LogEntry.error(msg))
     log.info(s"Download error - $msg: ${de.uri} (${de.id})")
   }
 
-  private class DownloadingThread(val de: DE, timeoutMs: Int)
+  private class DownloadingThread(val de: DownloadEntry, timeoutMs: Int)
     extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
 
     this.setDaemon(true)
