@@ -32,6 +32,14 @@ trait ConfigManager {
     }).asInstanceOf[T]
   } ensuring (_ != null)
 
+  def apply(setting: ConfigSetting.OptionalStringConfigSetting): Option[String] = {
+    initDefault(setting)
+    store.getString(setting.id) match {
+      case "" => None
+      case s  => Some(s)
+    }
+  }
+
   def apply[T, Repr: TypeTag](setting: ConfigSetting.CustomConfigSetting[T, Repr]): T = {
     val repr = apply[Repr](setting.asReprSetting)
     setting.fromRepr(repr)
@@ -39,14 +47,18 @@ trait ConfigManager {
 
   def set[T: TypeTag](setting: ConfigSetting.SimpleConfigSetting[T], value: T): Unit = {
     // Somewhat dirty hack to overcome type erasure
-    (typeOf[T] match {
+    typeOf[T] match {
       case t if t =:= typeOf[Boolean] => store.setValue(setting.id, value.asInstanceOf[Boolean])
       case t if t =:= typeOf[Int]     => store.setValue(setting.id, value.asInstanceOf[Int])
       case t if t =:= typeOf[Long]    => store.setValue(setting.id, value.asInstanceOf[Long])
       case t if t =:= typeOf[Double]  => store.setValue(setting.id, value.asInstanceOf[Double])
       case t if t =:= typeOf[String]  => store.setValue(setting.id, value.asInstanceOf[String])
-    }).asInstanceOf[T]
+    }
     save()
+  }
+
+  def set(setting: ConfigSetting.OptionalStringConfigSetting, value: Option[String]): Unit = {
+    store.setValue(setting.id, value getOrElse "")
   }
 
   def set[T, Repr: TypeTag](setting: ConfigSetting.CustomConfigSetting[T, Repr], value: T): Unit = {
@@ -59,6 +71,8 @@ trait ConfigManager {
         setting match {
           case setting: ConfigSetting.SimpleConfigSetting[T] =>
             f(ConfigChangedEvent[T](e.getOldValue.asInstanceOf[T], e.getNewValue.asInstanceOf[T]))
+          case setting: ConfigSetting.OptionalStringConfigSetting =>
+            f(ConfigChangedEvent[Option[String]](e.getOldValue.asInstanceOf[Option[String]], e.getNewValue.asInstanceOf[Option[String]]))
           case setting: ConfigSetting.CustomConfigSetting[T, _] =>
             notifyCustomConfigChanged(setting, e, f)
         }
@@ -95,6 +109,8 @@ object ConfigManager {
           case default: Double  => initDefault(store, setting.id, default)
           case default: String  => initDefault(store, setting.id, default)
         }
+      case setting: ConfigSetting.OptionalStringConfigSetting =>
+        initDefault(store, setting.id, setting.default getOrElse "")
       case setting: ConfigSetting.CustomConfigSetting[_, _] =>
         initDefault(store, setting.asReprSetting)
     }
