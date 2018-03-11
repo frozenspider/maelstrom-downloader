@@ -6,12 +6,14 @@ import org.fs.mael.ui.prefs.MFieldEditorPreferencePage
 import org.fs.mael.backend.http.HttpBackend
 
 object HttpPreferences {
-  import org.fs.mael.core.config.ConfigSetting._
+  import org.fs.mael.core.config.ConfigSetting
+  import org.fs.mael.core.config.ConfigSetting.RadioConfigSetting
+  import org.fs.mael.core.config.ConfigSetting.RadioValue
 
   private val prefix = HttpBackend.Id
 
-  val UserAgent: OptionalStringConfigSetting =
-    OptionalStringConfigSetting(prefix + ".userAgent", None)
+  val UserAgent: ConfigSetting[Option[String]] =
+    ConfigSetting(prefix + ".userAgent", None)
 
   class HeadersPage extends MFieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
     override def createFieldEditors(): Unit = {

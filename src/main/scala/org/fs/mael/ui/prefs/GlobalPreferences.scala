@@ -28,33 +28,35 @@ class GlobalPreferences(val globalCfgMgr: ConfigManager) {
 }
 
 object GlobalPreferences {
-  import org.fs.mael.core.config.ConfigSetting._
+  import org.fs.mael.core.config.ConfigSetting
+  import org.fs.mael.core.config.ConfigSetting.RadioConfigSetting
+  import org.fs.mael.core.config.ConfigSetting.RadioValue
 
-  val DownloadPath: SimpleConfigSetting[String] =
-    SimpleConfigSetting("main.downloadPath", {
+  val DownloadPath: ConfigSetting[String] =
+    ConfigSetting("main.downloadPath", {
       sys.props("os.name") match {
         case os if os startsWith "Windows" => sys.env("USERPROFILE") + "\\Downloads"
         case _                             => sys.props("user.home") + "/downloads"
       }
     })
 
-  val NetworkTimeout: SimpleConfigSetting[Int] =
-    SimpleConfigSetting("main.networkTimeoutMs", 0)
+  val NetworkTimeout: ConfigSetting[Int] =
+    ConfigSetting("main.networkTimeoutMs", 0)
 
   val OnWindowCloseBehavior: RadioConfigSetting[OnWindowClose] =
-    new RadioConfigSetting("main.onWindowClose", OnWindowClose.Undefined, OnWindowClose.values)
+    ConfigSetting("main.onWindowClose", OnWindowClose.Undefined, OnWindowClose.values)
 
   val MinimizeToTrayBehavior: RadioConfigSetting[MinimizeToTray] =
-    new RadioConfigSetting("main.minimizeToTray", MinimizeToTray.Never, MinimizeToTray.values)
+    ConfigSetting("main.minimizeToTray", MinimizeToTray.Never, MinimizeToTray.values)
 
   val ShowTrayIconBehavior: RadioConfigSetting[ShowTrayIcon] =
-    new RadioConfigSetting("main.showTrayIcon", ShowTrayIcon.Always, ShowTrayIcon.values)
+    ConfigSetting("main.showTrayIcon", ShowTrayIcon.Always, ShowTrayIcon.values)
 
-  val SortColumn: SimpleConfigSetting[String] =
-    SimpleConfigSetting("view.sortColumn", "date-created")
+  val SortColumn: ConfigSetting[String] =
+    ConfigSetting("view.sortColumn", "date-created")
 
-  val SortAsc: SimpleConfigSetting[Boolean] =
-    SimpleConfigSetting("view.sortAsc", true)
+  val SortAsc: ConfigSetting[Boolean] =
+    ConfigSetting("view.sortAsc", true)
 
   sealed abstract class OnWindowClose(id: String, prettyName: String) extends RadioValue(id, prettyName)
   object OnWindowClose {

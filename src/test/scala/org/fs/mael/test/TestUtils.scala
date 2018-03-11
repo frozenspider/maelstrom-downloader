@@ -27,24 +27,12 @@ object TestUtils extends Assertions {
   }
 
   implicit class RighCfgMgr(cfgMgr: InMemoryConfigManager) {
-    import scala.reflect.runtime.universe._
-
     def reset(): InMemoryConfigManager = {
       cfgMgr.resetTo(new InMemoryConfigManager)
       cfgMgr
     }
 
-    def updated[T: TypeTag](setting: ConfigSetting.SimpleConfigSetting[T], value: T): InMemoryConfigManager = {
-      cfgMgr.set(setting, value)
-      cfgMgr
-    }
-
-    def updated(setting: ConfigSetting.OptionalStringConfigSetting, value: Option[String]): InMemoryConfigManager = {
-      cfgMgr.set(setting, value)
-      cfgMgr
-    }
-
-    def updated[T, Repr: TypeTag](setting: ConfigSetting.CustomConfigSetting[T, Repr], value: T): InMemoryConfigManager = {
+    def updated[T](setting: ConfigSetting[T], value: T): InMemoryConfigManager = {
       cfgMgr.set(setting, value)
       cfgMgr
     }

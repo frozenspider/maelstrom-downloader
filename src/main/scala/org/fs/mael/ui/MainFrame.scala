@@ -115,7 +115,7 @@ class MainFrame(
     trayItem.setToolTipText(BuildInfo.prettyName)
 
     import GlobalPreferences._
-    globalCfgMgr.addConfigChangedListener(ShowTrayIconBehavior)(e => {
+    globalCfgMgr.addSettingChangedListener(ShowTrayIconBehavior)(e => {
       updateTrayIconVisibility(e.newValue)
     })
     updateTrayIconVisibility(globalCfgMgr(ShowTrayIconBehavior))

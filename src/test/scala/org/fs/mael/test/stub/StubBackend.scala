@@ -1,7 +1,7 @@
 package org.fs.mael.test.stub
 
 import java.net.URI
-import org.fs.mael.core.config.ConfigSetting.SimpleConfigSetting
+import org.fs.mael.core.config.ConfigSetting
 
 class StubBackend
   extends AbstractSimpleBackend(
@@ -13,5 +13,5 @@ class StubBackend
 object StubBackend {
   val Id: String = "dummy"
 
-  val StubSetting = SimpleConfigSetting(Id + ".stubSetting", "defaultValue")
+  val StubSetting = ConfigSetting(Id + ".stubSetting", "defaultValue")
 }
