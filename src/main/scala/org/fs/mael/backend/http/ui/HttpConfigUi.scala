@@ -40,7 +40,7 @@ class HttpConfigUi(
 
   private def initialize(): Unit = {
     cfgOption match {
-      case Some(cfg) => cfgMgr.resetTo(cfg)
+      case Some(cfg) => cfgMgr.resetTo(cfg, HttpBackend.Id)
       case None      => cfgMgr.resetTo(_cfgMgr, HttpBackend.Id)
     }
   }

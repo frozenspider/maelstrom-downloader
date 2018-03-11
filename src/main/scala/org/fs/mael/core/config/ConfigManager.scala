@@ -105,7 +105,9 @@ trait ConfigManager {
     val baos = new ByteArrayOutputStream
     store.save(baos, null)
     // Charset is taken from java.util.Properties.store
-    baos.toString("8859_1").replace("\r\n", "\n")
+    val lines = baos.toString("8859_1").split("[\r\n]+")
+    // Removing comments
+    lines.filter(!_.startsWith("#")).mkString("\n")
   }
 
   override def toString(): String = {

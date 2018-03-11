@@ -183,9 +183,11 @@ class MainFrame(
       btnStart.setText("Start")
       btnStart.addListener(SWT.Selection, e => {
         mainTable.selectedEntries map { dev =>
-          val backend = backendMgr(dev.backendId)
-          val de = dev.asInstanceOf[DownloadEntry]
-          backend.downloader.start(de, cfgMgr(GlobalPreferences.NetworkTimeout))
+          tryShowingError(peer, log) {
+            val backend = backendMgr(dev.backendId)
+            val de = dev.asInstanceOf[DownloadEntry]
+            backend.downloader.start(de, cfgMgr(GlobalPreferences.NetworkTimeout))
+          }
         }
       })
       btnStart.forDownloads(_ exists (_.status.canBeStarted))
@@ -195,9 +197,11 @@ class MainFrame(
       btnStop.setText("Stop")
       btnStop.addListener(SWT.Selection, e => {
         mainTable.selectedEntries map { dev =>
-          val backend = backendMgr(dev.backendId)
-          val de = dev.asInstanceOf[DownloadEntry]
-          backend.downloader.stop(de)
+          tryShowingError(peer, log) {
+            val backend = backendMgr(dev.backendId)
+            val de = dev.asInstanceOf[DownloadEntry]
+            backend.downloader.stop(de)
+          }
         }
       })
       btnStop.forDownloads(_ exists (_.status.canBeStopped))

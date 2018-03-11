@@ -32,15 +32,17 @@ object MaelstromDownloaderMain extends App with Logging {
   log.info(BuildInfo.fullPrettyName)
   log.info("Application started, initializing...")
 
-  val mainConfigFile = new File("cfg/main.properties")
-  val downloadListFile = new File("cfg/downloads.json")
+  val cfgFoler = new File("cfg")
+  val mainCfgFile = new File(cfgFoler, "main.properties")
+  val downloadListFile = new File(cfgFoler, "downloads.json")
 
+  // TODO: Migrations
   try {
     val shell: Shell = StopWatch.measureAndCall {
       preloadClasses()
       // TODO: Show minimal splash screen
       val display = new Display()
-      val cfgMgr = new FileBackedConfigManager(mainConfigFile)
+      val cfgMgr = new FileBackedConfigManager(mainCfgFile)
       val resources = new ResourcesImpl(display)
       val eventMgr = new EventManagerImpl
       val backendMgr = new BackendManager

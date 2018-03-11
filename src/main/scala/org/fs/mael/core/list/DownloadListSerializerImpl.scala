@@ -97,6 +97,8 @@ object DownloadListSerializerImpl {
       {
         case x: JString =>
           new InMemoryConfigManager(x.s)
+        case JNothing =>
+          new InMemoryConfigManager()
       }, {
         case cfgMgr: InMemoryConfigManager =>
           JString(cfgMgr.toSerialString)

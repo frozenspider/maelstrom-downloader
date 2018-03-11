@@ -4,9 +4,6 @@ import java.net.URI
 
 import scala.collection.SortedSet
 
-import org.fs.mael.core.entry.DownloadEntry
-import org.fs.mael.core.entry.DownloadEntryView
-
 class BackendManager {
   /** Backends with priority, ordered from highest to lowest priority */
   private var _backends: SortedSet[(Backend, Int)] =
