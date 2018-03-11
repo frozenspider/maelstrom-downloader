@@ -12,9 +12,9 @@ import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
 
 class HttpBackend(
-  transferMgr: TransferManager,
-  cfgMgr:      ConfigManager,
-  eventMgr:    EventManager
+  transferMgr:  TransferManager,
+  globalCfgMgr: ConfigManager,
+  eventMgr:     EventManager
 ) extends Backend {
   override val id: String = HttpBackend.Id
 
@@ -29,10 +29,10 @@ class HttpBackend(
 
   override val downloader = new HttpDownloader(eventMgr, transferMgr)
 
-  override def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder) = new HttpConfigUi(cfgOption, tabFolder, cfgMgr)
+  override def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder) = new HttpConfigUi(cfgOption, tabFolder, globalCfgMgr)
 
   override def defaultCfg: InMemoryConfigManager = {
-    new InMemoryConfigManager(cfgMgr, HttpBackend.Id)
+    new InMemoryConfigManager(globalCfgMgr, HttpBackend.Id)
   }
 }
 

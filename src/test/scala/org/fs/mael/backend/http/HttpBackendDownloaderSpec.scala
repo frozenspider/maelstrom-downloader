@@ -7,6 +7,7 @@ import java.net.URI
 import java.net.URLEncoder
 import java.nio.file.Files
 
+import scala.io.Codec
 import scala.util.Random
 
 import org.apache.http._
@@ -169,7 +170,7 @@ class HttpBackendDownloaderSpec
   test("deduce filename from URL") {
     val de = createDownloadEntry
     val filename = de.filenameOption.get
-    val encodedFilename = URLEncoder.encode(s"/?${filename}?/", "UTF8")
+    val encodedFilename = URLEncoder.encode(s"/?${filename}?/", Codec.UTF8.name)
     de.filenameOption = None
     de.uri = new URI(de.uri.toString replaceAllLiterally (de.uri.getPath, s"/$encodedFilename"))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)

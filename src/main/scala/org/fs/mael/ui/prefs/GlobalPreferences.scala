@@ -9,7 +9,7 @@ import org.eclipse.swt.widgets.Shell
 import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.utils.CoreUtils._
 
-class GlobalPreferences(val cfgMgr: ConfigManager) {
+class GlobalPreferences(val globalCfgMgr: ConfigManager) {
   import GlobalPreferences._
 
   val mgr = new PreferenceManager().withCode { mgr =>
@@ -22,7 +22,7 @@ class GlobalPreferences(val cfgMgr: ConfigManager) {
 
   def showDialog(parent: Shell): Unit = {
     val dlg = new PreferenceDialog(parent, mgr)
-    dlg.setPreferenceStore(cfgMgr.store)
+    dlg.setPreferenceStore(globalCfgMgr.store)
     dlg.open()
   }
 }

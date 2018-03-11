@@ -37,7 +37,7 @@ import org.fs.mael.core.entry.DownloadEntry
 class MainFrame(
   display:         Display,
   resources:       Resources,
-  cfgMgr:          ConfigManager,
+  globalCfgMgr:    ConfigManager,
   backendMgr:      BackendManager,
   downloadListMgr: DownloadListManager,
   eventMgr:        EventManager
@@ -85,7 +85,7 @@ class MainFrame(
     val sashForm = new SashForm(group, SWT.VERTICAL)
     sashForm.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true))
 
-    mainTable = new DownloadsTable(sashForm, resources, cfgMgr)
+    mainTable = new DownloadsTable(sashForm, resources, globalCfgMgr)
     logTable = new LogTable(sashForm, resources)
 
     sashForm.setWeights(Array(10, 10))
@@ -115,12 +115,12 @@ class MainFrame(
     trayItem.setToolTipText(BuildInfo.prettyName)
 
     import GlobalPreferences._
-    cfgMgr.addConfigChangedListener(ShowTrayIconBehavior)(e => {
+    globalCfgMgr.addConfigChangedListener(ShowTrayIconBehavior)(e => {
       updateTrayIconVisibility(e.newValue)
     })
-    updateTrayIconVisibility(cfgMgr(ShowTrayIconBehavior))
+    updateTrayIconVisibility(globalCfgMgr(ShowTrayIconBehavior))
     def show(e: Event): Unit = {
-      updateTrayIconVisibility(cfgMgr(ShowTrayIconBehavior))
+      updateTrayIconVisibility(globalCfgMgr(ShowTrayIconBehavior))
       shell.setVisible(true)
       shell.setMinimized(false)
       shell.forceActive()
@@ -166,7 +166,7 @@ class MainFrame(
 
       val itemOptions = new MenuItem(submenu, SWT.PUSH)
       itemOptions.setText("Options")
-      itemOptions.addListener(SWT.Selection, e => new GlobalPreferences(cfgMgr).showDialog(shell))
+      itemOptions.addListener(SWT.Selection, e => new GlobalPreferences(globalCfgMgr).showDialog(shell))
     }
   }
 
@@ -175,7 +175,7 @@ class MainFrame(
       btnAdd.setText("Add")
       btnAdd.addListener(SWT.Selection, e => {
         tryShowingError(peer, log) {
-          val dialog = new EditDownloadDialog(None, shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
+          val dialog = new EditDownloadDialog(None, shell, resources, globalCfgMgr, backendMgr, downloadListMgr, eventMgr)
           dialog.peer.open()
         }
       })
@@ -188,7 +188,7 @@ class MainFrame(
           tryShowingError(peer, log) {
             val backend = backendMgr(dev.backendId)
             val de = dev.asInstanceOf[DownloadEntry]
-            backend.downloader.start(de, cfgMgr(GlobalPreferences.NetworkTimeout))
+            backend.downloader.start(de, globalCfgMgr(GlobalPreferences.NetworkTimeout))
           }
         }
       })
@@ -249,7 +249,7 @@ class MainFrame(
         tryShowingError(peer, log) {
           val deOption = mainTable.selectedEntryOption
           require(deOption.isDefined)
-          val dialog = new EditDownloadDialog(deOption, shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
+          val dialog = new EditDownloadDialog(deOption, shell, resources, globalCfgMgr, backendMgr, downloadListMgr, eventMgr)
           dialog.peer.open()
         }
       }.forSingleDownloads()
@@ -268,7 +268,7 @@ class MainFrame(
 
   private def onWindowClose(closeEvent: Event): Unit = {
     import org.fs.mael.ui.prefs.GlobalPreferences.OnWindowClose._
-    cfgMgr(GlobalPreferences.OnWindowCloseBehavior) match {
+    globalCfgMgr(GlobalPreferences.OnWindowCloseBehavior) match {
       case Undefined => promptWindowClose(closeEvent)
       case Close     => tryExit(closeEvent)
       case Minimize  => minimize(Some(closeEvent))
@@ -299,7 +299,7 @@ class MainFrame(
     } else {
       val Some(action) = actionOption
       if (result.getToggleState) {
-        cfgMgr.set(OnWindowCloseBehavior, action)
+        globalCfgMgr.set(OnWindowCloseBehavior, action)
       }
       (action: @unchecked) match {
         case OnWindowClose.Close    => tryExit(closeEvent)
@@ -312,7 +312,7 @@ class MainFrame(
     closeEventOption foreach (_.doit = false)
     import org.fs.mael.ui.prefs.GlobalPreferences._
     // Only minimize to tray if tray exists
-    (closeEventOption, cfgMgr(MinimizeToTrayBehavior)) match {
+    (closeEventOption, globalCfgMgr(MinimizeToTrayBehavior)) match {
       case (_, MinimizeToTray.Always) if trayOption.isDefined        => minimizeToTray()
       case (Some(_), MinimizeToTray.OnClose) if trayOption.isDefined => minimizeToTray()
       case _                                                         => peer.setMinimized(true)

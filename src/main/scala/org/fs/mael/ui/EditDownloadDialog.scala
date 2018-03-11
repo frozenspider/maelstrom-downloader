@@ -36,7 +36,7 @@ class EditDownloadDialog(
   deOption:        Option[DownloadEntryView],
   parent:          Shell,
   resources:       Resources,
-  cfgMgr:          ConfigManager,
+  globalCfgMgr:    ConfigManager,
   backendMgr:      BackendManager,
   downloadListMgr: DownloadListManager,
   eventMgr:        EventManager
@@ -120,7 +120,7 @@ class EditDownloadDialog(
 
     locationInput = new DirectoryFieldEditor("", "", locationRow).withCode { editor =>
       editor.getLabelControl(locationRow).dispose()
-      editor.setStringValue(cfgMgr(GlobalPreferences.DownloadPath))
+      editor.setStringValue(globalCfgMgr(GlobalPreferences.DownloadPath))
       editor.setEmptyStringAllowed(false)
     }
 

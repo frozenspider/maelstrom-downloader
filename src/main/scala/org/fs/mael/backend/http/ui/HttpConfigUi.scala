@@ -13,10 +13,11 @@ import org.fs.mael.core.config.InMemoryConfigManager
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.backend.http.HttpBackend
 
+// TODO: Make general
 class HttpConfigUi(
-  cfgOption: Option[ConfigManager],
-  tabFolder: TabFolder,
-  _cfgMgr:   ConfigManager
+  cfgOption:    Option[ConfigManager],
+  tabFolder:    TabFolder,
+  globalCfgMgr: ConfigManager
 ) extends BackendConfigUi {
 
   val cfgMgr = new InMemoryConfigManager
@@ -40,8 +41,8 @@ class HttpConfigUi(
 
   private def initialize(): Unit = {
     cfgOption match {
-      case Some(cfg) => cfgMgr.resetTo(cfg, HttpBackend.Id)
-      case None      => cfgMgr.resetTo(_cfgMgr, HttpBackend.Id)
+      case Some(cfg) => cfgMgr.resetTo(cfg, HttpBackend.Id) // Ignore default preferences
+      case None      => cfgMgr.resetTo(globalCfgMgr, HttpBackend.Id)
     }
   }
 

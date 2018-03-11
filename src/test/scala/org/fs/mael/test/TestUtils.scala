@@ -1,6 +1,6 @@
 package org.fs.mael.test
 
-import org.fs.mael.core.config.ConfigManager
+import org.fs.mael.core.config.InMemoryConfigManager
 import org.fs.mael.core.config.ConfigSetting
 import org.fs.mael.core.entry.DownloadEntry
 import org.scalatest.Assertions
@@ -26,20 +26,25 @@ object TestUtils extends Assertions {
     assert(de1.backendSpecificCfg === de2.backendSpecificCfg)
   }
 
-  implicit class RighCfgMgr(cfgMgr: ConfigManager) {
+  implicit class RighCfgMgr(cfgMgr: InMemoryConfigManager) {
     import scala.reflect.runtime.universe._
 
-    def updated[T: TypeTag](setting: ConfigSetting.SimpleConfigSetting[T], value: T): ConfigManager = {
+    def reset(): InMemoryConfigManager = {
+      cfgMgr.resetTo(new InMemoryConfigManager)
+      cfgMgr
+    }
+
+    def updated[T: TypeTag](setting: ConfigSetting.SimpleConfigSetting[T], value: T): InMemoryConfigManager = {
       cfgMgr.set(setting, value)
       cfgMgr
     }
 
-    def updated(setting: ConfigSetting.OptionalStringConfigSetting, value: Option[String]): ConfigManager = {
+    def updated(setting: ConfigSetting.OptionalStringConfigSetting, value: Option[String]): InMemoryConfigManager = {
       cfgMgr.set(setting, value)
       cfgMgr
     }
 
-    def updated[T, Repr: TypeTag](setting: ConfigSetting.CustomConfigSetting[T, Repr], value: T): ConfigManager = {
+    def updated[T, Repr: TypeTag](setting: ConfigSetting.CustomConfigSetting[T, Repr], value: T): InMemoryConfigManager = {
       cfgMgr.set(setting, value)
       cfgMgr
     }

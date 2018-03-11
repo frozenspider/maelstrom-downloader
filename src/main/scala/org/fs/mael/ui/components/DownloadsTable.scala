@@ -19,9 +19,9 @@ import org.fs.mael.ui.utils.SwtUtils._
 import com.github.nscala_time.time.Imports._
 
 class DownloadsTable(
-  parent:    Composite,
-  resources: Resources,
-  cfgMgr:    ConfigManager
+  parent:       Composite,
+  resources:    Resources,
+  globalCfgMgr: ConfigManager
 ) extends MUiComponent[Table](parent) {
 
   private val columnDefs: IndexedSeq[ColumnDef[_]] = {
@@ -111,7 +111,7 @@ class DownloadsTable(
   }
 
   def update(de: DownloadEntryView): Unit = {
-    // TODO: Avoid excessive sorting when download progress is updated? 
+    // TODO: Avoid excessive sorting when download progress is updated?
     indexOfOption(de) match {
       case Some(idx) =>
         fillRow(peer.getItem(idx), de)
@@ -204,13 +204,13 @@ class DownloadsTable(
         true
       }
     sortContent(column, asc)
-    cfgMgr.set(GlobalPreferences.SortColumn, column.columnDef.id)
-    cfgMgr.set(GlobalPreferences.SortAsc, asc)
+    globalCfgMgr.set(GlobalPreferences.SortColumn, column.columnDef.id)
+    globalCfgMgr.set(GlobalPreferences.SortAsc, asc)
   }
 
   private def loadSorting() = {
-    val colId = cfgMgr(GlobalPreferences.SortColumn)
-    val asc = cfgMgr(GlobalPreferences.SortAsc)
+    val colId = globalCfgMgr(GlobalPreferences.SortColumn)
+    val asc = globalCfgMgr(GlobalPreferences.SortAsc)
     val colOption = peer.getColumns.find(_.columnDef.id == colId)
     colOption foreach { col =>
       sortContent(col, asc)

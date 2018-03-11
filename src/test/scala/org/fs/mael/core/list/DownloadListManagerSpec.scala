@@ -2,9 +2,9 @@ package org.fs.mael.core.list
 
 import java.io.File
 import java.net.URI
-import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
+import scala.io.Codec
 import scala.io.Source
 
 import org.fs.mael.core.Status
@@ -25,7 +25,7 @@ class DownloadListManagerSpec
 
   test("load/save") {
     val file: File = File.createTempFile("dlm-spec-test-file", ".tmp")
-    Files.write(file.toPath, "myInitialString".getBytes(StandardCharsets.UTF_8))
+    Files.write(file.toPath, "myInitialString".getBytes(Codec.UTF8.charSet))
     assert(Source.fromFile(file).mkString === "myInitialString")
 
     val backend = new StubBackend

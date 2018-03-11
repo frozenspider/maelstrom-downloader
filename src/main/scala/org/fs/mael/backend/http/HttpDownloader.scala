@@ -6,6 +6,7 @@ import java.net.SocketTimeoutException
 import java.net.URLDecoder
 import java.net.UnknownHostException
 
+import scala.io.Codec
 import scala.util.Random
 
 import org.apache.http.HttpEntity
@@ -254,7 +255,7 @@ class HttpDownloader(
       } orElse {
         // Try to use the last part of URL path as filename
         de.uri.toURL.getPath.split("/").lastOption flatMap {
-          case x if x.length > 0 => Some(URLDecoder.decode(x, "UTF8"))
+          case x if x.length > 0 => Some(URLDecoder.decode(x, Codec.UTF8.name))
           case _                 => None
         }
       } map { fn =>

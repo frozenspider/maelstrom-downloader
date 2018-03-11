@@ -1,9 +1,9 @@
 package org.fs.mael.core.list
 
 import java.io.File
-import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
+import scala.io.Codec
 import scala.io.Source
 
 import org.fs.mael.core.Status
@@ -22,7 +22,7 @@ class DownloadListManager(
     this.synchronized {
       require(entries.isEmpty, "Entries already loaded")
       if (file.exists) {
-        val content = Source.fromFile(file).mkString
+        val content = Source.fromFile(file)(Codec.UTF8).mkString
         if (!content.isEmpty) {
           val entries = serializer.deserialize(content)
           init(entries)
@@ -38,7 +38,7 @@ class DownloadListManager(
       require(!file.exists || file.canWrite, "Can't write to this file")
       val serialized = serializer.serialize(entries)
       file.getParentFile.mkdirs()
-      Files.write(file.toPath(), serialized.getBytes(StandardCharsets.UTF_8))
+      Files.write(file.toPath(), serialized.getBytes(Codec.UTF8.charSet))
     }
   }
 
