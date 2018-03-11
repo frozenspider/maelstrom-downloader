@@ -174,8 +174,10 @@ class MainFrame(
     val btnAdd = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnAdd =>
       btnAdd.setText("Add")
       btnAdd.addListener(SWT.Selection, e => {
-        val dialog = new EditDownloadDialog(None, shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
-        dialog.peer.open()
+        tryShowingError(peer, log) {
+          val dialog = new EditDownloadDialog(None, shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
+          dialog.peer.open()
+        }
       })
     }
 
@@ -244,10 +246,12 @@ class MainFrame(
       new MenuItem(menu, SWT.SEPARATOR)
 
       val openProps = createMenuItem(menu, "Properties", parent, None) { e =>
-        val deOption = mainTable.selectedEntryOption
-        require(deOption.isDefined)
-        val dialog = new EditDownloadDialog(deOption, shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
-        dialog.peer.open()
+        tryShowingError(peer, log) {
+          val deOption = mainTable.selectedEntryOption
+          require(deOption.isDefined)
+          val dialog = new EditDownloadDialog(deOption, shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
+          dialog.peer.open()
+        }
       }.forSingleDownloads()
       mainTable.peer.addListener(SWT.MouseDoubleClick, e => openProps.notifyListeners(SWT.Selection, e))
 

@@ -53,14 +53,7 @@ class EditDownloadDialog(
 
   /** Switch to advanced mode, enabling backend-specific config options */
   private var goAdvanced: () => Unit = _
-  private var backendOption: Option[Backend] =
-    try {
-      deOption map (de => backendMgr(de.backendId))
-    } catch {
-      case ex: Exception =>
-        tryShowingError(parent, log)(throw ex)
-        None
-    }
+  private var backendOption: Option[Backend] = deOption map (de => backendMgr(de.backendId))
   private var backendCfgUiOption: Option[BackendConfigUi] = None
 
   val peer = new Shell(parent, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL).withCode { shell =>
