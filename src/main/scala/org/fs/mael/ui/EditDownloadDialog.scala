@@ -197,8 +197,7 @@ class EditDownloadDialog(
           case Some(Checksum(tpe, value)) =>
             checksumDropdown.select(tpe.ordinal)
             checksumInput.setText(value)
-          case None =>
-          // NOOP
+          case None => // NOOP
         }
 
         commentInput.setText(de.comment)

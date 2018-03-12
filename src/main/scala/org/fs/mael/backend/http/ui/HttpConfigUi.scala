@@ -56,7 +56,6 @@ class HttpConfigUi(
   override def get(): InMemoryConfigManager = {
     if (isEditable) {
       requireFriendly(headersPage.performOk, "Some settings are invalid")
-      // FIXME: Freeze default properties
     }
     cfgMgr
   }
