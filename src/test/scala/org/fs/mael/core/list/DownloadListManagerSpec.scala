@@ -18,6 +18,8 @@ import org.fs.mael.test.stub.StubBackend
 import org.fs.mael.test.stub.StubDownloadListSerializer
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
+import org.fs.mael.core.config.InMemoryConfigManager
+import org.fs.mael.core.config.ConfigManager
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class DownloadListManagerSpec
@@ -30,7 +32,7 @@ class DownloadListManagerSpec
 
     val backend = new StubBackend
     val entries = Seq(
-      backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1", Some(backend.defaultCfg)),
+      backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1", Some(defaultCfg)),
       backend.create(new URI("uri2"), new File("/a2"), None, Some(Checksum(ChecksumType.SHA1, "1abcde")), "comment2", None)
     )
     val serializer: DownloadListSerializer = new DownloadListSerializer {
@@ -89,7 +91,7 @@ class DownloadListManagerSpec
 
     val backend = new StubBackend
     val entries = IndexedSeq(
-      backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1", Some(backend.defaultCfg)),
+      backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1", Some(defaultCfg)),
       backend.create(new URI("uri2"), new File("/a2"), None, Some(Checksum(ChecksumType.SHA1, "1abcde")), "comment2", None)
     )
 
@@ -117,5 +119,11 @@ class DownloadListManagerSpec
     assert(eventMgr.events.size === 6)
     assert(eventMgr.events(4) === Removed(entries(0)))
     assert(eventMgr.events(5) === Removed(entries(1)))
+  }
+
+  private def defaultCfg: InMemoryConfigManager = {
+    val cfg = new InMemoryConfigManager
+    cfg.initDefault(StubBackend.StubSetting)
+    cfg
   }
 }
