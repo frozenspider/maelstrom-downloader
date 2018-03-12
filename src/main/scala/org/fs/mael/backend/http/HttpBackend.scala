@@ -3,9 +3,8 @@ package org.fs.mael.backend.http
 import java.net.URI
 
 import org.eclipse.swt.widgets.TabFolder
-import org.fs.mael.backend.http.ui.HttpConfigUi
-import org.fs.mael.backend.http.ui.HttpSettings
 import org.fs.mael.core.backend.Backend
+import org.fs.mael.core.backend.BackendConfigUiImpl
 import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.config.InMemoryConfigManager
 import org.fs.mael.core.event.EventManager
@@ -29,8 +28,11 @@ class HttpBackend(
 
   override val downloader = new HttpDownloader(eventMgr, transferMgr)
 
-  override def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder, isEditable: Boolean) =
-    new HttpConfigUi(cfgOption, tabFolder, isEditable, globalCfgMgr)
+  override def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder, isEditable: Boolean) = {
+    val ui = new BackendConfigUiImpl(id, HttpSettings.Local.pageDescriptors, isEditable)
+    ui.initialize(cfgOption, tabFolder, globalCfgMgr)
+    ui
+  }
 
   override def defaultCfg: InMemoryConfigManager = {
     new InMemoryConfigManager(globalCfgMgr, HttpBackend.Id)

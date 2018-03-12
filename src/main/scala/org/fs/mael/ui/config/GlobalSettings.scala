@@ -14,11 +14,16 @@ class GlobalSettings(val globalCfgMgr: ConfigManager) {
   import GlobalSettings._
 
   val mgr = new PreferenceManager().withCode { mgr =>
-    def addRootPage(id: String, label: String, clazz: Class[_ <: MFieldEditorPreferencePage]): Unit = {
-      val page = new MPreferenceNode("main", "Main", null, clazz)
-      mgr.addToRoot(page)
+    def addPage(pageDescr: MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]): Unit = {
+      val page = new MPreferenceNode(pageDescr, null)
+      pageDescr.pathOption match {
+        case None    => mgr.addToRoot(page)
+        case Some(s) => mgr.addTo(s, page)
+      }
     }
-    addRootPage("main", "Main", classOf[MainPage])
+    pageDescriptors.foreach { pageDef =>
+      addPage(pageDef)
+    }
   }
 
   def showDialog(parent: Shell): Unit = {
@@ -100,4 +105,8 @@ object GlobalSettings {
       radioRow("Show tray icon:", ShowTrayIconBehavior)
     }
   }
+
+  val pageDescriptors = Seq(
+    MPreferencePageDescriptor("Main", None, classOf[MainPage]),
+  )
 }
