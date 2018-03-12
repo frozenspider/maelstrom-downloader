@@ -7,6 +7,7 @@ import java.net.URI
 import java.net.URLEncoder
 import java.nio.file.Files
 
+import scala.io.Codec
 import scala.util.Random
 
 import org.apache.http._
@@ -14,6 +15,7 @@ import org.apache.http.entity._
 import org.fs.mael.core.Status
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.checksum.ChecksumType
+import org.fs.mael.core.config.InMemoryConfigManager
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.Events
 import org.fs.mael.core.event.PriorityEvent
@@ -27,17 +29,15 @@ import org.scalatest.FunSuite
 import org.slf4s.Logging
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
-class HttpBackendDownloaderSpec
+class HttpDownloaderSpec
   extends FunSuite
   with BeforeAndAfter
   with BeforeAndAfterAll {
 
-  private type DE = DownloadEntry[HttpEntryData]
-
   private val eventMgr = new ControlledEventManager
   private val transferMgr = new ControlledTransferManager
 
-  private val downloader = new HttpBackendDownloader(eventMgr, transferMgr)
+  private val downloader = new HttpDownloader(eventMgr, transferMgr)
   private val tmpDir = new File(sys.props("java.io.tmpdir"))
   private var tmpFilenames = Seq.empty[String]
 
@@ -170,7 +170,7 @@ class HttpBackendDownloaderSpec
   test("deduce filename from URL") {
     val de = createDownloadEntry
     val filename = de.filenameOption.get
-    val encodedFilename = URLEncoder.encode(s"/?${filename}?/", "UTF8")
+    val encodedFilename = URLEncoder.encode(s"/?${filename}?/", Codec.UTF8.name)
     de.filenameOption = None
     de.uri = new URI(de.uri.toString replaceAllLiterally (de.uri.getPath, s"/$encodedFilename"))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
@@ -322,7 +322,7 @@ class HttpBackendDownloaderSpec
 
   test("failure - path is not accessible") {
     val de = createDownloadEntry
-    de.location = new File("?*|\0><'\"%:")
+    de.location = new File("?*|\u0000><'\"%:")
     server.respondWith(serveContentNormally(Array.empty[Byte]))
 
     expectStatusChangeEvents(de, Status.Running, Status.Error)
@@ -405,22 +405,22 @@ class HttpBackendDownloaderSpec
     filename
   }
 
-  private def createDownloadEntry: DE = {
+  private def createDownloadEntry: DownloadEntry = {
     val uri = new URI(s"http://localhost:$port/mySubUrl/qwe?a=b&c=d")
     val filename = requestTempFilename()
-    DownloadEntry[HttpEntryData](
-      backendId           = HttpBackend.Id,
-      uri                 = uri,
-      location            = tmpDir,
-      filenameOption      = Some(filename),
-      checksumOption      = None,
-      comment             = "my comment",
-      backendSpecificData = new HttpEntryData
+    DownloadEntry(
+      backendId          = HttpBackend.Id,
+      uri                = uri,
+      location           = tmpDir,
+      filenameOption     = Some(filename),
+      checksumOption     = None,
+      comment            = "my comment",
+      backendSpecificCfg = new InMemoryConfigManager
     )
   }
 
   /** Expect downloader to fire status changed to status1, and then - to status2 */
-  private def expectStatusChangeEvents(de: DE, status1: Status, status2: Status): Unit = {
+  private def expectStatusChangeEvents(de: DownloadEntry, status1: Status, status2: Status): Unit = {
     succeeded = false
     var firstStatusAdopted = false
     eventMgr.intercept {
@@ -435,25 +435,25 @@ class HttpBackendDownloaderSpec
     }
   }
 
-  private def getLocalFileOption(de: DE): Option[File] = {
+  private def getLocalFileOption(de: DownloadEntry): Option[File] = {
     de.filenameOption map (new File(tmpDir, _))
   }
 
-  private def readLocalFile(de: DE): Array[Byte] = {
+  private def readLocalFile(de: DownloadEntry): Array[Byte] = {
     Files.readAllBytes(getLocalFileOption(de).get.toPath)
   }
 
-  private def assertHasLogEntry(de: DE, substr: String): Unit = {
+  private def assertHasLogEntry(de: DownloadEntry, substr: String): Unit = {
     val hasLogEntry = de.downloadLog.exists(_.details.toLowerCase contains substr)
     assert(hasLogEntry, s": '$substr'")
   }
 
-  private def assertDoesntHaveLogEntry(de: DE, substr: String): Unit = {
+  private def assertDoesntHaveLogEntry(de: DownloadEntry, substr: String): Unit = {
     val hasLogEntry = de.downloadLog.exists(_.details.toLowerCase contains substr)
     assert(!hasLogEntry, s": '$substr'")
   }
 
-  private def assertLastLogEntry(de: DE, substr: String): Unit = {
+  private def assertLastLogEntry(de: DownloadEntry, substr: String): Unit = {
     val lastLogEntry = de.downloadLog.last.details.toLowerCase contains substr
     assert(lastLogEntry, s": '$substr'; was ${de.downloadLog.last}")
   }
@@ -512,7 +512,7 @@ class HttpBackendDownloaderSpec
     }
 
     /** Wait for the file associated with download entry to appear on disc */
-    def fileAppears(de: DE): Unit = {
+    def fileAppears(de: DownloadEntry): Unit = {
       val waitUntilFileAppears = waitUntil(waitTimeoutMs) {
         getLocalFileOption(de) map (_.exists) getOrElse false
       }

@@ -4,12 +4,11 @@ import java.io.File
 import java.net.URI
 
 import org.fs.mael.backend.http.HttpBackend
-import org.fs.mael.backend.http.HttpEntryData
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.checksum.ChecksumType
-import org.fs.mael.core.entry.BackendSpecificEntryData
+import org.fs.mael.core.config.InMemoryConfigManager
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.transfer.SimpleTransferManager
@@ -31,10 +30,10 @@ class DownloadListSerializerImplSpec
 
   private val backendMgr = (new BackendManager).withCode { backendMgr =>
     backendMgr += (new StubBackend, Int.MinValue)
-    backendMgr += (new HttpBackend(eventMgr, new SimpleTransferManager), 0)
+    backendMgr += (new HttpBackend(new SimpleTransferManager, new InMemoryConfigManager, eventMgr), 0)
   }
 
-  private val serializer = new DownloadListSerializerImpl(backendMgr)
+  private val serializer = new DownloadListSerializerImpl()
 
   test("stub - simple") {
     assertSingularSerializationWorks(createDE("simple")())
@@ -72,15 +71,15 @@ class DownloadListSerializerImplSpec
 
   test("stub - with backend-specific field") {
     assertSingularSerializationWorks(createDE("with-backend-specific-field") {
-      case de: DownloadEntry[StubBackend.StubEntryData] @unchecked =>
+      case de: DownloadEntry =>
         assert(de.backendId === StubBackend.Id)
-        de.backendSpecificData.myParam = "Hey there!"
+        de.backendSpecificCfg.set(StubBackend.StubSetting, "Hey there! Д™©®±ђ±\u0000‡†/\\")
     })
   }
 
   test("http - both simple and specific fields") {
     assertSingularSerializationWorks(createDE("http://www.example.com/subresource?a=b&c=d") {
-      case de: DownloadEntry[HttpEntryData] @unchecked =>
+      case de: DownloadEntry =>
         assert(de.backendId === HttpBackend.Id)
         de.sizeOption = Some(12345678)
         de.sections += (0L -> 10L)
@@ -90,13 +89,13 @@ class DownloadListSerializerImplSpec
 
   test("stub + http") {
     val de1 = createDE("all-simple-fields") {
-      case de: DownloadEntry[StubBackend.StubEntryData] @unchecked =>
+      case de: DownloadEntry =>
         assert(de.backendId === StubBackend.Id)
         de.comment = "comment 1"
-        de.backendSpecificData.myParam = "Hey there!"
+        de.backendSpecificCfg.set(StubBackend.StubSetting, "Hey there!")
     }
     val de2 = createDE("http://www.example.com/subresource?a=b&c=d") {
-      case de: DownloadEntry[HttpEntryData] @unchecked =>
+      case de: DownloadEntry =>
         assert(de.backendId === HttpBackend.Id)
         de.sizeOption = Some(12345678)
         de.comment = "comment 2"
@@ -116,17 +115,17 @@ class DownloadListSerializerImplSpec
     }
   }
 
-  private def assertSingularSerializationWorks(de1: DownloadEntry[_ <: BackendSpecificEntryData]): Unit = {
+  private def assertSingularSerializationWorks(de1: DownloadEntry): Unit = {
     val serialized = serializer.serialize(Seq(de1))
     val deserialized = serializer.deserialize(serialized)
     assert(deserialized.size === 1)
     assertDownloadEntriesEqual(de1, deserialized.head)
   }
 
-  private def createDE(uriString: String)(code: (DownloadEntry[_] => Unit) = (de => ())): DownloadEntry[_ <: BackendSpecificEntryData] = {
+  private def createDE(uriString: String)(code: (DownloadEntry => Unit) = (de => ())): DownloadEntry = {
     val loc = new File(System.getProperty("java.io.tmpdir"))
     val uri = new URI(uriString)
     val backend = backendMgr.findFor(uri).get
-    backend.create(uri, loc, None, None, "").withCode(code)
+    backend.create(uri, loc, None, None, "", None).withCode(code)
   }
 }

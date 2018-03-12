@@ -1,12 +1,15 @@
 package org.fs.mael.ui.utils
 
+import org.eclipse.jface.preference._
 import org.eclipse.swt.SWT
 import org.eclipse.swt.events.KeyEvent
 import org.eclipse.swt.events.TypedEvent
 import org.eclipse.swt.graphics.FontData
 import org.eclipse.swt.graphics.Rectangle
 import org.eclipse.swt.widgets._
+import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.ui.utils.Hotkey._
+import org.slf4s.Logger
 
 object SwtUtils {
   def getCurrentMonitor(c: Control): Monitor = {
@@ -67,6 +70,20 @@ object SwtUtils {
 
   def getArea(r: Rectangle): Int = r.height * r.width
 
+  def tryShowingError(shell: Shell, log: Logger)(code: => Unit): Unit = {
+    try {
+      code
+    } catch {
+      case ex: InterruptedException =>
+      // Cancelled by user, do nothing
+      case ex: UserFriendlyException =>
+        showError(shell, message = ex.getMessage)
+      case ex: Throwable =>
+        log.error("Unexpected error", ex)
+        showError(shell, message = ex.toString)
+    }
+  }
+
   def showError(shell: Shell, title: String = "Error", message: String): Unit = {
     val popup = new MessageBox(shell, SWT.ICON_ERROR | SWT.OK);
     popup.setText(title)
@@ -94,6 +111,17 @@ object SwtUtils {
     if (table.getItemCount > 0) {
       table.showItem(table.getItem(table.getItemCount - 1))
     }
+  }
+
+  /** Disable an editor so that its value can't be changed, but the text can be selected (if applicable) */
+  def disable(editor: FieldEditor, parent: Composite): Unit = editor match {
+    case editor: StringFieldEditor =>
+      editor.setEnabled(false, parent)
+      editor.getLabelControl(parent).setEnabled(true)
+      editor.getTextControl(parent).setEnabled(true)
+      editor.getTextControl(parent).setEditable(false)
+    case _ =>
+      editor.setEnabled(false, parent)
   }
 
   val monospacedFontData: FontData = {

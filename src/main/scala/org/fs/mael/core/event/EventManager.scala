@@ -1,7 +1,6 @@
 package org.fs.mael.core.event
 
 import org.fs.mael.core.Status
-import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.entry.LogEntry
@@ -24,7 +23,7 @@ trait EventManager {
   def fire(event: PriorityEvent): Unit
 
   /** Download entry configuration changed */
-  def fireConfigChanged(de: DownloadEntry[_ <: BackendSpecificEntryData]): Unit = {
+  def fireConfigChanged(de: DownloadEntry): Unit = {
     fire(ConfigChanged(de))
   }
 

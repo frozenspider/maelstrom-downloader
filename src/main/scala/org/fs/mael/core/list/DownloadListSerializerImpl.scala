@@ -1,11 +1,12 @@
 package org.fs.mael.core.list
 
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.File
 
 import org.fs.mael.core.Status
-import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.checksum.ChecksumType
-import org.fs.mael.core.entry.BackendSpecificEntryData
+import org.fs.mael.core.config.InMemoryConfigManager
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.json4s._
@@ -14,12 +15,12 @@ import org.json4s.jackson.Serialization
 
 import com.github.nscala_time.time.Imports._
 
-class DownloadListSerializerImpl(backendMgr: BackendManager) extends DownloadListSerializer {
+class DownloadListSerializerImpl extends DownloadListSerializer {
 
   private implicit val formats = {
     val deSerializer = {
       import FieldSerializer._
-      FieldSerializer[DownloadEntry[_]](
+      FieldSerializer[DownloadEntry](
         serializer   = ignore("hashCode") orElse ignore("speedOption"),
         deserializer = {
           // Coerce erased sections type from BigInt to Long
@@ -36,18 +37,18 @@ class DownloadListSerializerImpl(backendMgr: BackendManager) extends DownloadLis
       FileSerializer,
       StatusSerializer,
       LogTypeSerializer,
-      new EnumSerializer[ChecksumType],
-      new BackendDataSerializer(backendMgr)
+      InMemoryConfigSerializer,
+      new EnumSerializer[ChecksumType]
     )
     Serialization.formats(NoTypeHints) + deSerializer ++ serializers + SectionsKeySerializer ++ JavaTypesSerializers.all
   }
 
-  def serialize(entries: Iterable[DownloadEntry[_]]): String = {
+  def serialize(entries: Iterable[DownloadEntry]): String = {
     Serialization.writePretty(entries).replaceAllLiterally("\r\n", "\n")
   }
 
-  def deserialize(entriesString: String): Seq[DownloadEntry[_ <: BackendSpecificEntryData]] = {
-    Serialization.read[Seq[DownloadEntry[_ <: BackendSpecificEntryData]]](entriesString)
+  def deserialize(entriesString: String): Seq[DownloadEntry] = {
+    Serialization.read[Seq[DownloadEntry]](entriesString)
   }
 }
 
@@ -91,6 +92,19 @@ object DownloadListSerializerImpl {
     }
   ))
 
+  object InMemoryConfigSerializer
+    extends CustomSerializer[InMemoryConfigManager](format => (
+      {
+        case x: JString =>
+          new InMemoryConfigManager(x.s)
+        case JNothing =>
+          new InMemoryConfigManager()
+      }, {
+        case cfgMgr: InMemoryConfigManager =>
+          JString(cfgMgr.toSerialString)
+      }
+    ))
+
   class EnumSerializer[E <: Enum[E]](implicit ct: Manifest[E]) extends CustomSerializer[E](format => (
     {
       case JString(name) => Enum.valueOf(ct.runtimeClass.asInstanceOf[Class[E]], name)
@@ -98,21 +112,6 @@ object DownloadListSerializerImpl {
       case dt: E => JString(dt.name)
     }
   ))
-
-  class BackendDataSerializer(backendMgr: BackendManager)
-    extends CustomSerializer[BackendSpecificEntryData](format => (
-      {
-        case x: JObject =>
-          implicit val formats = org.json4s.DefaultFormats
-          val backendId = (x \\ "backendId").extract[String]
-          val backend = backendMgr(backendId)
-          backend.dataSerializer.deserialize(x)
-      }, {
-        case bsed: BackendSpecificEntryData =>
-          val backend = backendMgr(bsed.backendId)
-          backend.dataSerializer.serialize(bsed.asInstanceOf[backend.BSED])
-      }
-    ))
 
   /** Dirty hack for serialization of sections whose runtime class is {@code mutable.Map[Object, Object]} */
   object SectionsKeySerializer extends CustomKeySerializer[Object](format => (

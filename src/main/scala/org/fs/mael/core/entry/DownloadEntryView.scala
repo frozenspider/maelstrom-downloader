@@ -8,6 +8,7 @@ import scala.collection.MapLike
 
 import org.fs.mael.core.Status
 import org.fs.mael.core.checksum.Checksum
+import org.fs.mael.core.config.InMemoryConfigManager
 
 import com.github.nscala_time.time.Imports._
 
@@ -74,6 +75,8 @@ trait DownloadEntryView {
   def sections: MapLike[Start, Downloaded, _]
 
   def downloadLog: IndexedSeq[LogEntry]
+
+  def backendSpecificCfg: InMemoryConfigManager
 
   override final def equals(obj: Any): Boolean = obj match {
     case dd: DownloadEntryView => this.id == dd.id

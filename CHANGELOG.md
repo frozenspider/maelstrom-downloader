@@ -1,4 +1,5 @@
 ### SNAPSHOT
+* Implemented framework for backend-specific settings (unused yet)
 * Added tray icon and minimize to tray setting
 
 ### 0.2

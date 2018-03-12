@@ -3,6 +3,8 @@ package org.fs.mael.core.checksum
 import java.io.File
 import java.nio.file.Files
 
+import scala.io.Codec
+
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
 import org.scalatest.FunSuite
@@ -16,7 +18,7 @@ class ChecksumsSpec
 
   before {
     file = File.createTempFile("tmp1", ".tmp")
-    Files.write(file.toPath, "My test string".getBytes("UTF8"))
+    Files.write(file.toPath, "My test string".getBytes(Codec.UTF8.charSet))
   }
 
   after {

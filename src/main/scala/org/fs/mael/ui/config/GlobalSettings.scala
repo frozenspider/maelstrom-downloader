@@ -1,4 +1,4 @@
-package org.fs.mael.ui.prefs
+package org.fs.mael.ui.config
 
 import org.eclipse.jface.preference.DirectoryFieldEditor
 import org.eclipse.jface.preference.FieldEditorPreferencePage
@@ -7,10 +7,11 @@ import org.eclipse.jface.preference.PreferenceDialog
 import org.eclipse.jface.preference.PreferenceManager
 import org.eclipse.swt.widgets.Shell
 import org.fs.mael.core.config.ConfigManager
+import org.fs.mael.core.config.ConfigSetting
 import org.fs.mael.core.utils.CoreUtils._
 
-class GlobalPreferences(val cfgMgr: ConfigManager) {
-  import GlobalPreferences._
+class GlobalSettings(val globalCfgMgr: ConfigManager) {
+  import GlobalSettings._
 
   val mgr = new PreferenceManager().withCode { mgr =>
     def addRootPage(id: String, label: String, clazz: Class[_ <: MFieldEditorPreferencePage]): Unit = {
@@ -22,39 +23,40 @@ class GlobalPreferences(val cfgMgr: ConfigManager) {
 
   def showDialog(parent: Shell): Unit = {
     val dlg = new PreferenceDialog(parent, mgr)
-    dlg.setPreferenceStore(cfgMgr.store)
+    dlg.setPreferenceStore(globalCfgMgr.store)
     dlg.open()
   }
 }
 
-object GlobalPreferences {
-  import org.fs.mael.core.config.ConfigSetting._
+object GlobalSettings {
+  import org.fs.mael.core.config.ConfigSetting.RadioConfigSetting
+  import org.fs.mael.core.config.ConfigSetting.RadioValue
 
-  val DownloadPath: SimpleConfigSetting[String] =
-    SimpleConfigSetting("main.downloadPath", {
+  val DownloadPath: ConfigSetting[String] =
+    ConfigSetting("main.downloadPath", {
       sys.props("os.name") match {
         case os if os startsWith "Windows" => sys.env("USERPROFILE") + "\\Downloads"
         case _                             => sys.props("user.home") + "/downloads"
       }
     })
 
-  val NetworkTimeout: SimpleConfigSetting[Int] =
-    SimpleConfigSetting("main.networkTimeoutMs", 0)
+  val NetworkTimeout: ConfigSetting[Int] =
+    ConfigSetting("main.networkTimeoutMs", 0)
 
   val OnWindowCloseBehavior: RadioConfigSetting[OnWindowClose] =
-    new RadioConfigSetting("main.onWindowClose", OnWindowClose.Undefined, OnWindowClose.values)
+    ConfigSetting("main.onWindowClose", OnWindowClose.Undefined, OnWindowClose.values)
 
   val MinimizeToTrayBehavior: RadioConfigSetting[MinimizeToTray] =
-    new RadioConfigSetting("main.minimizeToTray", MinimizeToTray.Never, MinimizeToTray.values)
+    ConfigSetting("main.minimizeToTray", MinimizeToTray.Never, MinimizeToTray.values)
 
   val ShowTrayIconBehavior: RadioConfigSetting[ShowTrayIcon] =
-    new RadioConfigSetting("main.showTrayIcon", ShowTrayIcon.Always, ShowTrayIcon.values)
+    ConfigSetting("main.showTrayIcon", ShowTrayIcon.Always, ShowTrayIcon.values)
 
-  val SortColumn: SimpleConfigSetting[String] =
-    SimpleConfigSetting("view.sortColumn", "date-created")
+  val SortColumn: ConfigSetting[String] =
+    ConfigSetting("view.sortColumn", "date-created")
 
-  val SortAsc: SimpleConfigSetting[Boolean] =
-    SimpleConfigSetting("view.sortAsc", true)
+  val SortAsc: ConfigSetting[Boolean] =
+    ConfigSetting("view.sortAsc", true)
 
   sealed abstract class OnWindowClose(id: String, prettyName: String) extends RadioValue(id, prettyName)
   object OnWindowClose {
@@ -80,7 +82,7 @@ object GlobalPreferences {
   }
 
   class MainPage extends MFieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
-    def createFieldEditors(): Unit = {
+    override def createFieldEditors(): Unit = {
       row(DownloadPath) { (setting, parent) =>
         new DirectoryFieldEditor(setting.id, "Download path:", parent)
       }

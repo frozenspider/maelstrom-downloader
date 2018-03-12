@@ -1,14 +1,20 @@
 package org.fs.mael.core.config
 
-import scala.reflect.runtime.universe._
+import java.io.ByteArrayOutputStream
+
+import scala.io.Codec
 
 import org.eclipse.jface.preference.IPreferenceStore
+import org.eclipse.jface.preference.PreferenceStore
 import org.eclipse.jface.util.PropertyChangeEvent
 
 trait ConfigManager {
   import ConfigManager._
 
-  val store: IPreferenceStore
+  protected[config] var settings: Set[ConfigSetting[_]] = Set.empty
+  protected[config] var listerensEnabled: Boolean = true
+
+  val store: PreferenceStore
 
   def save(): Unit
 
@@ -17,64 +23,66 @@ trait ConfigManager {
    * Invoking this multiple times is safe and does nothing.
    */
   def initDefault(setting: ConfigSetting[_]): Unit = {
+    settings += setting
     ConfigManager.initDefault(store, setting)
   }
 
-  def apply[T: TypeTag](setting: ConfigSetting.SimpleConfigSetting[T]): T = {
+  def apply[T](setting: ConfigSetting[T]): T = {
     initDefault(setting)
-    // Somewhat dirty hack to overcome type erasure
-    (typeOf[T] match {
-      case t if t =:= typeOf[Boolean] => store.getBoolean(setting.id)
-      case t if t =:= typeOf[Int]     => store.getInt(setting.id)
-      case t if t =:= typeOf[Long]    => store.getLong(setting.id)
-      case t if t =:= typeOf[Double]  => store.getDouble(setting.id)
-      case t if t =:= typeOf[String]  => store.getString(setting.id)
-    }).asInstanceOf[T]
-  } ensuring (_ != null)
-
-  def apply[T, Repr: TypeTag](setting: ConfigSetting.CustomConfigSetting[T, Repr]): T = {
-    val repr = apply[Repr](setting.asReprSetting)
-    setting.fromRepr(repr)
+    setting.get(store) ensuring (_ != null)
   }
 
-  def set[T: TypeTag](setting: ConfigSetting.SimpleConfigSetting[T], value: T): Unit = {
-    // Somewhat dirty hack to overcome type erasure
-    (typeOf[T] match {
-      case t if t =:= typeOf[Boolean] => store.setValue(setting.id, value.asInstanceOf[Boolean])
-      case t if t =:= typeOf[Int]     => store.setValue(setting.id, value.asInstanceOf[Int])
-      case t if t =:= typeOf[Long]    => store.setValue(setting.id, value.asInstanceOf[Long])
-      case t if t =:= typeOf[Double]  => store.setValue(setting.id, value.asInstanceOf[Double])
-      case t if t =:= typeOf[String]  => store.setValue(setting.id, value.asInstanceOf[String])
-    }).asInstanceOf[T]
+  def set[T](setting: ConfigSetting[T], value: T): Unit = {
+    initDefault(setting)
+    setting.set(store, value)
     save()
   }
 
-  def set[T, Repr: TypeTag](setting: ConfigSetting.CustomConfigSetting[T, Repr], value: T): Unit = {
-    set[Repr](setting.asReprSetting, setting.toRepr(value))
-  }
-
-  def addConfigChangedListener[T](setting: ConfigSetting[T])(f: ConfigChangedEvent[T] => Unit): Unit = {
+  def addSettingChangedListener[T](setting: ConfigSetting[T])(f: ConfigChangedEvent[T] => Unit): Unit = {
     store.addPropertyChangeListener(e => e match {
-      case e if e.getProperty == setting.id =>
-        setting match {
-          case setting: ConfigSetting.SimpleConfigSetting[T] =>
-            f(ConfigChangedEvent[T](e.getOldValue.asInstanceOf[T], e.getNewValue.asInstanceOf[T]))
-          case setting: ConfigSetting.CustomConfigSetting[T, _] =>
-            notifyCustomConfigChanged(setting, e, f)
-        }
-      case _ =>
-      // NOOP
+      case e if e.getProperty == setting.id => notifySettingChanged(setting, e, f)
+      case _                                => // NOOP
     })
   }
 
-  // This is needed to encapsulate types
-  private def notifyCustomConfigChanged[T, Repr](
-    setting: ConfigSetting.CustomConfigSetting[T, Repr],
-    e:       PropertyChangeEvent,
-    f:       ConfigChangedEvent[T] => Unit
-  ): Unit = {
-    f(ConfigChangedEvent[T](setting.fromRepr(e.getOldValue.asInstanceOf[Repr]), setting.fromRepr(e.getNewValue.asInstanceOf[Repr])))
+  protected def notifySettingChanged[T](setting: ConfigSetting[T], e: PropertyChangeEvent, f: ConfigChangedEvent[T] => Unit): Unit = {
+    if (listerensEnabled) {
+      val e2 = ConfigChangedEvent[T](setting.fromRepr(e.getOldValue.asInstanceOf[setting.Repr]), setting.fromRepr(e.getNewValue.asInstanceOf[setting.Repr]))
+      f(e2)
+    }
   }
+
+  /**
+   * Serializes the store content of this manager into byte array.
+   * Note that due to presence of comment with current date/time, its content will differ between invocations!
+   */
+  protected[config] def toByteArray: Array[Byte] = {
+    val baos = new ByteArrayOutputStream
+    store.save(baos, null)
+    baos.toByteArray()
+  }
+
+  def toSerialString: String = {
+    val baos = new ByteArrayOutputStream
+    store.save(baos, null)
+    // Charset is taken from java.util.Properties.store
+    val lines = baos.toString(Codec.ISO8859.name).split("[\r\n]+").sorted
+    // Removing comments
+    lines.filter(!_.startsWith("#")).mkString("\n")
+  }
+
+  override def toString(): String = {
+    val keys = store.preferenceNames().sorted
+    val content = keys map (k => s"k -> ${store.getString(k)}") mkString ", "
+    this.getClass.getSimpleName + "(" + content + ")"
+  }
+
+  override def equals(that: Any): Boolean = that match {
+    case that: ConfigManager => this.toSerialString == that.toSerialString
+    case _                   => false
+  }
+
+  override def hashCode: Int = this.toSerialString.hashCode
 }
 
 object ConfigManager {
@@ -85,33 +93,6 @@ object ConfigManager {
    * Invoking this multiple times is safe and does nothing.
    */
   def initDefault(store: IPreferenceStore, setting: ConfigSetting[_]): Unit = {
-    setting match {
-      case setting: ConfigSetting.SimpleConfigSetting[_] =>
-        val oldDefault = store.getDefaultBoolean(setting.id)
-        setting.default match {
-          case default: Boolean => initDefault(store, setting.id, default)
-          case default: Int     => initDefault(store, setting.id, default)
-          case default: Long    => initDefault(store, setting.id, default)
-          case default: Double  => initDefault(store, setting.id, default)
-          case default: String  => initDefault(store, setting.id, default)
-        }
-      case setting: ConfigSetting.CustomConfigSetting[_, _] =>
-        initDefault(store, setting.asReprSetting)
-    }
+    setting.setDefault(store)
   }
-
-  private def initDefault(store: IPreferenceStore, id: String, default: Boolean): Unit =
-    if (store.getDefaultBoolean(id) != default) store.setDefault(id, default)
-
-  private def initDefault(store: IPreferenceStore, id: String, default: Int): Unit =
-    if (store.getDefaultInt(id) != default) store.setDefault(id, default)
-
-  private def initDefault(store: IPreferenceStore, id: String, default: Long): Unit =
-    if (store.getDefaultLong(id) != default) store.setDefault(id, default)
-
-  private def initDefault(store: IPreferenceStore, id: String, default: Double): Unit =
-    if (store.getDefaultDouble(id) != default) store.setDefault(id, default)
-
-  private def initDefault(store: IPreferenceStore, id: String, default: String): Unit =
-    if (store.getDefaultString(id) != default) store.setDefault(id, default)
 }

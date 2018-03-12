@@ -26,17 +26,18 @@ import org.fs.mael.core.event.UiSubscriber
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components._
-import org.fs.mael.ui.prefs.GlobalPreferences
+import org.fs.mael.ui.config.GlobalSettings
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.Hotkey
 import org.fs.mael.ui.utils.Hotkey._
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
+import org.fs.mael.core.entry.DownloadEntry
 
 class MainFrame(
   display:         Display,
   resources:       Resources,
-  cfgMgr:          ConfigManager,
+  globalCfgMgr:    ConfigManager,
   backendMgr:      BackendManager,
   downloadListMgr: DownloadListManager,
   eventMgr:        EventManager
@@ -84,7 +85,7 @@ class MainFrame(
     val sashForm = new SashForm(group, SWT.VERTICAL)
     sashForm.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true))
 
-    mainTable = new DownloadsTable(sashForm, resources, cfgMgr)
+    mainTable = new DownloadsTable(sashForm, resources, globalCfgMgr)
     logTable = new LogTable(sashForm, resources)
 
     sashForm.setWeights(Array(10, 10))
@@ -113,13 +114,13 @@ class MainFrame(
     trayItem.setImage(resources.mainIcon)
     trayItem.setToolTipText(BuildInfo.prettyName)
 
-    import GlobalPreferences._
-    cfgMgr.addConfigChangedListener(ShowTrayIconBehavior)(e => {
+    import GlobalSettings._
+    globalCfgMgr.addSettingChangedListener(ShowTrayIconBehavior)(e => {
       updateTrayIconVisibility(e.newValue)
     })
-    updateTrayIconVisibility(cfgMgr(ShowTrayIconBehavior))
+    updateTrayIconVisibility(globalCfgMgr(ShowTrayIconBehavior))
     def show(e: Event): Unit = {
-      updateTrayIconVisibility(cfgMgr(ShowTrayIconBehavior))
+      updateTrayIconVisibility(globalCfgMgr(ShowTrayIconBehavior))
       shell.setVisible(true)
       shell.setMinimized(false)
       shell.forceActive()
@@ -137,8 +138,8 @@ class MainFrame(
     trayItem.addListener(SWT.MenuDetect, e => menu.setVisible(true))
   }
 
-  private def updateTrayIconVisibility(setting: GlobalPreferences.ShowTrayIcon): Unit = {
-    val showWhenNeeded = setting == GlobalPreferences.ShowTrayIcon.WhenNeeded
+  private def updateTrayIconVisibility(setting: GlobalSettings.ShowTrayIcon): Unit = {
+    val showWhenNeeded = setting == GlobalSettings.ShowTrayIcon.WhenNeeded
     trayItem.setVisible(!showWhenNeeded)
   }
 
@@ -163,9 +164,9 @@ class MainFrame(
       val submenu = new Menu(parent, SWT.DROP_DOWN)
       menuItem.setMenu(submenu)
 
-      val itemOptions = new MenuItem(submenu, SWT.PUSH)
-      itemOptions.setText("Options")
-      itemOptions.addListener(SWT.Selection, e => new GlobalPreferences(cfgMgr).showDialog(shell))
+      val itemSettings = new MenuItem(submenu, SWT.PUSH)
+      itemSettings.setText("Settings")
+      itemSettings.addListener(SWT.Selection, e => new GlobalSettings(globalCfgMgr).showDialog(shell))
     }
   }
 
@@ -173,17 +174,22 @@ class MainFrame(
     val btnAdd = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnAdd =>
       btnAdd.setText("Add")
       btnAdd.addListener(SWT.Selection, e => {
-        val dialog = new EditDownloadDialog(None, shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
-        dialog.peer.open()
+        tryShowingError(peer, log) {
+          val dialog = new EditDownloadDialog(None, shell, resources, globalCfgMgr, backendMgr, downloadListMgr, eventMgr)
+          dialog.peer.open()
+        }
       })
     }
 
     btnStart = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnStart =>
       btnStart.setText("Start")
       btnStart.addListener(SWT.Selection, e => {
-        mainTable.selectedEntries map { de =>
-          val pair = backendMgr.getCastedPair(de)
-          pair.backend.downloader.start(pair.de, cfgMgr(GlobalPreferences.NetworkTimeout))
+        mainTable.selectedEntries map { dev =>
+          tryShowingError(peer, log) {
+            val backend = backendMgr(dev.backendId)
+            val de = dev.asInstanceOf[DownloadEntry]
+            backend.downloader.start(de, globalCfgMgr(GlobalSettings.NetworkTimeout))
+          }
         }
       })
       btnStart.forDownloads(_ exists (_.status.canBeStarted))
@@ -192,9 +198,12 @@ class MainFrame(
     btnStop = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnStop =>
       btnStop.setText("Stop")
       btnStop.addListener(SWT.Selection, e => {
-        mainTable.selectedEntries map { de =>
-          val pair = backendMgr.getCastedPair(de)
-          pair.backend.downloader.stop(pair.de)
+        mainTable.selectedEntries map { dev =>
+          tryShowingError(peer, log) {
+            val backend = backendMgr(dev.backendId)
+            val de = dev.asInstanceOf[DownloadEntry]
+            backend.downloader.stop(de)
+          }
         }
       })
       btnStop.forDownloads(_ exists (_.status.canBeStopped))
@@ -237,10 +246,12 @@ class MainFrame(
       new MenuItem(menu, SWT.SEPARATOR)
 
       val openProps = createMenuItem(menu, "Properties", parent, None) { e =>
-        val deOption = mainTable.selectedEntryOption
-        require(deOption.isDefined)
-        val dialog = new EditDownloadDialog(deOption, shell, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
-        dialog.peer.open()
+        tryShowingError(peer, log) {
+          val deOption = mainTable.selectedEntryOption
+          require(deOption.isDefined)
+          val dialog = new EditDownloadDialog(deOption, shell, resources, globalCfgMgr, backendMgr, downloadListMgr, eventMgr)
+          dialog.peer.open()
+        }
       }.forSingleDownloads()
       mainTable.peer.addListener(SWT.MouseDoubleClick, e => openProps.notifyListeners(SWT.Selection, e))
 
@@ -256,8 +267,8 @@ class MainFrame(
   }
 
   private def onWindowClose(closeEvent: Event): Unit = {
-    import org.fs.mael.ui.prefs.GlobalPreferences.OnWindowClose._
-    cfgMgr(GlobalPreferences.OnWindowCloseBehavior) match {
+    import org.fs.mael.ui.config.GlobalSettings.OnWindowClose._
+    globalCfgMgr(GlobalSettings.OnWindowCloseBehavior) match {
       case Undefined => promptWindowClose(closeEvent)
       case Close     => tryExit(closeEvent)
       case Minimize  => minimize(Some(closeEvent))
@@ -266,7 +277,7 @@ class MainFrame(
 
   private def promptWindowClose(closeEvent: Event): Unit = {
     import java.util.LinkedHashMap
-    import org.fs.mael.ui.prefs.GlobalPreferences._
+    import org.fs.mael.ui.config.GlobalSettings._
     val lhm = new LinkedHashMap[String, Integer].withCode { lhm =>
       lhm.put(OnWindowClose.Minimize.prettyName, 1)
       lhm.put(OnWindowClose.Close.prettyName, 2)
@@ -288,7 +299,7 @@ class MainFrame(
     } else {
       val Some(action) = actionOption
       if (result.getToggleState) {
-        cfgMgr.set(OnWindowCloseBehavior, action)
+        globalCfgMgr.set(OnWindowCloseBehavior, action)
       }
       (action: @unchecked) match {
         case OnWindowClose.Close    => tryExit(closeEvent)
@@ -299,9 +310,9 @@ class MainFrame(
 
   private def minimize(closeEventOption: Option[Event]): Unit = {
     closeEventOption foreach (_.doit = false)
-    import org.fs.mael.ui.prefs.GlobalPreferences._
+    import org.fs.mael.ui.config.GlobalSettings._
     // Only minimize to tray if tray exists
-    (closeEventOption, cfgMgr(MinimizeToTrayBehavior)) match {
+    (closeEventOption, globalCfgMgr(MinimizeToTrayBehavior)) match {
       case (_, MinimizeToTray.Always) if trayOption.isDefined        => minimizeToTray()
       case (Some(_), MinimizeToTray.OnClose) if trayOption.isDefined => minimizeToTray()
       case _                                                         => peer.setMinimized(true)
@@ -327,9 +338,10 @@ class MainFrame(
         if (!confirmed) {
           closeEvent.doit = false
         } else {
-          running foreach { de =>
-            val pair = backendMgr.getCastedPair(de)
-            pair.backend.downloader.stop(pair.de)
+          running foreach { dev =>
+            val backend = backendMgr(dev.backendId)
+            val de = dev.asInstanceOf[DownloadEntry]
+            backend.downloader.stop(de)
           }
           peer.setVisible(false)
           val terminatedNormally = waitUntil(2000) { getRunningEntities().size == 0 }
@@ -339,6 +351,10 @@ class MainFrame(
         }
       }
       if (closeEvent.doit) {
+        trayOption foreach { _ =>
+          // It was sometimes left visible in system tray after termination
+          trayItem.dispose()
+        }
         downloadListMgr.save()
         peer.dispose()
       }

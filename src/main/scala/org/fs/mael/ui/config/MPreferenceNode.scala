@@ -1,4 +1,4 @@
-package org.fs.mael.ui.prefs
+package org.fs.mael.ui.config
 
 import org.eclipse.jface.preference.PreferenceNode
 import org.eclipse.jface.resource.ImageDescriptor

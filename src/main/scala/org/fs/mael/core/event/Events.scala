@@ -1,7 +1,6 @@
 package org.fs.mael.core.event
 
 import org.fs.mael.core.Status
-import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.entry.LogEntry
@@ -34,9 +33,7 @@ object Events {
   //
 
   /** Download entry configuration changed */
-  case class ConfigChanged(
-    de: DownloadEntry[_ <: BackendSpecificEntryData]
-  ) extends PriorityEventImpl(Int.MaxValue) with EventForBackend {
+  case class ConfigChanged(de: DownloadEntry) extends PriorityEventImpl(Int.MaxValue) with EventForBackend {
     override def msg = "Config changed for " + de.uri
   }
 

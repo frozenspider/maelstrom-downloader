@@ -12,9 +12,9 @@ import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.event.EventManagerImpl
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.list.DownloadListSerializerImpl
+import org.fs.mael.core.migration.MigrationManager
 import org.fs.mael.core.transfer.SimpleTransferManager
 import org.fs.mael.core.transfer.TransferManager
-import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.MainFrame
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.resources.ResourcesImpl
@@ -32,26 +32,29 @@ object MaelstromDownloaderMain extends App with Logging {
   log.info(BuildInfo.fullPrettyName)
   log.info("Application started, initializing...")
 
-  val mainConfigFile = new File("cfg/main.properties")
-  val downloadListFile = new File("cfg/downloads.json")
+  val cfgFoler = new File("cfg")
+  val globalCfgFile = new File(cfgFoler, "main.properties")
+  val downloadListFile = new File(cfgFoler, "downloads.json")
 
   try {
     val shell: Shell = StopWatch.measureAndCall {
       preloadClasses()
       // TODO: Show minimal splash screen
+      val globalCfgMgr = new FileBackedConfigManager(globalCfgFile)
+      val migrationMgr = new MigrationManager(globalCfgMgr, downloadListFile)
+      migrationMgr.apply()
       val display = new Display()
-      val cfgMgr = new FileBackedConfigManager(mainConfigFile)
       val resources = new ResourcesImpl(display)
       val eventMgr = new EventManagerImpl
       val backendMgr = new BackendManager
       val transferMgr = new SimpleTransferManager
-      initBackends(backendMgr, eventMgr, transferMgr)
+      initBackends(backendMgr, transferMgr, globalCfgMgr, eventMgr)
       val downloadListMgr = {
-        val serializer = new DownloadListSerializerImpl(backendMgr)
+        val serializer = new DownloadListSerializerImpl
         new DownloadListManager(serializer, downloadListFile, eventMgr)
       }
       downloadListMgr.load()
-      initUi(display, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
+      initUi(display, resources, globalCfgMgr, backendMgr, downloadListMgr, eventMgr)
     }((_, ms) =>
       log.info(s"Init done in ${ms} ms"))
 
@@ -77,22 +80,23 @@ object MaelstromDownloaderMain extends App with Logging {
   }
 
   def initBackends(
-    backendMgr:  BackendManager,
-    eventMgr:    EventManager,
-    transferMgr: TransferManager
+    backendMgr:   BackendManager,
+    transferMgr:  TransferManager,
+    globalCfgMgr: ConfigManager,
+    eventMgr:     EventManager
   ): Unit = {
-    backendMgr += (new HttpBackend(eventMgr, transferMgr), 0)
+    backendMgr += (new HttpBackend(transferMgr, globalCfgMgr, eventMgr), 0)
   }
 
   def initUi(
     display:         Display,
     resources:       Resources,
-    cfgMgr:          ConfigManager,
+    globalCfgMgr:    ConfigManager,
     backendMgr:      BackendManager,
     downloadListMgr: DownloadListManager,
     eventMgr:        EventManager
   ): Shell = {
-    val ui = new MainFrame(display, resources, cfgMgr, backendMgr, downloadListMgr, eventMgr)
+    val ui = new MainFrame(display, resources, globalCfgMgr, backendMgr, downloadListMgr, eventMgr)
     ui.peer
   }
 

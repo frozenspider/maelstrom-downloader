@@ -1,19 +1,21 @@
 package org.fs.mael.backend.http
 
-import java.io.File
 import java.net.URI
 
+import org.eclipse.swt.widgets.TabFolder
+import org.fs.mael.backend.http.ui.HttpConfigUi
+import org.fs.mael.backend.http.ui.HttpSettings
 import org.fs.mael.core.backend.Backend
-import org.fs.mael.core.checksum.Checksum
-import org.fs.mael.core.entry.DownloadEntry
+import org.fs.mael.core.config.ConfigManager
+import org.fs.mael.core.config.InMemoryConfigManager
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
 
-class HttpBackend(eventMgr: EventManager, transferMgr: TransferManager) extends Backend {
-  override type BSED = HttpEntryData
-
-  override val dataClass: Class[BSED] = classOf[BSED]
-
+class HttpBackend(
+  transferMgr:  TransferManager,
+  globalCfgMgr: ConfigManager,
+  eventMgr:     EventManager
+) extends Backend {
   override val id: String = HttpBackend.Id
 
   override def isSupported(uri: URI): Boolean = {
@@ -25,21 +27,16 @@ class HttpBackend(eventMgr: EventManager, transferMgr: TransferManager) extends 
     }
   }
 
-  override protected def createInner(
-    uri:            URI,
-    location:       File,
-    filenameOption: Option[String],
-    checksumOption: Option[Checksum],
-    comment:        String
-  ): DownloadEntry[HttpEntryData] = {
-    DownloadEntry(id, uri, location, filenameOption, checksumOption, comment, new HttpEntryData)
+  override val downloader = new HttpDownloader(eventMgr, transferMgr)
+
+  override def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder, isEditable: Boolean) =
+    new HttpConfigUi(cfgOption, tabFolder, isEditable, globalCfgMgr)
+
+  override def defaultCfg: InMemoryConfigManager = {
+    new InMemoryConfigManager(globalCfgMgr, HttpBackend.Id)
   }
-
-  override val downloader = new HttpBackendDownloader(eventMgr, transferMgr)
-
-  override val dataSerializer = new HttpDataSerializer
 }
 
 object HttpBackend {
-  val Id = "http-https"
+  val Id = "http"
 }

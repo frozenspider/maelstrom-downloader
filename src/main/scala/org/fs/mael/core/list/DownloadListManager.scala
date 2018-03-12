@@ -1,13 +1,12 @@
 package org.fs.mael.core.list
 
 import java.io.File
-import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
+import scala.io.Codec
 import scala.io.Source
 
 import org.fs.mael.core.Status
-import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.event.EventManager
@@ -17,13 +16,13 @@ class DownloadListManager(
   file:       File,
   eventMgr:   EventManager
 ) {
-  private var entries: IndexedSeq[DownloadEntry[_]] = IndexedSeq.empty
+  private var entries: IndexedSeq[DownloadEntry] = IndexedSeq.empty
 
   def load(): Unit = {
     this.synchronized {
       require(entries.isEmpty, "Entries already loaded")
       if (file.exists) {
-        val content = Source.fromFile(file).mkString
+        val content = Source.fromFile(file)(Codec.UTF8).mkString
         if (!content.isEmpty) {
           val entries = serializer.deserialize(content)
           init(entries)
@@ -39,15 +38,15 @@ class DownloadListManager(
       require(!file.exists || file.canWrite, "Can't write to this file")
       val serialized = serializer.serialize(entries)
       file.getParentFile.mkdirs()
-      Files.write(file.toPath(), serialized.getBytes(StandardCharsets.UTF_8))
+      Files.write(file.toPath(), serialized.getBytes(Codec.UTF8.charSet))
     }
   }
 
   /** For test usage only! */
-  def test_init(entries: Iterable[DownloadEntry[_ <: BackendSpecificEntryData]]): Unit = init(entries)
+  def test_init(entries: Iterable[DownloadEntry]): Unit = init(entries)
 
   /** Called initially upon application start, no event is fired */
-  private def init(entries: Iterable[DownloadEntry[_ <: BackendSpecificEntryData]]): Unit = {
+  private def init(entries: Iterable[DownloadEntry]): Unit = {
     this.synchronized {
       require(this.entries.isEmpty, "Entries already loaded")
       // Mutating code!
@@ -63,7 +62,7 @@ class DownloadListManager(
   }
 
   /** Add a new entry to a download list, firing an event */
-  def add(de: DownloadEntry[_]): Unit = {
+  def add(de: DownloadEntry): Unit = {
     this.synchronized {
       if (!entries.contains(de)) {
         entries = entries :+ de
@@ -88,7 +87,7 @@ class DownloadListManager(
     }
   }
 
-  def list(): IndexedSeq[DownloadEntry[_]] = {
+  def list(): IndexedSeq[DownloadEntry] = {
     this.synchronized {
       entries
     }
