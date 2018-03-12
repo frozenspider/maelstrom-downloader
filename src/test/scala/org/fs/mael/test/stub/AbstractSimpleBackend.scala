@@ -23,7 +23,7 @@ abstract class AbstractSimpleBackend(
 
   override def defaultCfg = new InMemoryConfigManager
 
-  override def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder) = new BackendConfigUi {
+  override def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder, isEditable: Boolean) = new BackendConfigUi {
     override def get(): InMemoryConfigManager = cfgOption getOrElse defaultCfg
   }
 }

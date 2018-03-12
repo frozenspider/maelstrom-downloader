@@ -12,11 +12,13 @@ import org.fs.mael.core.backend.BackendConfigUi
 import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.config.InMemoryConfigManager
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.ui.utils.SwtUtils
 
 // TODO: Make general
 class HttpConfigUi(
   cfgOption:    Option[ConfigManager],
   tabFolder:    TabFolder,
+  isEditable:   Boolean,
   globalCfgMgr: ConfigManager
 ) extends BackendConfigUi {
 
@@ -36,6 +38,11 @@ class HttpConfigUi(
     page.noDefaultAndApplyButton()
     page.createControl(container)
     page.getControl.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true))
+    if (!isEditable) {
+      page.fieldEditorsWithParents.foreach {
+        case (editor, parent) => SwtUtils.disable(editor, parent)
+      }
+    }
     page
   }
 
@@ -47,7 +54,10 @@ class HttpConfigUi(
   }
 
   override def get(): InMemoryConfigManager = {
-    requireFriendly(headersPage.performOk, "Some settings are invalid")
+    if (isEditable) {
+      requireFriendly(headersPage.performOk, "Some settings are invalid")
+      // FIXME: Freeze default properties
+    }
     cfgMgr
   }
 }

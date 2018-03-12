@@ -34,7 +34,7 @@ trait Backend {
 
   def downloader: BackendDownloader
 
-  def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder): BackendConfigUi
+  def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder, isEditable: Boolean): BackendConfigUi
 
   protected def defaultCfg: InMemoryConfigManager
 

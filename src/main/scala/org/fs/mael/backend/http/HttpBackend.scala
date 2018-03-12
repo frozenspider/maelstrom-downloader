@@ -29,7 +29,8 @@ class HttpBackend(
 
   override val downloader = new HttpDownloader(eventMgr, transferMgr)
 
-  override def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder) = new HttpConfigUi(cfgOption, tabFolder, globalCfgMgr)
+  override def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder, isEditable: Boolean) =
+    new HttpConfigUi(cfgOption, tabFolder, isEditable, globalCfgMgr)
 
   override def defaultCfg: InMemoryConfigManager = {
     new InMemoryConfigManager(globalCfgMgr, HttpBackend.Id)

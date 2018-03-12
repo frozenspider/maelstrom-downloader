@@ -12,6 +12,12 @@ abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPrefere
   override def noDefaultAndApplyButton(): Unit = super.noDefaultAndApplyButton()
 
   /**
+   * Keep track of field editors created on this page as well as their parents.
+   * Please use this if an element is added manually rather than through helpers defined here
+   */
+  protected var _fieldEditorsWithParents: IndexedSeq[(FieldEditor, Composite)] = IndexedSeq.empty
+
+  /**
    * Initialize a default value for the given config setting.
    * Please use this if an element is added manually rather than through helpers defined here
    */
@@ -19,10 +25,14 @@ abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPrefere
     ConfigManager.initDefault(getPreferenceStore, setting)
   }
 
+  def fieldEditorsWithParents: IndexedSeq[(FieldEditor, Composite)] = _fieldEditorsWithParents
+
   def row[CS <: ConfigSetting[_], FE <: FieldEditor](setting: CS)(createEditor: (CS, Composite) => FE): FE = {
     initSetting(setting)
-    val editor = createEditor(setting, getFieldEditorParent)
+    val parent = getFieldEditorParent
+    val editor = createEditor(setting, parent)
     addField(editor)
+    _fieldEditorsWithParents = _fieldEditorsWithParents :+ (editor, parent)
     editor
   }
 

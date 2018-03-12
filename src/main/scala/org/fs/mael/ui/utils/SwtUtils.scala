@@ -1,5 +1,6 @@
 package org.fs.mael.ui.utils
 
+import org.eclipse.jface.preference._
 import org.eclipse.swt.SWT
 import org.eclipse.swt.events.KeyEvent
 import org.eclipse.swt.events.TypedEvent
@@ -110,6 +111,17 @@ object SwtUtils {
     if (table.getItemCount > 0) {
       table.showItem(table.getItem(table.getItemCount - 1))
     }
+  }
+
+  /** Disable an editor so that its value can't be changed, but the text can be selected (if applicable) */
+  def disable(editor: FieldEditor, parent: Composite): Unit = editor match {
+    case editor: StringFieldEditor =>
+      editor.setEnabled(false, parent)
+      editor.getLabelControl(parent).setEnabled(true)
+      editor.getTextControl(parent).setEnabled(true)
+      editor.getTextControl(parent).setEditable(false)
+    case _ =>
+      editor.setEnabled(false, parent)
   }
 
   val monospacedFontData: FontData = {

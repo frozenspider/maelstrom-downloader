@@ -184,15 +184,11 @@ class EditDownloadDialog(
         uriInput.setEditable(de.status.canBeStarted)
 
         locationInput.setStringValue(de.location.getAbsolutePath)
-        // Changing enabled state in a tricky way so that path can still be selected
-        val enabled = de.status != Status.Running
-        locationInput.setEnabled(enabled, locationRow)
-        locationInput.getTextControl(locationRow).withCode { input =>
-          input.setEnabled(true)
-          input.setEditable(enabled)
-        }
-
         filenameInput.setText(de.filenameOption getOrElse "")
+        if (de.status == Status.Running) {
+          disable(locationInput, locationRow)
+          filenameInput.setEditable(false)
+        }
 
         checksumDropdown.setEnabled(de.status != Status.Complete)
         checksumInput.setEditable(de.status != Status.Complete)
@@ -271,7 +267,8 @@ class EditDownloadDialog(
       // From now on, backend is frozen
       backendOption = Some(backend)
       val deCfgOption = deOption map (_.backendSpecificCfg)
-      backendCfgUiOption = Some(backend.layoutConfig(deCfgOption, tabFolder))
+      val isEditable = deOption map (de => de.status.canBeStarted) getOrElse true
+      backendCfgUiOption = Some(backend.layoutConfig(deCfgOption, tabFolder, isEditable))
 
       // Re-do buttons layout, hiding "advanced" button
       advancedButton.dispose()
