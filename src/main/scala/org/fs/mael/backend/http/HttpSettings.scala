@@ -1,7 +1,5 @@
 package org.fs.mael.backend.http
 
-import scala.collection.Seq
-
 import org.eclipse.jface.preference.FieldEditorPreferencePage
 import org.eclipse.jface.preference.StringFieldEditor
 import org.fs.mael.ui.config.EmptyPreferencePage
@@ -13,6 +11,7 @@ object HttpSettings {
 
   private val prefix = HttpBackend.Id
 
+  /** Setting pages to include in global settings */
   object Global {
     private val rootPageDescriptor =
       MPreferencePageDescriptor("HTTP", None, classOf[EmptyPreferencePage])
@@ -23,14 +22,23 @@ object HttpSettings {
     )
   }
 
+  /** Setting pages for single download */
   object Local {
     val pageDescriptors: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]] = Seq(
       MPreferencePageDescriptor("Headers", None, classOf[HeadersPage])
     )
   }
 
+  //
+  // Settings
+  //
+
   val UserAgent: ConfigSetting[Option[String]] =
     ConfigSetting(prefix + ".userAgent", None)
+
+  //
+  // Pages
+  //
 
   private class HeadersPage extends MFieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
     override def createFieldEditors(): Unit = {

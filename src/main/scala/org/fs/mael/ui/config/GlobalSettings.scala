@@ -3,39 +3,20 @@ package org.fs.mael.ui.config
 import org.eclipse.jface.preference.DirectoryFieldEditor
 import org.eclipse.jface.preference.FieldEditorPreferencePage
 import org.eclipse.jface.preference.IntegerFieldEditor
-import org.eclipse.jface.preference.PreferenceDialog
-import org.eclipse.jface.preference.PreferenceManager
-import org.eclipse.swt.widgets.Shell
-import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.config.ConfigSetting
+import org.fs.mael.core.config.ConfigSetting.RadioConfigSetting
+import org.fs.mael.core.config.ConfigSetting.RadioValue
 import org.fs.mael.core.utils.CoreUtils._
 
-class GlobalSettings(val globalCfgMgr: ConfigManager) {
-  import GlobalSettings._
-
-  val mgr = new PreferenceManager().withCode { mgr =>
-    def addPage(pageDescr: MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]): Unit = {
-      val page = new MPreferenceNode(pageDescr, null)
-      pageDescr.pathOption match {
-        case None    => mgr.addToRoot(page)
-        case Some(s) => mgr.addTo(s, page)
-      }
-    }
-    pageDescriptors.foreach { pageDef =>
-      addPage(pageDef)
-    }
-  }
-
-  def showDialog(parent: Shell): Unit = {
-    val dlg = new PreferenceDialog(parent, mgr)
-    dlg.setPreferenceStore(globalCfgMgr.store)
-    dlg.open()
-  }
-}
-
 object GlobalSettings {
-  import org.fs.mael.core.config.ConfigSetting.RadioConfigSetting
-  import org.fs.mael.core.config.ConfigSetting.RadioValue
+
+  val pageDescriptors: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]] = Seq(
+    MPreferencePageDescriptor("Main", None, classOf[MainPage])
+  )
+
+  //
+  // Settings
+  //
 
   val DownloadPath: ConfigSetting[String] =
     ConfigSetting("main.downloadPath", {
@@ -86,7 +67,11 @@ object GlobalSettings {
     val values = Seq(Always, WhenNeeded)
   }
 
-  class MainPage extends MFieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
+  //
+  // Pages
+  //
+
+  private class MainPage extends MFieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
     override def createFieldEditors(): Unit = {
       row(DownloadPath) { (setting, parent) =>
         new DirectoryFieldEditor(setting.id, "Download path:", parent)
@@ -105,8 +90,4 @@ object GlobalSettings {
       radioRow("Show tray icon:", ShowTrayIconBehavior)
     }
   }
-
-  val pageDescriptors = Seq(
-    MPreferencePageDescriptor("Main", None, classOf[MainPage]),
-  )
 }

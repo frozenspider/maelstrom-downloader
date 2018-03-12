@@ -27,6 +27,7 @@ import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components._
 import org.fs.mael.ui.config.GlobalSettings
+import org.fs.mael.ui.config.GlobalSettingsController
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.Hotkey
 import org.fs.mael.ui.utils.Hotkey._
@@ -166,7 +167,7 @@ class MainFrame(
 
       val itemSettings = new MenuItem(submenu, SWT.PUSH)
       itemSettings.setText("Settings")
-      itemSettings.addListener(SWT.Selection, e => new GlobalSettings(globalCfgMgr).showDialog(shell))
+      itemSettings.addListener(SWT.Selection, e => new GlobalSettingsController(globalCfgMgr).showDialog(shell))
     }
   }
 
