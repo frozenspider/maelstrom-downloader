@@ -1,4 +1,4 @@
-package org.fs.mael.ui.prefs
+package org.fs.mael.ui.config
 
 import org.eclipse.jface.preference.DirectoryFieldEditor
 import org.eclipse.jface.preference.FieldEditorPreferencePage
@@ -10,8 +10,8 @@ import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.config.ConfigSetting
 import org.fs.mael.core.utils.CoreUtils._
 
-class GlobalPreferences(val globalCfgMgr: ConfigManager) {
-  import GlobalPreferences._
+class GlobalSettings(val globalCfgMgr: ConfigManager) {
+  import GlobalSettings._
 
   val mgr = new PreferenceManager().withCode { mgr =>
     def addRootPage(id: String, label: String, clazz: Class[_ <: MFieldEditorPreferencePage]): Unit = {
@@ -28,7 +28,7 @@ class GlobalPreferences(val globalCfgMgr: ConfigManager) {
   }
 }
 
-object GlobalPreferences {
+object GlobalSettings {
   import org.fs.mael.core.config.ConfigSetting.RadioConfigSetting
   import org.fs.mael.core.config.ConfigSetting.RadioValue
 

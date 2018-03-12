@@ -4,7 +4,7 @@ import java.net.URI
 
 import org.eclipse.swt.widgets.TabFolder
 import org.fs.mael.backend.http.ui.HttpConfigUi
-import org.fs.mael.backend.http.ui.HttpPreferences
+import org.fs.mael.backend.http.ui.HttpSettings
 import org.fs.mael.core.backend.Backend
 import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.config.InMemoryConfigManager

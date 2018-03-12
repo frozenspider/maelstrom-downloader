@@ -2,10 +2,10 @@ package org.fs.mael.backend.http.ui
 
 import org.eclipse.jface.preference.FieldEditorPreferencePage
 import org.eclipse.jface.preference.StringFieldEditor
-import org.fs.mael.ui.prefs.MFieldEditorPreferencePage
+import org.fs.mael.ui.config.MFieldEditorPreferencePage
 import org.fs.mael.backend.http.HttpBackend
 
-object HttpPreferences {
+object HttpSettings {
   import org.fs.mael.core.config.ConfigSetting
   import org.fs.mael.core.config.ConfigSetting.RadioConfigSetting
   import org.fs.mael.core.config.ConfigSetting.RadioValue

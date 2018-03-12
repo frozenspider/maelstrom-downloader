@@ -29,7 +29,7 @@ import org.scalatest.FunSuite
 import org.slf4s.Logging
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
-class HttpBackendDownloaderSpec
+class HttpDownloaderSpec
   extends FunSuite
   with BeforeAndAfter
   with BeforeAndAfterAll {

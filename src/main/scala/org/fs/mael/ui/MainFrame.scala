@@ -26,7 +26,7 @@ import org.fs.mael.core.event.UiSubscriber
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components._
-import org.fs.mael.ui.prefs.GlobalPreferences
+import org.fs.mael.ui.config.GlobalSettings
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.Hotkey
 import org.fs.mael.ui.utils.Hotkey._
@@ -114,7 +114,7 @@ class MainFrame(
     trayItem.setImage(resources.mainIcon)
     trayItem.setToolTipText(BuildInfo.prettyName)
 
-    import GlobalPreferences._
+    import GlobalSettings._
     globalCfgMgr.addSettingChangedListener(ShowTrayIconBehavior)(e => {
       updateTrayIconVisibility(e.newValue)
     })
@@ -138,8 +138,8 @@ class MainFrame(
     trayItem.addListener(SWT.MenuDetect, e => menu.setVisible(true))
   }
 
-  private def updateTrayIconVisibility(setting: GlobalPreferences.ShowTrayIcon): Unit = {
-    val showWhenNeeded = setting == GlobalPreferences.ShowTrayIcon.WhenNeeded
+  private def updateTrayIconVisibility(setting: GlobalSettings.ShowTrayIcon): Unit = {
+    val showWhenNeeded = setting == GlobalSettings.ShowTrayIcon.WhenNeeded
     trayItem.setVisible(!showWhenNeeded)
   }
 
@@ -164,9 +164,9 @@ class MainFrame(
       val submenu = new Menu(parent, SWT.DROP_DOWN)
       menuItem.setMenu(submenu)
 
-      val itemOptions = new MenuItem(submenu, SWT.PUSH)
-      itemOptions.setText("Options")
-      itemOptions.addListener(SWT.Selection, e => new GlobalPreferences(globalCfgMgr).showDialog(shell))
+      val itemSettings = new MenuItem(submenu, SWT.PUSH)
+      itemSettings.setText("Settings")
+      itemSettings.addListener(SWT.Selection, e => new GlobalSettings(globalCfgMgr).showDialog(shell))
     }
   }
 
@@ -188,7 +188,7 @@ class MainFrame(
           tryShowingError(peer, log) {
             val backend = backendMgr(dev.backendId)
             val de = dev.asInstanceOf[DownloadEntry]
-            backend.downloader.start(de, globalCfgMgr(GlobalPreferences.NetworkTimeout))
+            backend.downloader.start(de, globalCfgMgr(GlobalSettings.NetworkTimeout))
           }
         }
       })
@@ -267,8 +267,8 @@ class MainFrame(
   }
 
   private def onWindowClose(closeEvent: Event): Unit = {
-    import org.fs.mael.ui.prefs.GlobalPreferences.OnWindowClose._
-    globalCfgMgr(GlobalPreferences.OnWindowCloseBehavior) match {
+    import org.fs.mael.ui.config.GlobalSettings.OnWindowClose._
+    globalCfgMgr(GlobalSettings.OnWindowCloseBehavior) match {
       case Undefined => promptWindowClose(closeEvent)
       case Close     => tryExit(closeEvent)
       case Minimize  => minimize(Some(closeEvent))
@@ -277,7 +277,7 @@ class MainFrame(
 
   private def promptWindowClose(closeEvent: Event): Unit = {
     import java.util.LinkedHashMap
-    import org.fs.mael.ui.prefs.GlobalPreferences._
+    import org.fs.mael.ui.config.GlobalSettings._
     val lhm = new LinkedHashMap[String, Integer].withCode { lhm =>
       lhm.put(OnWindowClose.Minimize.prettyName, 1)
       lhm.put(OnWindowClose.Close.prettyName, 2)
@@ -310,7 +310,7 @@ class MainFrame(
 
   private def minimize(closeEventOption: Option[Event]): Unit = {
     closeEventOption foreach (_.doit = false)
-    import org.fs.mael.ui.prefs.GlobalPreferences._
+    import org.fs.mael.ui.config.GlobalSettings._
     // Only minimize to tray if tray exists
     (closeEventOption, globalCfgMgr(MinimizeToTrayBehavior)) match {
       case (_, MinimizeToTray.Always) if trayOption.isDefined        => minimizeToTray()

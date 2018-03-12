@@ -7,7 +7,7 @@ import org.eclipse.swt.widgets.Composite
 import org.eclipse.swt.widgets.TabFolder
 import org.eclipse.swt.widgets.TabItem
 import org.fs.mael.backend.http.HttpBackend
-import org.fs.mael.backend.http.ui.HttpPreferences._
+import org.fs.mael.backend.http.ui.HttpSettings._
 import org.fs.mael.core.backend.BackendConfigUi
 import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.config.InMemoryConfigManager

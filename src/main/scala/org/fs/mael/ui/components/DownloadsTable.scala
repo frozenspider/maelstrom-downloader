@@ -12,7 +12,7 @@ import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components.DownloadsTable._
-import org.fs.mael.ui.prefs.GlobalPreferences
+import org.fs.mael.ui.config.GlobalSettings
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.SwtUtils._
 
@@ -204,13 +204,13 @@ class DownloadsTable(
         true
       }
     sortContent(column, asc)
-    globalCfgMgr.set(GlobalPreferences.SortColumn, column.columnDef.id)
-    globalCfgMgr.set(GlobalPreferences.SortAsc, asc)
+    globalCfgMgr.set(GlobalSettings.SortColumn, column.columnDef.id)
+    globalCfgMgr.set(GlobalSettings.SortAsc, asc)
   }
 
   private def loadSorting() = {
-    val colId = globalCfgMgr(GlobalPreferences.SortColumn)
-    val asc = globalCfgMgr(GlobalPreferences.SortAsc)
+    val colId = globalCfgMgr(GlobalSettings.SortColumn)
+    val asc = globalCfgMgr(GlobalSettings.SortAsc)
     val colOption = peer.getColumns.find(_.columnDef.id == colId)
     colOption foreach { col =>
       sortContent(col, asc)
