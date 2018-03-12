@@ -37,9 +37,11 @@ class MigrationManager(globalCfgMgr: ConfigManager, downloadListFile: File) exte
     ver match {
       case Version.Undefined => // Initial,NOOP
       case Version.v1 =>
-        val downloadFileString = Source.fromFile(downloadListFile)(Codec.UTF8).mkString
-        val downloadFileString2 = downloadFileString.replace("\"http-https\",", "\"http\",")
-        Files.write(downloadListFile.toPath, downloadFileString2.getBytes(Codec.UTF8.charSet))
+        if (downloadListFile.exists) {
+          val downloadFileString = Source.fromFile(downloadListFile)(Codec.UTF8).mkString
+          val downloadFileString2 = downloadFileString.replace("\"http-https\",", "\"http\",")
+          Files.write(downloadListFile.toPath, downloadFileString2.getBytes(Codec.UTF8.charSet))
+        }
     }
   }
 }
