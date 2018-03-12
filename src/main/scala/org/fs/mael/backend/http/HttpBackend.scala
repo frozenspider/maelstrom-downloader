@@ -2,14 +2,14 @@ package org.fs.mael.backend.http
 
 import java.net.URI
 import org.fs.mael.core.backend.AbstractBackend
-import org.fs.mael.core.config.ConfigManager
+import org.fs.mael.core.config.ConfigStore
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
 
 class HttpBackend(
-  transferMgr:               TransferManager,
-  override val globalCfgMgr: ConfigManager,
-  eventMgr:                  EventManager
+  transferMgr:            TransferManager,
+  override val globalCfg: ConfigStore,
+  eventMgr:               EventManager
 ) extends AbstractBackend {
   override val id: String = HttpBackend.Id
 

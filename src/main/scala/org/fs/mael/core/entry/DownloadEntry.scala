@@ -8,7 +8,7 @@ import scala.collection.mutable
 
 import org.fs.mael.core.Status
 import org.fs.mael.core.checksum.Checksum
-import org.fs.mael.core.config.InMemoryConfigManager
+import org.fs.mael.core.config.InMemoryConfigStore
 
 import com.github.nscala_time.time.Imports._
 
@@ -28,7 +28,7 @@ class DownloadEntry private (
   var filenameOption:       Option[String],
   var checksumOption:       Option[Checksum],
   var comment:              String,
-  val backendSpecificCfg:   InMemoryConfigManager
+  val backendSpecificCfg:   InMemoryConfigStore
 ) extends DownloadEntryView with DownloadEntryLoggableView {
 
   var status: Status = Status.Stopped
@@ -56,7 +56,7 @@ object DownloadEntry {
     filenameOption:     Option[String],
     checksumOption:     Option[Checksum],
     comment:            String,
-    backendSpecificCfg: InMemoryConfigManager
+    backendSpecificCfg: InMemoryConfigStore
   ) = {
     new DownloadEntry(UUID.randomUUID(), DateTime.now(), backendId, uri, location, filenameOption, checksumOption, comment, backendSpecificCfg)
   }
@@ -70,7 +70,7 @@ object DownloadEntry {
     filenameOption:     Option[String],
     checksumOption:     Option[Checksum],
     comment:            String,
-    backendSpecificCfg: InMemoryConfigManager
+    backendSpecificCfg: InMemoryConfigStore
   ) = {
     new DownloadEntry(id, dateCreated, backendId, uri, location, filenameOption, checksumOption, comment, backendSpecificCfg)
   }

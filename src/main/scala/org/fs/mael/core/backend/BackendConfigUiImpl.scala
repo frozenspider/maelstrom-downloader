@@ -6,7 +6,7 @@ import org.eclipse.swt.layout.GridLayout
 import org.eclipse.swt.widgets.Composite
 import org.eclipse.swt.widgets.TabFolder
 import org.eclipse.swt.widgets.TabItem
-import org.fs.mael.core.config.ConfigManager
+import org.fs.mael.core.config.ConfigStore
 import org.fs.mael.ui.config.MFieldEditorPreferencePage
 import org.fs.mael.ui.config.MPreferencePageDescriptor
 import org.fs.mael.ui.utils.SwtUtils
@@ -14,8 +14,8 @@ import org.fs.mael.ui.utils.SwtUtils
 class BackendConfigUiImpl(
   override val backendId:        String,
   override val isEditable:       Boolean,
-  override val cfgOption:        Option[ConfigManager],
-  override val globalCfgMgr:     ConfigManager,
+  override val cfgOption:        Option[ConfigStore],
+  override val globalCfg:        ConfigStore,
   override val tabFolder:        TabFolder,
   override val pageDescriptions: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]]
 ) extends AbstractBackendConfigUi {
@@ -28,7 +28,7 @@ class BackendConfigUiImpl(
     tab.setControl(container)
 
     val page = pageDescr.clazz.newInstance()
-    page.setPreferenceStore(cfgMgr.store)
+    page.setPreferenceStore(cfg.inner)
     page.noDefaultAndApplyButton()
     page.createControl(container)
     page.getControl.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true))

@@ -5,8 +5,8 @@ import java.net.URI
 
 import org.eclipse.swt.widgets.TabFolder
 import org.fs.mael.core.checksum.Checksum
-import org.fs.mael.core.config.ConfigManager
-import org.fs.mael.core.config.InMemoryConfigManager
+import org.fs.mael.core.config.ConfigStore
+import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.ui.config.MFieldEditorPreferencePage
 import org.fs.mael.ui.config.MPreferencePageDescriptor
@@ -14,11 +14,11 @@ import org.fs.mael.ui.config.MPreferencePageDescriptor
 abstract class AbstractBackend extends Backend {
   protected def pageDescriptors: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]]
 
-  protected def globalCfgMgr: ConfigManager
+  protected def globalCfg: ConfigStore
 
   /** Initialize default config for a new entry */
-  protected def defaultCfg: InMemoryConfigManager = {
-    new InMemoryConfigManager(globalCfgMgr, id)
+  protected def defaultCfg: InMemoryConfigStore = {
+    new InMemoryConfigStore(globalCfg, id)
   }
 
   override def create(
@@ -27,13 +27,13 @@ abstract class AbstractBackend extends Backend {
     filenameOption: Option[String],
     checksumOption: Option[Checksum],
     comment:        String,
-    cfgOption:      Option[InMemoryConfigManager]
+    cfgOption:      Option[InMemoryConfigStore]
   ): DownloadEntry = {
     require(isSupported(uri), "URI not supported")
     DownloadEntry(id, uri, location, filenameOption, checksumOption, comment, cfgOption getOrElse defaultCfg)
   }
 
-  override def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder, isEditable: Boolean): BackendConfigUi = {
-    new BackendConfigUiImpl(id, isEditable, cfgOption, globalCfgMgr, tabFolder, pageDescriptors)
+  override def layoutConfig(cfgOption: Option[InMemoryConfigStore], tabFolder: TabFolder, isEditable: Boolean): BackendConfigUi = {
+    new BackendConfigUiImpl(id, isEditable, cfgOption, globalCfg, tabFolder, pageDescriptors)
   }
 }

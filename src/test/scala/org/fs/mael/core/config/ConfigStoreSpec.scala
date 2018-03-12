@@ -6,7 +6,7 @@ import org.scalatest.FunSuite
 import org.scalatest.prop.TableDrivenPropertyChecks
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
-class ConfigManagerSpec
+class ConfigStoreSpec
   extends FunSuite
   with BeforeAndAfter
   with TableDrivenPropertyChecks {
@@ -33,22 +33,22 @@ class ConfigManagerSpec
   )
 
   test("get/set") {
-    val mgr = new InMemoryConfigManager
+    val store = new InMemoryConfigStore
     forAll(settingsTable) { (setting, newVal) =>
-      assert(mgr(setting) === setting.default)
-      assert(mgr.store.isDefault(setting.id))
-      set(mgr, setting, newVal)
-      assert(mgr(setting) === newVal)
-      assert(!mgr.store.isDefault(setting.id))
+      assert(store(setting) === setting.default)
+      assert(store.inner.isDefault(setting.id))
+      set(store, setting, newVal)
+      assert(store(setting) === newVal)
+      assert(!store.inner.isDefault(setting.id))
     }
   }
 
   test("listener is notified when the value is changed") {
-    val mgr = new InMemoryConfigManager
+    val store = new InMemoryConfigStore
     forAll(settingsTable) { (setting, newVal) =>
       var triggered = false
       var failureOption: Option[Throwable] = None
-      mgr.addSettingChangedListener(setting) { e =>
+      store.addSettingChangedListener(setting) { e =>
         try {
           assert(!triggered)
           triggered = true
@@ -58,28 +58,28 @@ class ConfigManagerSpec
           case th: Throwable => failureOption = Some(th)
         }
       }
-      set(mgr, setting, newVal)
+      set(store, setting, newVal)
       assert(triggered)
-      assert(setting.get(mgr.store) == newVal)
+      assert(setting.get(store.inner) == newVal)
       failureOption foreach (th => fail(th))
     }
   }
 
   test("listener is NOT notified when default value is set explicitly") {
-    val mgr = new InMemoryConfigManager
+    val store = new InMemoryConfigStore
     forAll(settingsTable) { (setting, _) =>
       var triggered = false
-      mgr.addSettingChangedListener(setting) { v =>
+      store.addSettingChangedListener(setting) { v =>
         triggered = true
       }
-      assert(mgr.store.getString(setting.id) === "")
-      set(mgr, setting, setting.default)
+      assert(store.inner.getString(setting.id) === "")
+      set(store, setting, setting.default)
       assert(!triggered)
       // However, value is still updated
-      assert(setting.get(mgr.store) == setting.default)
+      assert(setting.get(store.inner) == setting.default)
     }
   }
 
-  private def set[T](mgr: ConfigManager, setting: ConfigSetting[T], newVal: Any): Unit =
-    mgr.set(setting, newVal.asInstanceOf[T])
+  private def set[T](store: ConfigStore, setting: ConfigSetting[T], newVal: Any): Unit =
+    store.set(setting, newVal.asInstanceOf[T])
 }

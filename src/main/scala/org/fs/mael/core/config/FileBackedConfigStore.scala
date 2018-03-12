@@ -6,8 +6,8 @@ import java.io.FileNotFoundException
 import org.eclipse.jface.preference.PreferenceStore
 import org.fs.mael.core.utils.CoreUtils._
 
-class FileBackedConfigManager(val file: File) extends ConfigManager {
-  override val store = new PreferenceStore().withCode { store =>
+class FileBackedConfigStore(val file: File) extends ConfigStore {
+  override val inner = new PreferenceStore().withCode { store =>
     file.getParentFile.mkdirs()
     store.setFilename(file.getAbsolutePath)
     try {
@@ -18,6 +18,6 @@ class FileBackedConfigManager(val file: File) extends ConfigManager {
   }
 
   def save(): Unit = {
-    store.save()
+    inner.save()
   }
 }

@@ -10,6 +10,7 @@ import scala.io.Source
 import org.fs.mael.core.Status
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.checksum.ChecksumType
+import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.Events._
 import org.fs.mael.core.utils.CoreUtils._
@@ -18,8 +19,6 @@ import org.fs.mael.test.stub.StubBackend
 import org.fs.mael.test.stub.StubDownloadListSerializer
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
-import org.fs.mael.core.config.InMemoryConfigManager
-import org.fs.mael.core.config.ConfigManager
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class DownloadListManagerSpec
@@ -121,8 +120,8 @@ class DownloadListManagerSpec
     assert(eventMgr.events(5) === Removed(entries(1)))
   }
 
-  private def defaultCfg: InMemoryConfigManager = {
-    val cfg = new InMemoryConfigManager
+  private def defaultCfg: InMemoryConfigStore = {
+    val cfg = new InMemoryConfigStore
     cfg.initDefault(StubBackend.StubSetting)
     cfg
   }

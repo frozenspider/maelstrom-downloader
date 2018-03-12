@@ -1,7 +1,7 @@
 package org.fs.mael.test
 
-import org.fs.mael.core.config.InMemoryConfigManager
 import org.fs.mael.core.config.ConfigSetting
+import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.scalatest.Assertions
 
@@ -26,15 +26,15 @@ object TestUtils extends Assertions {
     assert(de1.backendSpecificCfg === de2.backendSpecificCfg)
   }
 
-  implicit class RighCfgMgr(cfgMgr: InMemoryConfigManager) {
-    def reset(): InMemoryConfigManager = {
-      cfgMgr.resetTo(new InMemoryConfigManager)
-      cfgMgr
+  implicit class RichMemoryConfigStore(cfg: InMemoryConfigStore) {
+    def reset(): InMemoryConfigStore = {
+      cfg.resetTo(new InMemoryConfigStore)
+      cfg
     }
 
-    def updated[T](setting: ConfigSetting[T], value: T): InMemoryConfigManager = {
-      cfgMgr.set(setting, value)
-      cfgMgr
+    def updated[T](setting: ConfigSetting[T], value: T): InMemoryConfigStore = {
+      cfg.set(setting, value)
+      cfg
     }
   }
 }

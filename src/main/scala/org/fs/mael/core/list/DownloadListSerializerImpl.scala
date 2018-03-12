@@ -6,7 +6,7 @@ import java.io.File
 
 import org.fs.mael.core.Status
 import org.fs.mael.core.checksum.ChecksumType
-import org.fs.mael.core.config.InMemoryConfigManager
+import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.json4s._
@@ -64,9 +64,11 @@ object DownloadListSerializerImpl {
 
   object FileSerializer extends CustomSerializer[File](format => (
     {
-      case JString(pathString) => new File(pathString)
+      case JString(pathString) =>
+        new File(pathString)
     }, {
-      case f: File => JString(f.getAbsolutePath)
+      case f: File =>
+        JString(f.getAbsolutePath)
     }
   ))
 
@@ -93,23 +95,25 @@ object DownloadListSerializerImpl {
   ))
 
   object InMemoryConfigSerializer
-    extends CustomSerializer[InMemoryConfigManager](format => (
+    extends CustomSerializer[InMemoryConfigStore](format => (
       {
         case x: JString =>
-          new InMemoryConfigManager(x.s)
+          new InMemoryConfigStore(x.s)
         case JNothing =>
-          new InMemoryConfigManager()
+          new InMemoryConfigStore()
       }, {
-        case cfgMgr: InMemoryConfigManager =>
-          JString(cfgMgr.toSerialString)
+        case cfg: InMemoryConfigStore =>
+          JString(cfg.toSerialString)
       }
     ))
 
   class EnumSerializer[E <: Enum[E]](implicit ct: Manifest[E]) extends CustomSerializer[E](format => (
     {
-      case JString(name) => Enum.valueOf(ct.runtimeClass.asInstanceOf[Class[E]], name)
+      case JString(name) =>
+        Enum.valueOf(ct.runtimeClass.asInstanceOf[Class[E]], name)
     }, {
-      case dt: E => JString(dt.name)
+      case dt: E =>
+        JString(dt.name)
     }
   ))
 

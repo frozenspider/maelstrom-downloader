@@ -4,13 +4,13 @@ import org.eclipse.swt.widgets.TabFolder
 import org.fs.mael.core.backend.AbstractBackend
 import org.fs.mael.core.backend.BackendConfigUi
 import org.fs.mael.core.backend.BackendDownloader
-import org.fs.mael.core.config.InMemoryConfigManager
+import org.fs.mael.core.config.ConfigStore
+import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.core.entry.DownloadEntry
-import org.fs.mael.core.config.ConfigManager
 
 abstract class AbstractSimpleBackend(
-  override val id:           String,
-  override val globalCfgMgr: ConfigManager = new InMemoryConfigManager
+  override val id:        String,
+  override val globalCfg: ConfigStore = new InMemoryConfigStore
 ) extends AbstractBackend {
   override def downloader: BackendDownloader = new BackendDownloader(id) {
     override def eventMgr = ???
@@ -23,8 +23,8 @@ abstract class AbstractSimpleBackend(
 
   def downloadStopped(de: DownloadEntry): Unit = {}
 
-  override def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder, isEditable: Boolean) = new BackendConfigUi {
-    override def get(): InMemoryConfigManager = cfgOption getOrElse defaultCfg
+  override def layoutConfig(cfgOption: Option[InMemoryConfigStore], tabFolder: TabFolder, isEditable: Boolean) = new BackendConfigUi {
+    override def get(): InMemoryConfigStore = cfgOption getOrElse defaultCfg
   }
 
   override def pageDescriptors = Seq.empty

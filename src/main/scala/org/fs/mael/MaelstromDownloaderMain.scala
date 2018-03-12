@@ -6,8 +6,8 @@ import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.core.backend.BackendManager
-import org.fs.mael.core.config.ConfigManager
-import org.fs.mael.core.config.FileBackedConfigManager
+import org.fs.mael.core.config.ConfigStore
+import org.fs.mael.core.config.FileBackedConfigStore
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.event.EventManagerImpl
 import org.fs.mael.core.list.DownloadListManager
@@ -40,21 +40,21 @@ object MaelstromDownloaderMain extends App with Logging {
     val shell: Shell = StopWatch.measureAndCall {
       preloadClasses()
       // TODO: Show minimal splash screen
-      val globalCfgMgr = new FileBackedConfigManager(globalCfgFile)
-      val migrationMgr = new MigrationManager(globalCfgMgr, downloadListFile)
+      val globalCfg = new FileBackedConfigStore(globalCfgFile)
+      val migrationMgr = new MigrationManager(globalCfg, downloadListFile)
       migrationMgr.apply()
       val display = new Display()
       val resources = new ResourcesImpl(display)
       val eventMgr = new EventManagerImpl
       val backendMgr = new BackendManager
       val transferMgr = new SimpleTransferManager
-      initBackends(backendMgr, transferMgr, globalCfgMgr, eventMgr)
+      initBackends(backendMgr, transferMgr, globalCfg, eventMgr)
       val downloadListMgr = {
         val serializer = new DownloadListSerializerImpl
         new DownloadListManager(serializer, downloadListFile, eventMgr)
       }
       downloadListMgr.load()
-      initUi(display, resources, globalCfgMgr, backendMgr, downloadListMgr, eventMgr)
+      initUi(display, resources, globalCfg, backendMgr, downloadListMgr, eventMgr)
     }((_, ms) =>
       log.info(s"Init done in ${ms} ms"))
 
@@ -80,23 +80,23 @@ object MaelstromDownloaderMain extends App with Logging {
   }
 
   def initBackends(
-    backendMgr:   BackendManager,
-    transferMgr:  TransferManager,
-    globalCfgMgr: ConfigManager,
-    eventMgr:     EventManager
+    backendMgr:  BackendManager,
+    transferMgr: TransferManager,
+    globalCfg:   ConfigStore,
+    eventMgr:    EventManager
   ): Unit = {
-    backendMgr += (new HttpBackend(transferMgr, globalCfgMgr, eventMgr), 0)
+    backendMgr += (new HttpBackend(transferMgr, globalCfg, eventMgr), 0)
   }
 
   def initUi(
     display:         Display,
     resources:       Resources,
-    globalCfgMgr:    ConfigManager,
+    globalCfg:       ConfigStore,
     backendMgr:      BackendManager,
     downloadListMgr: DownloadListManager,
     eventMgr:        EventManager
   ): Shell = {
-    val ui = new MainFrame(display, resources, globalCfgMgr, backendMgr, downloadListMgr, eventMgr)
+    val ui = new MainFrame(display, resources, globalCfg, backendMgr, downloadListMgr, eventMgr)
     ui.peer
   }
 

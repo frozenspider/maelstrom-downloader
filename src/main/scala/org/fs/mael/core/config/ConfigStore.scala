@@ -8,13 +8,11 @@ import org.eclipse.jface.preference.IPreferenceStore
 import org.eclipse.jface.preference.PreferenceStore
 import org.eclipse.jface.util.PropertyChangeEvent
 
-trait ConfigManager {
-  import ConfigManager._
-
+trait ConfigStore {
   protected[config] var settings: Set[ConfigSetting[_]] = Set.empty
   protected[config] var listerensEnabled: Boolean = true
 
-  val store: PreferenceStore
+  val inner: PreferenceStore
 
   def save(): Unit
 
@@ -24,22 +22,22 @@ trait ConfigManager {
    */
   def initDefault(setting: ConfigSetting[_]): Unit = {
     settings += setting
-    ConfigManager.initDefault(store, setting)
+    ConfigStore.initDefault(inner, setting)
   }
 
   def apply[T](setting: ConfigSetting[T]): T = {
     initDefault(setting)
-    setting.get(store) ensuring (_ != null)
+    setting.get(inner) ensuring (_ != null)
   }
 
   def set[T](setting: ConfigSetting[T], value: T): Unit = {
     initDefault(setting)
-    setting.set(store, value)
+    setting.set(inner, value)
     save()
   }
 
   def addSettingChangedListener[T](setting: ConfigSetting[T])(f: ConfigChangedEvent[T] => Unit): Unit = {
-    store.addPropertyChangeListener(e => e match {
+    inner.addPropertyChangeListener(e => e match {
       case e if e.getProperty == setting.id => notifySettingChanged(setting, e, f)
       case _                                => // NOOP
     })
@@ -58,13 +56,13 @@ trait ConfigManager {
    */
   protected[config] def toByteArray: Array[Byte] = {
     val baos = new ByteArrayOutputStream
-    store.save(baos, null)
+    inner.save(baos, null)
     baos.toByteArray()
   }
 
   def toSerialString: String = {
     val baos = new ByteArrayOutputStream
-    store.save(baos, null)
+    inner.save(baos, null)
     // Charset is taken from java.util.Properties.store
     val lines = baos.toString(Codec.ISO8859.name).split("[\r\n]+").sorted
     // Removing comments
@@ -72,22 +70,20 @@ trait ConfigManager {
   }
 
   override def toString(): String = {
-    val keys = store.preferenceNames().sorted
-    val content = keys map (k => s"k -> ${store.getString(k)}") mkString ", "
+    val keys = inner.preferenceNames().sorted
+    val content = keys map (k => s"k -> ${inner.getString(k)}") mkString ", "
     this.getClass.getSimpleName + "(" + content + ")"
   }
 
   override def equals(that: Any): Boolean = that match {
-    case that: ConfigManager => this.toSerialString == that.toSerialString
-    case _                   => false
+    case that: ConfigStore => this.toSerialString == that.toSerialString
+    case _                 => false
   }
 
   override def hashCode: Int = this.toSerialString.hashCode
 }
 
-object ConfigManager {
-  case class ConfigChangedEvent[T](oldValue: T, newValue: T)
-
+object ConfigStore {
   /**
    * Initialize default values for the given config setting.
    * Invoking this multiple times is safe and does nothing.

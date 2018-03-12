@@ -1,8 +1,8 @@
 package org.fs.mael.test.stub
 
 import java.net.URI
+
 import org.fs.mael.core.config.ConfigSetting
-import org.fs.mael.core.config.InMemoryConfigManager
 
 class StubBackend
   extends AbstractSimpleBackend(

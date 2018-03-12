@@ -5,7 +5,7 @@ import java.net.URI
 
 import org.eclipse.swt.widgets.TabFolder
 import org.fs.mael.core.checksum.Checksum
-import org.fs.mael.core.config.InMemoryConfigManager
+import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 
 trait Backend {
@@ -20,10 +20,10 @@ trait Backend {
     filenameOption: Option[String],
     checksumOption: Option[Checksum],
     comment:        String,
-    cfgOption:      Option[InMemoryConfigManager]
+    cfgOption:      Option[InMemoryConfigStore]
   ): DownloadEntry
 
   def downloader: BackendDownloader
 
-  def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder, isEditable: Boolean): BackendConfigUi
+  def layoutConfig(cfgOption: Option[InMemoryConfigStore], tabFolder: TabFolder, isEditable: Boolean): BackendConfigUi
 }

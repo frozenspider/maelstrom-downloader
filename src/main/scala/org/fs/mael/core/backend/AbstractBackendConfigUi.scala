@@ -1,8 +1,8 @@
 package org.fs.mael.core.backend
 
 import org.eclipse.swt.widgets.TabFolder
-import org.fs.mael.core.config.ConfigManager
-import org.fs.mael.core.config.InMemoryConfigManager
+import org.fs.mael.core.config.ConfigStore
+import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.config.MFieldEditorPreferencePage
 import org.fs.mael.ui.config.MPreferencePageDescriptor
@@ -12,31 +12,31 @@ abstract class AbstractBackendConfigUi extends BackendConfigUi {
 
   def isEditable: Boolean
 
-  def cfgOption: Option[ConfigManager]
+  def cfgOption: Option[ConfigStore]
 
-  def globalCfgMgr: ConfigManager
+  def globalCfg: ConfigStore
 
   def tabFolder: TabFolder
 
   def pageDescriptions: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]]
 
-  val cfgMgr = new InMemoryConfigManager
+  val cfg = new InMemoryConfigStore
 
   val pages: Seq[MFieldEditorPreferencePage] = {
     cfgOption match {
-      case Some(cfg) => cfgMgr.resetTo(cfg, backendId) // Ignore default preferences
-      case None      => cfgMgr.resetTo(globalCfgMgr, backendId)
+      case Some(_cfg) => cfg.resetTo(_cfg, backendId) // Ignore default preferences
+      case None       => cfg.resetTo(globalCfg, backendId)
     }
     pageDescriptions map { pageDescr =>
       createPage(pageDescr, tabFolder)
     }
   }
 
-  override def get(): InMemoryConfigManager = {
+  override def get(): InMemoryConfigStore = {
     if (isEditable) {
       requireFriendly(pages.forall(_.performOk), "Some settings are invalid")
     }
-    cfgMgr
+    cfg
   }
 
   protected def createPage[T <: MFieldEditorPreferencePage](pageDescr: MPreferencePageDescriptor[T], tabFolder: TabFolder): T
