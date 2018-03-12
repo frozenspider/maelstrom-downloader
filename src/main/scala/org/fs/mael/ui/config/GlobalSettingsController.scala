@@ -3,6 +3,7 @@ package org.fs.mael.ui.config
 import org.eclipse.jface.preference.PreferenceDialog
 import org.eclipse.jface.preference.PreferenceManager
 import org.eclipse.swt.widgets.Shell
+import org.fs.mael.backend.http.HttpSettings
 import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.utils.CoreUtils._
 
@@ -16,7 +17,10 @@ class GlobalSettingsController(val globalCfgMgr: ConfigManager) {
         case Some(s) => mgr.addTo(s, page)
       }
     }
-    GlobalSettings.pageDescriptors.foreach { pageDef =>
+    // TODO: Initialize elsewhere?
+    val pageDescriptors = (GlobalSettings.pageDescriptors
+      ++ HttpSettings.Global.pageDescriptors)
+    pageDescriptors.foreach { pageDef =>
       addPage(pageDef)
     }
   }

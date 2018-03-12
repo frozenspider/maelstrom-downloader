@@ -13,7 +13,6 @@ import org.fs.mael.ui.config.MFieldEditorPreferencePage
 import org.fs.mael.ui.config.MPreferencePageDescriptor
 import org.fs.mael.ui.utils.SwtUtils
 
-// TODO: Components should work for both tabs and properties
 class BackendConfigUiImpl(
   backendId:  String,
   pageDescr:  Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]],
