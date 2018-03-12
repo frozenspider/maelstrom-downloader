@@ -7,6 +7,7 @@ import scala.io.Codec
 import scala.io.Source
 
 import org.fs.mael.core.config.ConfigManager
+import org.fs.mael.core.config.ConfigSetting
 import org.slf4s.Logging
 
 class MigrationManager(globalCfgMgr: ConfigManager, downloadListFile: File) extends Logging {
@@ -44,12 +45,11 @@ class MigrationManager(globalCfgMgr: ConfigManager, downloadListFile: File) exte
 }
 
 object MigrationManager {
-  import org.fs.mael.core.config.ConfigSetting._
 
-  val VersionSetting: RadioConfigSetting[Version] =
-    new RadioConfigSetting("main.version", Version.Undefined, Version.values)
+  val VersionSetting: ConfigSetting[Version] =
+    ConfigSetting("main.version", Version.Undefined, Version.values)
 
-  sealed abstract class Version(v: Int) extends RadioValue(v.toString, v.toString)
+  sealed abstract class Version(v: Int) extends ConfigSetting.RadioValue(v.toString, v.toString)
   object Version {
     object Undefined extends Version(0)
     object v1 extends Version(1)

@@ -7,6 +7,7 @@ import org.eclipse.jface.preference.PreferenceDialog
 import org.eclipse.jface.preference.PreferenceManager
 import org.eclipse.swt.widgets.Shell
 import org.fs.mael.core.config.ConfigManager
+import org.fs.mael.core.config.ConfigSetting
 import org.fs.mael.core.utils.CoreUtils._
 
 class GlobalPreferences(val globalCfgMgr: ConfigManager) {
@@ -28,7 +29,6 @@ class GlobalPreferences(val globalCfgMgr: ConfigManager) {
 }
 
 object GlobalPreferences {
-  import org.fs.mael.core.config.ConfigSetting
   import org.fs.mael.core.config.ConfigSetting.RadioConfigSetting
   import org.fs.mael.core.config.ConfigSetting.RadioValue
 

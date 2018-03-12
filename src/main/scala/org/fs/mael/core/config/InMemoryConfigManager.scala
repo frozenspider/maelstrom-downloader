@@ -57,16 +57,22 @@ class InMemoryConfigManager extends ConfigManager {
   }
 
   private def computeDiff(that: ConfigManager, prefix: String): Seq[(String, Any, Any)] = {
+    // Type capture helpers
+    def get[T](setting: ConfigSetting[T], store: PreferenceStore): Any =
+      setting.toRepr(setting.get(store))
+    def getDefault[T](setting: ConfigSetting[T]): Any =
+      setting.toRepr(setting.default)
+
     val oldSettings = this.settings
     val newSettings = that.settings filter (_.id startsWith prefix)
     val removed: Seq[(String, Any, Any)] = (oldSettings diff newSettings).toSeq map { setting =>
-      (setting.id, setting.get(this.store), setting.default)
+      (setting.id, get(setting, this.store), getDefault(setting))
     }
     val changed: Seq[(String, Any, Any)] = (oldSettings intersect newSettings).toSeq map { setting =>
-      (setting.id, setting.get(this.store), setting.get(that.store))
+      (setting.id, get(setting, this.store), get(setting, that.store))
     }
     val added: Seq[(String, Any, Any)] = (newSettings diff oldSettings).toSeq map { setting =>
-      (setting.id, setting.default, setting.get(that.store))
+      (setting.id, getDefault(setting), get(setting, that.store))
     }
     removed ++ changed ++ added
   }

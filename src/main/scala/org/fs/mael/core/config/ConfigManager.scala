@@ -24,7 +24,7 @@ trait ConfigManager {
    */
   def initDefault(setting: ConfigSetting[_]): Unit = {
     settings += setting
-    setting.setDefault(store)
+    ConfigManager.initDefault(store, setting)
   }
 
   def apply[T](setting: ConfigSetting[T]): T = {
@@ -46,7 +46,10 @@ trait ConfigManager {
   }
 
   protected def notifySettingChanged[T](setting: ConfigSetting[T], e: PropertyChangeEvent, f: ConfigChangedEvent[T] => Unit): Unit = {
-    if (listerensEnabled) f(ConfigChangedEvent[T](setting.cast(e.getOldValue), setting.cast(e.getNewValue)))
+    if (listerensEnabled) {
+      val e2 = ConfigChangedEvent[T](setting.fromRepr(e.getOldValue.asInstanceOf[setting.Repr]), setting.fromRepr(e.getNewValue.asInstanceOf[setting.Repr]))
+      f(e2)
+    }
   }
 
   /**

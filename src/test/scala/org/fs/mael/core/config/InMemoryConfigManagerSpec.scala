@@ -12,9 +12,17 @@ class InMemoryConfigManagerSpec
   with BeforeAndAfter {
 
   private val setting11 = ConfigSetting("group1.1", "my-default11")
-  private val setting12 = ConfigSetting("group1.2", "my-default12")
-  private val setting21 = ConfigSetting("group2.1", "my-default21")
-  private val setting22 = ConfigSetting("group2.2", -1)
+  private val setting12 = ConfigSetting("group1.2", -1)
+  private val setting21 = ConfigSetting("group2.1", Radio.r1, Radio.values)
+  private val setting22 = ConfigSetting("group2.2", Some("my-default22"))
+
+  sealed abstract class Radio(idx: Int) extends ConfigSetting.RadioValue(idx.toString, idx + "-pretty")
+  object Radio {
+    object r1 extends Radio(1)
+    object r2 extends Radio(2)
+    object r3 extends Radio(3)
+    val values = Seq(r1, r2, r3)
+  }
 
   private var failureOption: Option[Throwable] = None
 
@@ -35,16 +43,16 @@ class InMemoryConfigManagerSpec
 
     // mgr1 is modified
     mgr1.set(setting11, "my-new11")
-    mgr1.set(setting12, "my-new12")
-    mgr1.set(setting21, "my-new21")
-    mgr1.set(setting22, 100500)
+    mgr1.set(setting12, 100500)
+    mgr1.set(setting21, Radio.r2)
+    mgr1.set(setting22, Some("my-new22"))
     assert(mgr1 !== mgr2)
     assert(mgr1.hashCode !== mgr2.hashCode)
 
     // mgr2 is modified accordingly
-    mgr2.set(setting12, "my-new12")
-    mgr2.set(setting22, 100500)
-    mgr2.set(setting21, "my-new21")
+    mgr2.set(setting12, 100500)
+    mgr2.set(setting22, Some("my-new22"))
+    mgr2.set(setting21, Radio.r2)
     mgr2.set(setting11, "my-new11")
     assert(mgr1 === mgr2)
     assert(mgr1.hashCode === mgr2.hashCode)
@@ -57,15 +65,15 @@ class InMemoryConfigManagerSpec
     assert(mgr1 === mgr2)
 
     mgr2.set(setting11, "my-new11")
-    mgr2.set(setting21, "my-new21")
-    mgr2.set(setting22, 100500)
+    mgr2.set(setting21, Radio.r2)
+    mgr2.set(setting22, None)
 
     mgr1.resetTo(mgr2)
     assert(mgr1 === mgr2)
     assert(mgr1(setting11) === "my-new11")
     assert(mgr1(setting12) === setting12.default)
-    assert(mgr1(setting21) === "my-new21")
-    assert(mgr1(setting22) === 100500)
+    assert(mgr1(setting21) === Radio.r2)
+    assert(mgr1(setting22) === None)
   }
 
   test("reset (unconditional) - listener notification") {
@@ -75,10 +83,10 @@ class InMemoryConfigManagerSpec
     mgr1.addSettingChangedListener(setting11)(expectPropertyChange(setting11.default, "my-new11", triggered11 != 0, triggered11 += 1))
     mgr1.addSettingChangedListener(setting12)(expectPropertyNotChanged)
     mgr1.addSettingChangedListener(setting21)(expectPropertyNotChanged)
-    mgr1.addSettingChangedListener(setting22)(expectPropertyChange(setting22.default, 100500, triggered22 != 0, triggered22 += 1))
+    mgr1.addSettingChangedListener(setting22)(expectPropertyChange(setting22.default, None, triggered22 != 0, triggered22 += 1))
 
     mgr2.set(setting11, "my-new11")
-    mgr2.set(setting22, 100500)
+    mgr2.set(setting22, None)
 
     mgr1.resetTo(mgr2)
     failureOption foreach (th => fail(th))
@@ -95,20 +103,20 @@ class InMemoryConfigManagerSpec
     assert(mgr1 === mgr2)
 
     mgr2.set(setting11, "my-new11")
-    mgr2.set(setting12, "my-new12")
-    mgr2.set(setting21, "my-new21")
+    mgr2.set(setting12, 100500)
+    mgr2.set(setting21, Radio.r2)
 
     mgr1.resetTo(mgr2, "group1")
     assert(mgr1 !== mgr2)
     assert(mgr1(setting11) === "my-new11")
-    assert(mgr1(setting12) === "my-new12")
+    assert(mgr1(setting12) === 100500)
     assert(mgr1(setting21) === setting21.default)
 
     mgr1.resetTo(mgr2, "group2")
     assert(mgr1 !== mgr2)
     assert(mgr1(setting11) === setting11.default)
     assert(mgr1(setting12) === setting12.default)
-    assert(mgr1(setting21) === "my-new21")
+    assert(mgr1(setting21) === Radio.r2)
   }
 
   test("reset (conditional) - listener notification") {
@@ -117,13 +125,13 @@ class InMemoryConfigManagerSpec
     var (triggered11, triggered12, triggered21, triggered22) = (0, 0, 0, 0)
     mgr1.addSettingChangedListener(setting11)(expectPropertyNotChanged)
     mgr1.addSettingChangedListener(setting12)(expectPropertyNotChanged)
-    mgr1.addSettingChangedListener(setting21)(expectPropertyChange(setting21.default, "my-new21", triggered21 != 0, triggered21 += 1))
-    mgr1.addSettingChangedListener(setting22)(expectPropertyChange(setting22.default, 100500, triggered22 != 0, triggered22 += 1))
+    mgr1.addSettingChangedListener(setting21)(expectPropertyChange(setting21.default, Radio.r2, triggered21 != 0, triggered21 += 1))
+    mgr1.addSettingChangedListener(setting22)(expectPropertyChange(setting22.default, Some("my-new22"), triggered22 != 0, triggered22 += 1))
 
     mgr2.set(setting11, "my-new11")
-    mgr2.set(setting12, "my-new12")
-    mgr2.set(setting21, "my-new21")
-    mgr2.set(setting22, 100500)
+    mgr2.set(setting12, 100500)
+    mgr2.set(setting21, Radio.r2)
+    mgr2.set(setting22, Some("my-new22"))
 
     mgr1.resetTo(mgr2, "group2")
     failureOption foreach (th => fail(th))
