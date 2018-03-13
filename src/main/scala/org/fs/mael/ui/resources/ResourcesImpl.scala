@@ -42,11 +42,12 @@ class ResourcesImpl(display: Display) extends Resources {
 
   private def loadImageData(name: String): ImageData = {
     val stream = this.getClass.getResourceAsStream("/icons/" + name)
-    try {
+    val imageData = try {
       new ImageData(stream)
     } finally {
       stream.close()
     }
+    imageData
   }
 
   object icons {

@@ -130,7 +130,6 @@ class EditDownloadDialog(
         // Remove all illegal characters
         e.text = asValidFilename(e.text)
       })
-      input.setToolTipText("")
       installDefaultHotkeys(input)
     }
 

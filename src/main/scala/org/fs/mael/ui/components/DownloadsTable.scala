@@ -126,6 +126,7 @@ class DownloadsTable(
   }
 
   private def fillRow(row: TableItem, de: DownloadEntry): Unit = {
+    // TODO: Speed calculation
     row.setData(de)
     row.setImage(0, resources.icon(de.status))
     columnDefs.zipWithIndex.foreach {

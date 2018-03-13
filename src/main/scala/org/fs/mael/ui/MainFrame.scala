@@ -56,12 +56,12 @@ class MainFrame(
   private var lastProgressUpdateTS: Long = System.currentTimeMillis
 
   val peer: Shell = new Shell(display).withCode { peer =>
-    peer.addListener(SWT.Close, onWindowClose)
+    peer.addListener(SWT.Close, actions.onWindowClose)
     peer.addShellListener(new ShellAdapter {
       override def shellIconified(e: ShellEvent): Unit = {
         // Note: this might be called second time from minimize, but that's not a problem
         e.doit = false
-        minimize(None)
+        actions.minimizeClicked()
       }
     })
 
@@ -134,7 +134,7 @@ class MainFrame(
       menu.setDefaultItem(item)
     }
     new MenuItem(menu, SWT.SEPARATOR)
-    createMenuItem(menu, "Exit", shell, None)(tryExit)
+    createMenuItem(menu, "Exit", shell, None)(actions.exitClicked)
 
     trayItem.addListener(SWT.MenuDetect, e => menu.setVisible(true))
   }
@@ -156,7 +156,7 @@ class MainFrame(
 
       val itemExit = new MenuItem(submenu, SWT.PUSH)
       itemExit.setText("Exit")
-      itemExit.addListener(SWT.Selection, tryExit)
+      itemExit.addListener(SWT.Selection, actions.exitClicked)
     }
 
     new MenuItem(menu, SWT.CASCADE).withCode { menuItem =>
@@ -221,31 +221,27 @@ class MainFrame(
       parent.setMenu(menu)
 
       createMenuItem(menu, "Restart download", parent, None) { e =>
-        tryRestart()
+        actions.restartClicked()
       }.forDownloads(_ exists (_.status != Status.Running))
 
       new MenuItem(menu, SWT.SEPARATOR)
 
       createMenuItem(menu, "Open folder", parent, None) { e =>
-        openFolders()
+        actions.openFoldersClicked()
       }
 
       createMenuItem(menu, "Copy download URI", parent, Some(Hotkey(Ctrl, Key('C')))) { e =>
-        copyUris()
+        actions.copyUrisClicked()
       }
 
       new MenuItem(menu, SWT.SEPARATOR)
 
       createMenuItem(menu, "Delete", parent, Some(Hotkey(Key.Delete))) { e =>
-        if (mainTable.peer.getSelectionCount > 0) {
-          tryDeleteSelectedDownloads(false)
-        }
+        actions.deleteClicked(false)
       }
 
       createMenuItem(menu, "Delete with file", parent, Some(Hotkey(Shift, Key.Delete))) { e =>
-        if (mainTable.peer.getSelectionCount > 0) {
-          tryDeleteSelectedDownloads(true)
-        }
+        actions.deleteClicked(true)
       }
 
       new MenuItem(menu, SWT.SEPARATOR)
@@ -269,143 +265,6 @@ class MainFrame(
     })
   }
 
-  private def onWindowClose(closeEvent: Event): Unit = {
-    import org.fs.mael.ui.config.GlobalSettings.OnWindowClose._
-    globalCfg(GlobalSettings.OnWindowCloseBehavior) match {
-      case Undefined => promptWindowClose(closeEvent)
-      case Close     => tryExit(closeEvent)
-      case Minimize  => minimize(Some(closeEvent))
-    }
-  }
-
-  private def promptWindowClose(closeEvent: Event): Unit = {
-    import java.util.LinkedHashMap
-    import org.fs.mael.ui.config.GlobalSettings._
-    val lhm = new LinkedHashMap[String, Integer].withCode { lhm =>
-      lhm.put(OnWindowClose.Minimize.prettyName, 1)
-      lhm.put(OnWindowClose.Close.prettyName, 2)
-      lhm.put("Cancel", -1)
-    }
-    // TODO: Extract into helper?
-    val result = MessageDialogWithToggle.open(MessageDialog.CONFIRM, peer,
-      "What to do?",
-      "Choose an action on window close",
-      "Remember my decision",
-      true, null, null, SWT.NONE, lhm)
-    val actionOption: Option[OnWindowClose] = result.getReturnCode match {
-      case -1 => None
-      case 1  => Some(OnWindowClose.Minimize)
-      case 2  => Some(OnWindowClose.Close)
-    }
-    if (actionOption == None) {
-      closeEvent.doit = false
-    } else {
-      val Some(action) = actionOption
-      if (result.getToggleState) {
-        globalCfg.set(OnWindowCloseBehavior, action)
-      }
-      (action: @unchecked) match {
-        case OnWindowClose.Close    => tryExit(closeEvent)
-        case OnWindowClose.Minimize => minimize(Some(closeEvent))
-      }
-    }
-  }
-
-  private def minimize(closeEventOption: Option[Event]): Unit = {
-    closeEventOption foreach (_.doit = false)
-    import org.fs.mael.ui.config.GlobalSettings._
-    // Only minimize to tray if tray exists
-    (closeEventOption, globalCfg(MinimizeToTrayBehavior)) match {
-      case (_, MinimizeToTray.Always) if trayOption.isDefined        => minimizeToTray()
-      case (Some(_), MinimizeToTray.OnClose) if trayOption.isDefined => minimizeToTray()
-      case _                                                         => peer.setMinimized(true)
-    }
-  }
-
-  private def minimizeToTray(): Unit = {
-    require(trayOption.isDefined, "Can't minimize to non-existent tray!")
-    trayItem.setVisible(true)
-    peer.setVisible(false)
-  }
-
-  private def tryExit(closeEvent: Event): Unit = {
-    def getRunningEntities(): Seq[DownloadEntry] = {
-      downloadListMgr.list().filter(_.status == Status.Running)
-    }
-    try {
-      val running = getRunningEntities()
-      if (running.size > 0) {
-        val confirmed = MessageDialog.openConfirm(peer, "Confirmation",
-          s"You have ${running.size} active download(s). Are you sure you wish to quit?")
-
-        if (!confirmed) {
-          closeEvent.doit = false
-        } else {
-          running foreach { de =>
-            val backend = backendMgr(de.backendId)
-            backend.downloader.stop(de)
-          }
-          peer.setVisible(false)
-          val terminatedNormally = waitUntil(2000) { getRunningEntities().size == 0 }
-          if (!terminatedNormally) {
-            log.error("Couldn't stop all downloads before exiting")
-          }
-        }
-      }
-      if (closeEvent.doit) {
-        trayOption foreach { _ =>
-          // It was sometimes left visible in system tray after termination
-          trayItem.dispose()
-        }
-        downloadListMgr.save()
-        peer.dispose()
-      }
-    } catch {
-      case ex: Exception =>
-        log.error("Error terminating an application", ex)
-        showError(peer, message = ex.getMessage)
-    }
-  }
-
-  private def tryDeleteSelectedDownloads(withFile: Boolean): Unit = {
-    val msg = "Are you sure you wish to delete selected downloads" +
-      (if (withFile) " AND thier corresponding files?" else "?")
-    val confirmed = MessageDialog.openConfirm(peer, "Confirmation", msg)
-    if (confirmed) {
-      val selected = mainTable.selectedEntries
-      downloadListMgr.removeAll(selected)
-      if (withFile) {
-        selected foreach (_.fileOption foreach (_.delete()))
-      }
-    }
-  }
-
-  private def tryRestart(): Unit = {
-    val msg = "Are you sure you wish to restart selected downloads from the beginning?" +
-      "\nYou will lose all current progress on it!"
-    val confirmed = MessageDialog.openConfirm(peer, "Confirmation", msg)
-    if (confirmed) {
-      val selected = mainTable.selectedEntries filter (_.status != Status.Running)
-      selected foreach { de =>
-        val backend = backendMgr(de.backendId)
-        backend.downloader.restart(de, globalCfg(GlobalSettings.NetworkTimeout))
-      }
-    }
-  }
-
-  private def copyUris(): Unit = {
-    val selected = mainTable.selectedEntries
-    val uris = selected.map(_.uri)
-    val content = new StringSelection(uris.mkString("\n"))
-    clipboard.setContents(content, null)
-  }
-
-  private def openFolders(): Unit = {
-    val selected = mainTable.selectedEntries
-    val locations = selected.map(_.location).distinct
-    locations foreach Desktop.getDesktop.open
-  }
-
   private def clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
 
   /** Execute code in UI thread iff UI is not disposed yet */
@@ -414,11 +273,160 @@ class MainFrame(
       if (!peer.isDisposed) code
     }
 
+  private object actions {
+    def restartClicked(): Unit = {
+      val msg = "Are you sure you wish to restart selected downloads from the beginning?" +
+        "\nYou will lose all current progress on it!"
+      val confirmed = MessageDialog.openConfirm(peer, "Confirmation", msg)
+      if (confirmed) {
+        val selected = mainTable.selectedEntries filter (_.status != Status.Running)
+        selected foreach { de =>
+          val backend = backendMgr(de.backendId)
+          backend.downloader.restart(de, globalCfg(GlobalSettings.NetworkTimeout))
+        }
+      }
+    }
+
+    def deleteClicked(withFile: Boolean): Unit = {
+      if (mainTable.peer.getSelectionCount > 0) { // TODO: Embed this filter into action?
+        val msg = "Are you sure you wish to delete selected downloads" +
+          (if (withFile) " AND thier corresponding files?" else "?")
+        val confirmed = MessageDialog.openConfirm(peer, "Confirmation", msg)
+        if (confirmed) {
+          val selected = mainTable.selectedEntries
+          downloadListMgr.removeAll(selected)
+          if (withFile) {
+            selected foreach (_.fileOption foreach (_.delete()))
+          }
+        }
+      }
+    }
+
+    def copyUrisClicked(): Unit = {
+      val selected = mainTable.selectedEntries
+      val uris = selected.map(_.uri)
+      val content = new StringSelection(uris.mkString("\n"))
+      clipboard.setContents(content, null)
+    }
+
+    def openFoldersClicked(): Unit = {
+      val selected = mainTable.selectedEntries
+      val locations = selected.map(_.location).distinct
+      locations foreach Desktop.getDesktop.open
+    }
+
+    def onWindowClose(closeEvent: Event): Unit = {
+      import org.fs.mael.ui.config.GlobalSettings.OnWindowClose._
+      globalCfg(GlobalSettings.OnWindowCloseBehavior) match {
+        case Undefined => promptWindowClose(closeEvent)
+        case Close     => exit(closeEvent)
+        case Minimize  => minimize(Some(closeEvent))
+      }
+    }
+
+    private def promptWindowClose(closeEvent: Event): Unit = {
+      import java.util.LinkedHashMap
+      import org.fs.mael.ui.config.GlobalSettings._
+      val lhm = new LinkedHashMap[String, Integer].withCode { lhm =>
+        lhm.put(OnWindowClose.Minimize.prettyName, 1)
+        lhm.put(OnWindowClose.Close.prettyName, 2)
+        lhm.put("Cancel", -1)
+      }
+      // TODO: Extract into helper?
+      val result = MessageDialogWithToggle.open(MessageDialog.CONFIRM, peer,
+        "What to do?",
+        "Choose an action on window close",
+        "Remember my decision",
+        true, null, null, SWT.NONE, lhm)
+      val actionOption: Option[OnWindowClose] = result.getReturnCode match {
+        case -1 => None
+        case 1  => Some(OnWindowClose.Minimize)
+        case 2  => Some(OnWindowClose.Close)
+      }
+      if (actionOption == None) {
+        closeEvent.doit = false
+      } else {
+        val Some(action) = actionOption
+        if (result.getToggleState) {
+          globalCfg.set(OnWindowCloseBehavior, action)
+        }
+        (action: @unchecked) match {
+          case OnWindowClose.Close    => exit(closeEvent)
+          case OnWindowClose.Minimize => minimize(Some(closeEvent))
+        }
+      }
+    }
+
+    def minimizeClicked(): Unit = {
+      minimize(None)
+    }
+
+    private def minimize(closeEventOption: Option[Event]): Unit = {
+      closeEventOption foreach (_.doit = false)
+      import org.fs.mael.ui.config.GlobalSettings._
+      // Only minimize to tray if tray exists
+      (closeEventOption, globalCfg(MinimizeToTrayBehavior)) match {
+        case (_, MinimizeToTray.Always) if trayOption.isDefined        => minimizeToTray()
+        case (Some(_), MinimizeToTray.OnClose) if trayOption.isDefined => minimizeToTray()
+        case _                                                         => peer.setMinimized(true)
+      }
+    }
+
+    private def minimizeToTray(): Unit = {
+      require(trayOption.isDefined, "Can't minimize to non-existent tray!")
+      trayItem.setVisible(true)
+      peer.setVisible(false)
+    }
+
+    def exitClicked(closeEvent: Event): Unit = {
+      exit(closeEvent)
+    }
+
+    private def exit(closeEvent: Event): Unit = {
+      def getRunningEntities(): Seq[DownloadEntry] = {
+        downloadListMgr.list().filter(_.status == Status.Running)
+      }
+      try {
+        val running = getRunningEntities()
+        if (running.size > 0) {
+          val confirmed = MessageDialog.openConfirm(peer, "Confirmation",
+            s"You have ${running.size} active download(s). Are you sure you wish to quit?")
+
+          if (!confirmed) {
+            closeEvent.doit = false
+          } else {
+            running foreach { de =>
+              val backend = backendMgr(de.backendId)
+              backend.downloader.stop(de)
+            }
+            peer.setVisible(false)
+            val terminatedNormally = waitUntil(2000) { getRunningEntities().size == 0 }
+            if (!terminatedNormally) {
+              log.error("Couldn't stop all downloads before exiting")
+            }
+          }
+        }
+        if (closeEvent.doit) {
+          trayOption foreach { _ =>
+            // It was sometimes left visible in system tray after termination
+            trayItem.dispose()
+          }
+          downloadListMgr.save()
+          peer.dispose()
+        }
+      } catch {
+        case ex: Exception =>
+          log.error("Error terminating an application", ex)
+          showError(peer, message = ex.getMessage)
+      }
+    }
+  }
+
   //
   // Subscriber trait
   //
 
-  object subscriber extends UiSubscriber {
+  private object subscriber extends UiSubscriber {
     override val subscriberId: String = "swt-ui"
 
     // TODO: Make per-download?

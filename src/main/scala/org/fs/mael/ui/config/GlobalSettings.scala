@@ -44,6 +44,8 @@ object GlobalSettings {
   val SortAsc: ConfigSetting[Boolean] =
     ConfigSetting("view.sortAsc", true)
 
+  // TODO: Size granularity display
+
   sealed abstract class OnWindowClose(id: String, prettyName: String) extends RadioValue(id, prettyName)
   object OnWindowClose {
     object Undefined extends OnWindowClose("", "Prompt")
