@@ -4,8 +4,8 @@ import org.eclipse.jface.preference.FieldEditor
 import org.eclipse.jface.preference.FieldEditorPreferencePage
 import org.eclipse.jface.preference.RadioGroupFieldEditor
 import org.eclipse.swt.widgets.Composite
-import org.fs.mael.core.config.ConfigManager
 import org.fs.mael.core.config.ConfigSetting
+import org.fs.mael.core.config.ConfigStore
 
 abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPreferencePage(style) {
   /** Making this method visible */
@@ -22,7 +22,7 @@ abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPrefere
    * Please use this if an element is added manually rather than through helpers defined here
    */
   protected def initSetting(setting: ConfigSetting[_]): Unit = {
-    ConfigManager.initDefault(getPreferenceStore, setting)
+    ConfigStore.initDefault(getPreferenceStore, setting)
   }
 
   def fieldEditorsWithParents: IndexedSeq[(FieldEditor, Composite)] = _fieldEditorsWithParents

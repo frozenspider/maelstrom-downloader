@@ -4,8 +4,11 @@ import org.eclipse.jface.preference.PreferenceNode
 import org.eclipse.jface.resource.ImageDescriptor
 
 class MPreferenceNode[P <: MFieldEditorPreferencePage](
-  id:    String,
-  label: String,
-  image: ImageDescriptor,
-  clazz: Class[P]
-) extends PreferenceNode(id, label, image, clazz.getName)
+  pageDescr: MPreferencePageDescriptor[P],
+  image:     ImageDescriptor
+) extends PreferenceNode(
+  (pageDescr.pathOption map (_ + ".") getOrElse "") + pageDescr.name,
+  pageDescr.name,
+  image,
+  pageDescr.clazz.getName
+)

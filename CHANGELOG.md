@@ -1,6 +1,7 @@
 ### SNAPSHOT
 * Added tray icon and minimize to tray setting
 * (Internal) Implemented backend-specific settings framework (unused yet)
+  * (Internal) Implemented global defaults serving as template for local per-download settings
 * (Internal) Implemented migrations framework
 
 ### 0.2

@@ -6,22 +6,22 @@ import java.nio.file.Files
 import scala.io.Codec
 import scala.io.Source
 
-import org.fs.mael.core.config.ConfigManager
+import org.fs.mael.core.config.ConfigStore
 import org.fs.mael.core.config.ConfigSetting
 import org.slf4s.Logging
 
-class MigrationManager(globalCfgMgr: ConfigManager, downloadListFile: File) extends Logging {
+class MigrationManager(globalCfg: ConfigStore, downloadListFile: File) extends Logging {
   import MigrationManager._
 
   def apply(): Unit = {
-    val currVer = globalCfgMgr(VersionSetting)
+    val currVer = globalCfg(VersionSetting)
     val newerVersions = remainingVersions(currVer)
     if (!newerVersions.isEmpty) {
       log.info(s"Applying migration for ${newerVersions.size} version(s)")
       newerVersions.foreach { ver =>
         apply(ver)
       }
-      globalCfgMgr.set(VersionSetting, Version.latest)
+      globalCfg.set(VersionSetting, Version.latest)
     }
   }
 
@@ -47,7 +47,6 @@ class MigrationManager(globalCfgMgr: ConfigManager, downloadListFile: File) exte
 }
 
 object MigrationManager {
-
   val VersionSetting: ConfigSetting[Version] =
     ConfigSetting("main.version", Version.Undefined, Version.values)
 

@@ -15,13 +15,13 @@ import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.Backend
-import org.fs.mael.core.backend.BackendConfigUi
 import org.fs.mael.core.backend.BackendManager
+import org.fs.mael.core.backend.ui.BackendConfigUi
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.checksum.ChecksumType
 import org.fs.mael.core.checksum.Checksums
-import org.fs.mael.core.config.ConfigManager
-import org.fs.mael.core.config.InMemoryConfigManager
+import org.fs.mael.core.config.ConfigStore
+import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.event.EventManager
@@ -36,7 +36,7 @@ class EditDownloadDialog(
   deOption:        Option[DownloadEntryView],
   parent:          Shell,
   resources:       Resources,
-  globalCfgMgr:    ConfigManager,
+  globalCfg:       ConfigStore,
   backendMgr:      BackendManager,
   downloadListMgr: DownloadListManager,
   eventMgr:        EventManager
@@ -120,7 +120,7 @@ class EditDownloadDialog(
 
     locationInput = new DirectoryFieldEditor("", "", locationRow).withCode { editor =>
       editor.getLabelControl(locationRow).dispose()
-      editor.setStringValue(globalCfgMgr(GlobalSettings.DownloadPath))
+      editor.setStringValue(globalCfg(GlobalSettings.DownloadPath))
       editor.setEmptyStringAllowed(false)
     }
 
@@ -320,7 +320,7 @@ class EditDownloadDialog(
     filenameOption: Option[String],
     checksumOption: Option[Checksum],
     comment:        String
-  )(deCfgOption: Option[InMemoryConfigManager]): Unit = {
+  )(deCfgOption: Option[InMemoryConfigStore]): Unit = {
     val entry = backend.create(uri, location, filenameOption, checksumOption, comment, deCfgOption)
     downloadListMgr.add(entry)
   }
@@ -333,7 +333,7 @@ class EditDownloadDialog(
     filenameOption: Option[String],
     checksumOption: Option[Checksum],
     comment:        String
-  )(deCfgOption: Option[InMemoryConfigManager]): Unit = {
+  )(deCfgOption: Option[InMemoryConfigStore]): Unit = {
     val de = dev.asInstanceOf[DownloadEntry]
     val newFilenameOption = filenameOption orElse de.filenameOption
     if (location != de.location || filenameOption != de.filenameOption) {

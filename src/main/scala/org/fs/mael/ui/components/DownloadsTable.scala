@@ -8,7 +8,7 @@ import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Table
 import org.eclipse.swt.widgets.TableColumn
 import org.eclipse.swt.widgets.TableItem
-import org.fs.mael.core.config.ConfigManager
+import org.fs.mael.core.config.ConfigStore
 import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components.DownloadsTable._
@@ -19,9 +19,9 @@ import org.fs.mael.ui.utils.SwtUtils._
 import com.github.nscala_time.time.Imports._
 
 class DownloadsTable(
-  parent:       Composite,
-  resources:    Resources,
-  globalCfgMgr: ConfigManager
+  parent:    Composite,
+  resources: Resources,
+  globalCfg: ConfigStore
 ) extends MUiComponent[Table](parent) {
 
   private val columnDefs: IndexedSeq[ColumnDef[_]] = {
@@ -204,13 +204,13 @@ class DownloadsTable(
         true
       }
     sortContent(column, asc)
-    globalCfgMgr.set(GlobalSettings.SortColumn, column.columnDef.id)
-    globalCfgMgr.set(GlobalSettings.SortAsc, asc)
+    globalCfg.set(GlobalSettings.SortColumn, column.columnDef.id)
+    globalCfg.set(GlobalSettings.SortAsc, asc)
   }
 
   private def loadSorting() = {
-    val colId = globalCfgMgr(GlobalSettings.SortColumn)
-    val asc = globalCfgMgr(GlobalSettings.SortAsc)
+    val colId = globalCfg(GlobalSettings.SortColumn)
+    val asc = globalCfg(GlobalSettings.SortAsc)
     val colOption = peer.getColumns.find(_.columnDef.id == colId)
     colOption foreach { col =>
       sortContent(col, asc)

@@ -1,21 +1,16 @@
 package org.fs.mael.backend.http
 
 import java.net.URI
-
-import org.eclipse.swt.widgets.TabFolder
-import org.fs.mael.backend.http.ui.HttpConfigUi
-import org.fs.mael.backend.http.ui.HttpSettings
-import org.fs.mael.core.backend.Backend
-import org.fs.mael.core.config.ConfigManager
-import org.fs.mael.core.config.InMemoryConfigManager
+import org.fs.mael.core.backend.AbstractBackend
+import org.fs.mael.core.config.ConfigStore
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
 
 class HttpBackend(
-  transferMgr:  TransferManager,
-  globalCfgMgr: ConfigManager,
-  eventMgr:     EventManager
-) extends Backend {
+  transferMgr:            TransferManager,
+  override val globalCfg: ConfigStore,
+  eventMgr:               EventManager
+) extends AbstractBackend {
   override val id: String = HttpBackend.Id
 
   override def isSupported(uri: URI): Boolean = {
@@ -29,12 +24,7 @@ class HttpBackend(
 
   override val downloader = new HttpDownloader(eventMgr, transferMgr)
 
-  override def layoutConfig(cfgOption: Option[InMemoryConfigManager], tabFolder: TabFolder, isEditable: Boolean) =
-    new HttpConfigUi(cfgOption, tabFolder, isEditable, globalCfgMgr)
-
-  override def defaultCfg: InMemoryConfigManager = {
-    new InMemoryConfigManager(globalCfgMgr, HttpBackend.Id)
-  }
+  override def pageDescriptors = HttpSettings.Local.pageDescriptors
 }
 
 object HttpBackend {

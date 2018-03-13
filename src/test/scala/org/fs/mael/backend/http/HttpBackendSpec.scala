@@ -2,7 +2,7 @@ package org.fs.mael.backend.http
 
 import java.net.URI
 
-import org.fs.mael.core.config.InMemoryConfigManager
+import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.core.transfer.SimpleTransferManager
 import org.fs.mael.test.stub.StoringEventManager
 import org.junit.runner.RunWith
@@ -12,7 +12,7 @@ import org.scalatest.FunSuite
 class HttpBackendSpec
   extends FunSuite {
 
-  val backend = new HttpBackend(new SimpleTransferManager, new InMemoryConfigManager, new StoringEventManager)
+  val backend = new HttpBackend(new SimpleTransferManager, new InMemoryConfigStore, new StoringEventManager)
 
   test("supported URLs") {
     assert(backend.isSupported(new URI("http://abcde")))
