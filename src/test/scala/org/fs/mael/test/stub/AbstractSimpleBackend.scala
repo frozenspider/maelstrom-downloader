@@ -2,8 +2,8 @@ package org.fs.mael.test.stub
 
 import org.eclipse.swt.widgets.TabFolder
 import org.fs.mael.core.backend.AbstractBackend
-import org.fs.mael.core.backend.BackendConfigUi
 import org.fs.mael.core.backend.BackendDownloader
+import org.fs.mael.core.backend.ui.BackendConfigUi
 import org.fs.mael.core.config.ConfigStore
 import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.core.entry.DownloadEntry

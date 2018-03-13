@@ -1,4 +1,4 @@
-package org.fs.mael.core.backend
+package org.fs.mael.core.backend.ui
 
 import org.eclipse.swt.SWT
 import org.eclipse.swt.layout.GridData

@@ -1,4 +1,4 @@
-package org.fs.mael.core.backend
+package org.fs.mael.core.backend.ui
 
 import org.fs.mael.core.config.InMemoryConfigStore
 

@@ -4,6 +4,8 @@ import java.io.File
 import java.net.URI
 
 import org.eclipse.swt.widgets.TabFolder
+import org.fs.mael.core.backend.ui.BackendConfigUi
+import org.fs.mael.core.backend.ui.BackendConfigUiImpl
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.config.ConfigStore
 import org.fs.mael.core.config.InMemoryConfigStore

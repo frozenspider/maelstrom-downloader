@@ -15,8 +15,8 @@ import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.Backend
-import org.fs.mael.core.backend.BackendConfigUi
 import org.fs.mael.core.backend.BackendManager
+import org.fs.mael.core.backend.ui.BackendConfigUi
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.checksum.ChecksumType
 import org.fs.mael.core.checksum.Checksums
