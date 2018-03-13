@@ -18,7 +18,7 @@ import org.fs.mael.BuildInfo
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.config.ConfigStore
-import org.fs.mael.core.entry.DownloadEntryView
+import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.EventForUi
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.event.Events._
@@ -185,10 +185,9 @@ class MainFrame(
     btnStart = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnStart =>
       btnStart.setText("Start")
       btnStart.addListener(SWT.Selection, e => {
-        mainTable.selectedEntries map { dev =>
+        mainTable.selectedEntries map { de =>
           tryShowingError(peer, log) {
-            val backend = backendMgr(dev.backendId)
-            val de = dev.asInstanceOf[DownloadEntry]
+            val backend = backendMgr(de.backendId)
             backend.downloader.start(de, globalCfg(GlobalSettings.NetworkTimeout))
           }
         }
@@ -199,10 +198,9 @@ class MainFrame(
     btnStop = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnStop =>
       btnStop.setText("Stop")
       btnStop.addListener(SWT.Selection, e => {
-        mainTable.selectedEntries map { dev =>
+        mainTable.selectedEntries map { de =>
           tryShowingError(peer, log) {
-            val backend = backendMgr(dev.backendId)
-            val de = dev.asInstanceOf[DownloadEntry]
+            val backend = backendMgr(de.backendId)
             backend.downloader.stop(de)
           }
         }
@@ -221,6 +219,12 @@ class MainFrame(
     val menu = new Menu(mainTable.peer).withCode { menu =>
       val parent = mainTable.peer
       parent.setMenu(menu)
+
+      createMenuItem(menu, "Restart download", parent, None) { e =>
+        tryRestart()
+      }.forDownloads(_ exists (_.status != Status.Running))
+
+      new MenuItem(menu, SWT.SEPARATOR)
 
       createMenuItem(menu, "Open folder", parent, None) { e =>
         openFolders()
@@ -255,8 +259,6 @@ class MainFrame(
         }
       }.forSingleDownloads()
       mainTable.peer.addListener(SWT.MouseDoubleClick, e => openProps.notifyListeners(SWT.Selection, e))
-
-      // TODO: Restart
     }
 
     mainTable.peer.addListener(SWT.Selection, e => {
@@ -327,7 +329,7 @@ class MainFrame(
   }
 
   private def tryExit(closeEvent: Event): Unit = {
-    def getRunningEntities(): Seq[_ <: DownloadEntryView] = {
+    def getRunningEntities(): Seq[DownloadEntry] = {
       downloadListMgr.list().filter(_.status == Status.Running)
     }
     try {
@@ -339,9 +341,8 @@ class MainFrame(
         if (!confirmed) {
           closeEvent.doit = false
         } else {
-          running foreach { dev =>
-            val backend = backendMgr(dev.backendId)
-            val de = dev.asInstanceOf[DownloadEntry]
+          running foreach { de =>
+            val backend = backendMgr(de.backendId)
             backend.downloader.stop(de)
           }
           peer.setVisible(false)
@@ -375,6 +376,19 @@ class MainFrame(
       downloadListMgr.removeAll(selected)
       if (withFile) {
         selected foreach (_.fileOption foreach (_.delete()))
+      }
+    }
+  }
+
+  private def tryRestart(): Unit = {
+    val msg = "Are you sure you wish to restart selected downloads from the beginning?" +
+      "\nYou will lose all current progress on it!"
+    val confirmed = MessageDialog.openConfirm(peer, "Confirmation", msg)
+    if (confirmed) {
+      val selected = mainTable.selectedEntries filter (_.status != Status.Running)
+      selected foreach { de =>
+        val backend = backendMgr(de.backendId)
+        backend.downloader.restart(de, globalCfg(GlobalSettings.NetworkTimeout))
       }
     }
   }
@@ -456,7 +470,7 @@ class MainFrame(
       item
     }
 
-    def forDownloads(condition: Seq[DownloadEntryView] => Boolean): T = {
+    def forDownloads(condition: Seq[DownloadEntry] => Boolean): T = {
       mainTable.peer.addListener(SWT.Selection, e => {
         item.setEnabled(condition(mainTable.selectedEntries))
       })

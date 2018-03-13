@@ -9,7 +9,7 @@ import org.eclipse.swt.widgets.Table
 import org.eclipse.swt.widgets.TableColumn
 import org.eclipse.swt.widgets.TableItem
 import org.fs.mael.core.config.ConfigStore
-import org.fs.mael.core.entry.DownloadEntryView
+import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components.DownloadsTable._
 import org.fs.mael.ui.config.GlobalSettings
@@ -57,12 +57,12 @@ class DownloadsTable(
   loadSorting()
 
   /** Return all selected entries */
-  def selectedEntries: Seq[DownloadEntryView] = {
+  def selectedEntries: Seq[DownloadEntry] = {
     peer.getSelection map (_.de)
   }
 
   /** Return a singular selected entry. If multiple entries are selected, returns {@code None}. */
-  def selectedEntryOption: Option[DownloadEntryView] = {
+  def selectedEntryOption: Option[DownloadEntry] = {
     if (peer.getSelectionCount == 1) {
       selectedEntries.headOption
     } else {
@@ -70,7 +70,7 @@ class DownloadsTable(
     }
   }
 
-  def indexOfOption(de: DownloadEntryView): Option[Int] = {
+  def indexOfOption(de: DownloadEntry): Option[Int] = {
     peer.getItems.indexWhere(_.de match {
       case de2 if de2.id == de.id => true
       case _                      => false
@@ -80,7 +80,7 @@ class DownloadsTable(
     }
   }
 
-  def init(entries: Iterable[DownloadEntryView]): Unit = {
+  def init(entries: Iterable[DownloadEntry]): Unit = {
     require(peer.getItemCount == 0, "Table isn't empty")
     val sorted = entries.toSeq.sortBy(_.dateCreated)
     require(sorted.map(_.dateCreated).distinct == sorted.map(_.dateCreated), "Download list contains entries with the same created date")
@@ -93,7 +93,7 @@ class DownloadsTable(
     fireSelectionUpdated()
   }
 
-  def add(de: DownloadEntryView): Unit = {
+  def add(de: DownloadEntry): Unit = {
     val newRow = new TableItem(peer, SWT.NONE)
     fillRow(newRow, de)
     peer.deselectAll()
@@ -103,14 +103,14 @@ class DownloadsTable(
     fireSelectionUpdated()
   }
 
-  def remove(de: DownloadEntryView): Unit = {
+  def remove(de: DownloadEntry): Unit = {
     indexOfOption(de) foreach { idx =>
       peer.remove(idx)
       fireSelectionUpdated()
     }
   }
 
-  def update(de: DownloadEntryView): Unit = {
+  def update(de: DownloadEntry): Unit = {
     // TODO: Avoid excessive sorting when download progress is updated?
     indexOfOption(de) match {
       case Some(idx) =>
@@ -125,7 +125,7 @@ class DownloadsTable(
     peer.notifyListeners(SWT.Selection, new Event())
   }
 
-  private def fillRow(row: TableItem, de: DownloadEntryView): Unit = {
+  private def fillRow(row: TableItem, de: DownloadEntry): Unit = {
     row.setData(de)
     row.setImage(0, resources.icon(de.status))
     columnDefs.zipWithIndex.foreach {
@@ -218,8 +218,8 @@ class DownloadsTable(
   }
 
   private implicit class RichTableItem(ti: TableItem) {
-    def de: DownloadEntryView = {
-      ti.getData.asInstanceOf[DownloadEntryView]
+    def de: DownloadEntry = {
+      ti.getData.asInstanceOf[DownloadEntry]
     }
   }
 
@@ -234,13 +234,13 @@ object DownloadsTable {
   private case class ColumnDef[T: Ordering](
     id:        String, // Used to uniquely identify column
     name:      String,
-    getValue:  DownloadEntryView => T,
-    width:     Int                    = 0,
-    resizable: Boolean                = true
+    getValue:  DownloadEntry => T,
+    width:     Int                = 0,
+    resizable: Boolean            = true
   )(fmt: T => String = (x: T) => x.toString) {
     implicit val ordering = implicitly[Ordering[T]]
-    def compare(de1: DownloadEntryView, de2: DownloadEntryView): Int = ordering.compare(getValue(de1), getValue(de2))
-    def getFormattedValue(de: DownloadEntryView) = fmt(getValue(de))
+    def compare(de1: DownloadEntry, de2: DownloadEntry): Int = ordering.compare(getValue(de1), getValue(de2))
+    def getFormattedValue(de: DownloadEntry) = fmt(getValue(de))
   }
 
   private object Format {

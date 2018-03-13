@@ -23,7 +23,6 @@ import org.fs.mael.core.checksum.Checksums
 import org.fs.mael.core.config.ConfigStore
 import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.core.entry.DownloadEntry
-import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.utils.CoreUtils._
@@ -33,7 +32,7 @@ import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
 
 class EditDownloadDialog(
-  deOption:        Option[DownloadEntryView],
+  deOption:        Option[DownloadEntry],
   parent:          Shell,
   resources:       Resources,
   globalCfg:       ConfigStore,
@@ -326,7 +325,7 @@ class EditDownloadDialog(
   }
 
   private def edit(
-    dev:            DownloadEntryView,
+    de:             DownloadEntry,
     backend:        Backend,
     uri:            URI,
     location:       File,
@@ -334,7 +333,6 @@ class EditDownloadDialog(
     checksumOption: Option[Checksum],
     comment:        String
   )(deCfgOption: Option[InMemoryConfigStore]): Unit = {
-    val de = dev.asInstanceOf[DownloadEntry]
     val newFilenameOption = filenameOption orElse de.filenameOption
     if (location != de.location || filenameOption != de.filenameOption) {
       if (de.downloadedSize > 0) {
