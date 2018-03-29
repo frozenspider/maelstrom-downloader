@@ -301,10 +301,10 @@ class HttpDownloader(
 
     private def instantiateFile(): RandomAccessFile = {
       val f = de.fileOption.get
-      if (!partial && f.exists) {
-        throw new UserFriendlyException(s"File already exists")
-      } else if (partial) {
-        assert(f.exists) // Was checked before
+      (partial, f.exists) match {
+        case (false, true)  => throw new UserFriendlyException(s"File already exists")
+        case (true, exists) => assert(exists) // Was checked before
+        case _              => // NOOP
       }
       f.createNewFile()
       if (!f.canWrite) {
