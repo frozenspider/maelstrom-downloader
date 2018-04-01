@@ -44,7 +44,10 @@ class SpeedCalculator(eventMgr: EventManager) extends UiSubscriber { self =>
   }
 
   private def calcSpeed(entries: SortedMap[Long, Long]): Option[Long] = {
-    if (entries.size > 1) {
+    if (entries.size <= 3) {
+      // No point in calculations, it would be very inaccurate anyway
+      None
+    } else {
       val seq = entries.toIndexedSeq
       // Do the actual speed calculation
       val (firstT, firstS) = seq.head
@@ -57,8 +60,6 @@ class SpeedCalculator(eventMgr: EventManager) extends UiSubscriber { self =>
         // Can happen e.g. if download was restarted
         None
       }
-    } else {
-      None
     }
   }
 
