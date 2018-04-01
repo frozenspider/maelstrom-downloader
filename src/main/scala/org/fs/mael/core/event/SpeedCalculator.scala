@@ -4,7 +4,7 @@ import scala.collection.SortedMap
 import scala.collection.mutable.WeakHashMap
 
 import org.fs.mael.core.entry.DownloadEntry
-import org.fs.mael.core.event.Events.Progress
+import org.fs.mael.core.event.Events._
 
 /**
  * Keeps track and calculates the download speed, updating the cached speed value in download entry.
@@ -23,8 +23,15 @@ class SpeedCalculator(eventMgr: EventManager) extends UiSubscriber { self =>
   eventMgr.subscribe(this)
 
   override def fired(event: EventForUi): Unit = event match {
-    case Progress(de) => update(de)
-    case _            => // NOOP
+    case StatusChanged(de, _) => reset(de)
+    case Progress(de)         => update(de)
+    case _                    => // NOOP
+  }
+
+  private def reset(de: DownloadEntry): Unit = this.synchronized {
+    de.speedOption = None
+    whm.put(de, SortedMap.empty[Long, Long])
+    eventMgr.fireSpeed(de)
   }
 
   private def update(de: DownloadEntry): Unit = this.synchronized {

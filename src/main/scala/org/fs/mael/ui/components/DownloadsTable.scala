@@ -30,7 +30,7 @@ class DownloadsTable(
       ColumnDef("dl-percent", "%", _.downloadedPercentOption, 45, false)(_ map (_ + "%") getOrElse ""),
       ColumnDef("dl-value", "Downloaded", _.downloadedSizeOption)(Format.fmtSizeOptionPretty),
       ColumnDef("file-size", "Size", _.sizeOption, 80)(Format.fmtSizeOptionPretty),
-      ColumnDef("dl-speed", "Speed", _.speedOption, 60)(Format.fmtSizeOptionPretty),
+      ColumnDef("dl-speed", "Speed", _.speedOption, 80)(Format.fmtSpeedOptionPretty),
       ColumnDef("comment", "Comment", _.comment, 200)(),
       ColumnDef("date-created", "Added", _.dateCreated, 120)(_.toString(resources.dateTimeFmt))
     )
@@ -245,13 +245,21 @@ object DownloadsTable {
   }
 
   private object Format {
-    def fmtSizePretty(size: Long): String = {
+    def fmtSizePretty(size: Long, suffix: String): String = {
       val groups = size.toString.reverse.grouped(3).map(_.reverse).toSeq.reverse
-      groups.mkString("", " ", " B")
+      groups.mkString("", " ", suffix)
+    }
+
+    def fmtSizePretty(size: Long): String = {
+      fmtSizePretty(size, " B")
     }
 
     def fmtSizeOptionPretty(sizeOption: Option[Long]): String = {
       sizeOption map fmtSizePretty getOrElse ""
+    }
+
+    def fmtSpeedOptionPretty(speedOption: Option[Long]): String = {
+      speedOption map (speed => fmtSizePretty(speed, " B/s")) getOrElse ""
     }
   }
 }

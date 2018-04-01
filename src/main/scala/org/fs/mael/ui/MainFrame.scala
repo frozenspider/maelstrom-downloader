@@ -435,6 +435,9 @@ class MainFrame(
     // TODO: Make per-download?
     val ProgressUpdateThresholdMs = 100
 
+    // TODO: Make per-download?
+    val SpeedUpdateThresholdMs = 500
+
     override def fired(event: EventForUi): Unit = event match {
       case Added(de) => syncExecSafely {
         if (!peer.isDisposed) {
@@ -473,7 +476,7 @@ class MainFrame(
 
       case Speed(de) =>
         // We assume this is only called by event manager processing thread, so no additional sync needed
-        if (System.currentTimeMillis() - lastSpeedUpdateTS > ProgressUpdateThresholdMs) {
+        if (System.currentTimeMillis() - lastSpeedUpdateTS > SpeedUpdateThresholdMs) {
           syncExecSafely {
             // TODO: Optimize?
             mainTable.update(de)

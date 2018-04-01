@@ -23,7 +23,7 @@ abstract class BackendDownloader(protected val backendId: String) {
     case _                   => // NOOP
   }
 
-  def startInner(de: DownloadEntry, timeoutMs: Int): Unit
+  protected def startInner(de: DownloadEntry, timeoutMs: Int): Unit
 
   /**
    * Restart downloading the given entry with the given timeout
@@ -45,7 +45,7 @@ abstract class BackendDownloader(protected val backendId: String) {
     case _                   => // NOOP
   }
 
-  def stopInner(de: DownloadEntry): Unit
+  protected def stopInner(de: DownloadEntry): Unit
 
   //
   // Helpers
