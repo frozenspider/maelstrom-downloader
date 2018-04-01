@@ -34,7 +34,11 @@ class EventManagerImpl extends EventManager with Logging {
 
   override def subscribe(subscriber: EventSubscriber): Unit = {
     this.synchronized {
-      subscribers = subscribers.filter(_.subscriberId != subscriber.subscriberId) :+ subscriber
+      require(
+        !subscribers.exists(_.subscriberId == subscriber.subscriberId),
+        s"Subscriber with ID ${subscriber.subscriberId} is already subscribed"
+      )
+      subscribers = subscribers :+ subscriber
     }
   }
 
