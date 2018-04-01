@@ -1,27 +1,39 @@
 package org.fs.mael.core.event
 
-import org.fs.mael.core.entry.DownloadEntry
-import scala.collection.mutable.WeakHashMap
 import scala.collection.SortedMap
+import scala.collection.mutable.WeakHashMap
+
+import org.fs.mael.core.entry.DownloadEntry
+import org.fs.mael.core.event.Events.Progress
 
 /**
  * Keeps track and calculates the download speed, updating the cached speed value in download entry.
- * Note that this by itself generates no event.
+ * Fires `Speed` event.
  *
  * @author FS
  */
-class SpeedCalculator { self =>
+class SpeedCalculator(eventMgr: EventManager) extends UiSubscriber { self =>
+  override val subscriberId = "speed-calculator"
+
   /** Time during which downloaded chunk sizes are accumulated and accounted for speed calculation */
   private val bufferMs = 3000
 
   private val whm = new WeakHashMap[DownloadEntry, SortedMap[Long, Long]]
 
-  def update(de: DownloadEntry): Unit = this.synchronized {
+  eventMgr.subscribe(this)
+
+  override def fired(event: EventForUi): Unit = event match {
+    case Progress(de) => update(de)
+    case _            => // NOOP
+  }
+
+  private def update(de: DownloadEntry): Unit = this.synchronized {
     val oldV = whm.getOrElse(de, SortedMap.empty[Long, Long])
     val now = System.currentTimeMillis()
     val newV = oldV.filterKeys(_ >= (now - bufferMs)) + (now -> de.downloadedSize)
     de.speedOption = calcSpeed(newV)
     whm.put(de, newV)
+    eventMgr.fireSpeed(de)
   }
 
   private def calcSpeed(entries: SortedMap[Long, Long]): Option[Long] = {
@@ -35,7 +47,7 @@ class SpeedCalculator { self =>
       if (diffS > 0) {
         Some(diffS * 1000 / diffT)
       } else {
-        // Can happen if e.g. download was restarted
+        // Can happen e.g. if download was restarted
         None
       }
     } else {
@@ -51,10 +63,8 @@ class SpeedCalculator { self =>
           val map = self.synchronized {
             whm.toMap
           }
-          map.foreach {
-            case (de, entries) => self.synchronized {
-              de.speedOption = calcSpeed(entries)
-            }
+          map.keys.foreach { de =>
+            update(de)
           }
           Thread.sleep(1000)
         }

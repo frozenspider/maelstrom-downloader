@@ -30,6 +30,7 @@ class DownloadsTable(
       ColumnDef("dl-percent", "%", _.downloadedPercentOption, 45, false)(_ map (_ + "%") getOrElse ""),
       ColumnDef("dl-value", "Downloaded", _.downloadedSizeOption)(Format.fmtSizeOptionPretty),
       ColumnDef("file-size", "Size", _.sizeOption, 80)(Format.fmtSizeOptionPretty),
+      ColumnDef("dl-speed", "Speed", _.speedOption, 60)(Format.fmtSizeOptionPretty),
       ColumnDef("comment", "Comment", _.comment, 200)(),
       ColumnDef("date-created", "Added", _.dateCreated, 120)(_.toString(resources.dateTimeFmt))
     )
@@ -126,7 +127,6 @@ class DownloadsTable(
   }
 
   private def fillRow(row: TableItem, de: DownloadEntry): Unit = {
-    // TODO: Speed calculation
     row.setData(de)
     row.setImage(0, resources.icon(de.status))
     columnDefs.zipWithIndex.foreach {

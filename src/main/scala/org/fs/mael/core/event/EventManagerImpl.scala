@@ -28,8 +28,6 @@ class EventManagerImpl extends EventManager with Logging {
   /** Priority queue for all non-processed events */
   private val pq: PriorityQueue[PriorityEvent] = new PriorityQueue()(peOrd)
 
-  subscribe(new SpeedCalcSubscriber)
-
   //
   // Client methods: subscription
   //

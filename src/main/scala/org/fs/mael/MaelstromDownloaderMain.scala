@@ -22,6 +22,7 @@ import org.fs.utility.StopWatch
 import org.slf4s.Logging
 
 import javax.swing.JOptionPane
+import org.fs.mael.core.event.SpeedCalculator
 
 object MaelstromDownloaderMain extends App with Logging {
 
@@ -46,6 +47,7 @@ object MaelstromDownloaderMain extends App with Logging {
       val display = new Display()
       val resources = new ResourcesImpl(display)
       val eventMgr = new EventManagerImpl
+      val speedCalc = new SpeedCalculator(eventMgr)
       val backendMgr = new BackendManager
       val transferMgr = new SimpleTransferManager
       initBackends(backendMgr, transferMgr, globalCfg, eventMgr)

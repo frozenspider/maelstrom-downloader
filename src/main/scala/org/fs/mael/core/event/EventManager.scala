@@ -51,4 +51,9 @@ trait EventManager {
   def fireProgress(de: DownloadEntry): Unit = {
     fire(Progress(de))
   }
+
+  /** Download speed changed */
+  def fireSpeed(de: DownloadEntry): Unit = {
+    fire(Speed(de))
+  }
 }

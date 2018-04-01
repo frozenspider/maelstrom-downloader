@@ -55,6 +55,9 @@ class MainFrame(
   /** When the download progress update was rendered for the last time, used to avoid excessive load */
   private var lastProgressUpdateTS: Long = System.currentTimeMillis
 
+  /** When the download speed update was rendered for the last time, used to avoid excessive load */
+  private var lastSpeedUpdateTS: Long = System.currentTimeMillis
+
   val peer: Shell = new Shell(display).withCode { peer =>
     peer.addListener(SWT.Close, actions.onWindowClose)
     peer.addShellListener(new ShellAdapter {
@@ -448,6 +451,16 @@ class MainFrame(
         mainTable.update(de)
       }
 
+      case DetailsChanged(de) => syncExecSafely {
+        mainTable.update(de)
+      }
+
+      case Logged(de, entry) => syncExecSafely {
+        if (mainTable.selectedEntryOption == Some(de)) {
+          logTable.append(entry, false)
+        }
+      }
+
       case Progress(de) =>
         // We assume this is only called by event manager processing thread, so no additional sync needed
         if (System.currentTimeMillis() - lastProgressUpdateTS > ProgressUpdateThresholdMs) {
@@ -458,15 +471,15 @@ class MainFrame(
           lastProgressUpdateTS = System.currentTimeMillis()
         }
 
-      case DetailsChanged(de) => syncExecSafely {
-        mainTable.update(de)
-      }
-
-      case Logged(de, entry) => syncExecSafely {
-        if (mainTable.selectedEntryOption == Some(de)) {
-          logTable.append(entry, false)
+      case Speed(de) =>
+        // We assume this is only called by event manager processing thread, so no additional sync needed
+        if (System.currentTimeMillis() - lastSpeedUpdateTS > ProgressUpdateThresholdMs) {
+          syncExecSafely {
+            // TODO: Optimize?
+            mainTable.update(de)
+          }
+          lastSpeedUpdateTS = System.currentTimeMillis()
         }
-      }
     }
   }
 

@@ -100,4 +100,14 @@ object Events {
     override def msg = "Progress for " + de.uri
   }
 
+  /**
+   * Download speed (cached value) changed.
+   *
+   * Should be fired by speed calculator.
+   *
+   * (Note that these events will be fired much more often than UI would wish to process.)
+   */
+  case class Speed(de: DownloadEntry) extends PriorityEventImpl(Int.MinValue) with EventForUi {
+    override def msg = "Speed for " + de.uri
+  }
 }
