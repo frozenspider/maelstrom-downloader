@@ -265,6 +265,8 @@ class HttpDownloaderSpec
     assertLastLogEntry(de, "responded")
   }
 
+  // WARNING: Unstable test!
+  // No idea why though
   test("failure - file size changed") {
     val de = createDownloadEntry
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
