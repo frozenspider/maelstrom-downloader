@@ -34,6 +34,7 @@ import org.fs.mael.ui.utils.Hotkey._
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
 import org.fs.mael.core.entry.DownloadEntry
+import scala.collection.mutable.WeakHashMap
 
 class MainFrame(
   display:         Display,
@@ -51,12 +52,6 @@ class MainFrame(
 
   private var btnStart: ToolItem = _
   private var btnStop: ToolItem = _
-
-  /** When the download progress update was rendered for the last time, used to avoid excessive load */
-  private var lastProgressUpdateTS: Long = System.currentTimeMillis
-
-  /** When the download speed update was rendered for the last time, used to avoid excessive load */
-  private var lastSpeedUpdateTS: Long = System.currentTimeMillis
 
   val peer: Shell = new Shell(display).withCode { peer =>
     peer.addListener(SWT.Close, actions.onWindowClose)
@@ -432,11 +427,10 @@ class MainFrame(
   private object subscriber extends UiSubscriber {
     override val subscriberId: String = "swt-ui"
 
-    // TODO: Make per-download?
     val ProgressUpdateThresholdMs = 100
 
-    // TODO: Make per-download?
-    val SpeedUpdateThresholdMs = 500
+    /** When the download progress update was rendered for the last time, used to avoid excessive load */
+    private val lastProgressUpdateTS: WeakHashMap[DownloadEntry, Long] = WeakHashMap.empty
 
     override def fired(event: EventForUi): Unit = event match {
       case Added(de) => syncExecSafely {
@@ -466,22 +460,22 @@ class MainFrame(
 
       case Progress(de) =>
         // We assume this is only called by event manager processing thread, so no additional sync needed
-        if (System.currentTimeMillis() - lastProgressUpdateTS > ProgressUpdateThresholdMs) {
+        if (System.currentTimeMillis() - lastProgressUpdateTS.getOrElse(de, 0L) > ProgressUpdateThresholdMs) {
           syncExecSafely {
             // TODO: Optimize?
             mainTable.update(de)
           }
-          lastProgressUpdateTS = System.currentTimeMillis()
+          lastProgressUpdateTS(de) = System.currentTimeMillis()
         }
 
       case Speed(de) =>
         // We assume this is only called by event manager processing thread, so no additional sync needed
-        if (System.currentTimeMillis() - lastSpeedUpdateTS > SpeedUpdateThresholdMs) {
+        if (System.currentTimeMillis() - lastProgressUpdateTS.getOrElse(de, 0L) > ProgressUpdateThresholdMs) {
           syncExecSafely {
             // TODO: Optimize?
             mainTable.update(de)
           }
-          lastSpeedUpdateTS = System.currentTimeMillis()
+          lastProgressUpdateTS(de) = System.currentTimeMillis()
         }
     }
   }
