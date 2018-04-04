@@ -459,24 +459,21 @@ class MainFrame(
       }
 
       case Progress(de) =>
-        // We assume this is only called by event manager processing thread, so no additional sync needed
-        if (System.currentTimeMillis() - lastProgressUpdateTS.getOrElse(de, 0L) > ProgressUpdateThresholdMs) {
-          syncExecSafely {
-            // TODO: Optimize?
-            mainTable.update(de)
-          }
-          lastProgressUpdateTS(de) = System.currentTimeMillis()
-        }
+        updateTableWithThreshold(de)
 
       case Speed(de) =>
-        // We assume this is only called by event manager processing thread, so no additional sync needed
-        if (System.currentTimeMillis() - lastProgressUpdateTS.getOrElse(de, 0L) > ProgressUpdateThresholdMs) {
-          syncExecSafely {
-            // TODO: Optimize?
-            mainTable.update(de)
-          }
-          lastProgressUpdateTS(de) = System.currentTimeMillis()
+        updateTableWithThreshold(de)
+    }
+
+    private def updateTableWithThreshold(de: DownloadEntry): Unit = {
+      // We assume this is only called by event manager processing thread, so no additional sync needed
+      if (System.currentTimeMillis() - lastProgressUpdateTS.getOrElse(de, 0L) > ProgressUpdateThresholdMs) {
+        syncExecSafely {
+          // TODO: Optimize, updating only specific columns?
+          mainTable.update(de)
         }
+        lastProgressUpdateTS(de) = System.currentTimeMillis()
+      }
     }
   }
 
