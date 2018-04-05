@@ -4,6 +4,7 @@ import java.awt.Desktop
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 
+import scala.collection.mutable.WeakHashMap
 import scala.util.Random
 
 import org.eclipse.jface.dialogs.MessageDialog
@@ -33,8 +34,6 @@ import org.fs.mael.ui.utils.Hotkey
 import org.fs.mael.ui.utils.Hotkey._
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
-import org.fs.mael.core.entry.DownloadEntry
-import scala.collection.mutable.WeakHashMap
 
 class MainFrame(
   display:         Display,
@@ -113,7 +112,7 @@ class MainFrame(
     trayItem.setImage(resources.mainIcon)
     trayItem.setToolTipText(BuildInfo.prettyName)
 
-    import GlobalSettings._
+    import org.fs.mael.ui.config.GlobalSettings._
     globalCfg.addSettingChangedListener(ShowTrayIconBehavior)(e => {
       updateTrayIconVisibility(e.newValue)
     })
