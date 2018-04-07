@@ -1,7 +1,7 @@
 ### SNAPSHOT
 * Added ability to restart download from the beginning
 * Added tray icon and minimize to tray setting
-* Added download speed column, implemented related tracking and calculations
+* Added download speed and remaining time columns, implemented related tracking and calculations
 * (Internal) Implemented backend-specific settings framework (unused yet)
   * (Internal) Implemented global defaults serving as template for local per-download settings
 * (Internal) Implemented migrations framework

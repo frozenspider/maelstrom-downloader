@@ -14,14 +14,15 @@ import com.github.nscala_time.time.Imports._
  *
  * @author FS
  */
-class SpeedCalculator(eventMgr: EventManager, bufferMs: Int = 3000) extends UiSubscriber { self =>
+class SpeedCalculator(
+  eventMgr: EventManager,
+  /** Time during which downloaded chunk sizes are accumulated and accounted for speed calculation */
+  bufferMs: Int = 3000
+) extends UiSubscriber { self =>
   private type Timestamp = Long
   private type CurrentSize = Long
 
   override val subscriberId = "speed-calculator"
-
-  /** Time during which downloaded chunk sizes are accumulated and accounted for speed calculation */
-  private val _bufferMs = bufferMs
 
   private val whm = new WeakHashMap[DownloadEntry, SortedMap[Timestamp, CurrentSize]]
 

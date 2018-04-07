@@ -24,6 +24,8 @@ class DownloadsTable(
   globalCfg: ConfigStore
 ) extends MUiComponent[Table](parent) {
 
+  // TODO: Save/restore column widths
+  // TODO: Reorder columns
   private val columnDefs: IndexedSeq[ColumnDef[_]] = {
     IndexedSeq(
       ColumnDef("file-name", "File Name", _.displayName)(),
@@ -31,6 +33,7 @@ class DownloadsTable(
       ColumnDef("dl-value", "Downloaded", _.downloadedSizeOption)(Format.fmtSizeOptionPretty),
       ColumnDef("file-size", "Size", _.sizeOption, 80)(Format.fmtSizeOptionPretty),
       ColumnDef("dl-speed", "Speed", _.speedOption, 80)(Format.fmtSpeedOptionPretty),
+      ColumnDef("time-remaining", "Time remaining", _.timeRemainngSecondsOption, 150)(Format.fmtTimeOptionPretty),
       ColumnDef("comment", "Comment", _.comment, 200)(),
       ColumnDef("date-created", "Added", _.dateCreated, 120)(_.toString(resources.dateTimeFmt))
     )
@@ -260,6 +263,21 @@ object DownloadsTable {
 
     def fmtSpeedOptionPretty(speedOption: Option[Long]): String = {
       speedOption map (speed => fmtSizePretty(speed, " B/s")) getOrElse ""
+    }
+
+    def fmtTimePretty(seconds: Long): String = {
+      seconds match {
+        case s if s >= 86400 => (s / 86400) + "d"
+        case s if s >= 36000 => (s / 3600) + "h" // >10h
+        case s if s >= 3600  => (s / 3600) + "h " + fmtTimePretty(s % 3600)
+        case s if s >= 600   => (s / 60) + "m" // >10m
+        case s if s >= 60    => (s / 60) + "m " + fmtTimePretty(s % 60)
+        case s               => s + "s"
+      }
+    }
+
+    def fmtTimeOptionPretty(secondsOption: Option[Long]): String = {
+      secondsOption map (fmtTimePretty) getOrElse ""
     }
   }
 }
