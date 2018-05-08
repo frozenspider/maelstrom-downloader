@@ -310,6 +310,7 @@ class MainFrame(
       val selected = mainTable.selectedEntries
       val locations = selected.map(_.location).distinct
       locations foreach Desktop.getDesktop.open
+      // TODO: Select files?
     }
 
     def onWindowClose(closeEvent: Event): Unit = {

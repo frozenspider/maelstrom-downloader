@@ -115,6 +115,7 @@ class DownloadsTable(
   }
 
   def update(de: DownloadEntry): Unit = {
+    // TODO: Do not table scroll if entity is selected
     // TODO: Avoid excessive sorting when download progress is updated?
     indexOfOption(de) match {
       case Some(idx) =>
