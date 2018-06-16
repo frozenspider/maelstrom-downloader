@@ -147,7 +147,7 @@ class HttpDownloaderSpec
     assert(transferMgr.bytesRead === 10)
   }
 
-  test("deduce filename from header") {
+  test("deduce filename from header - simple") {
     val de = createDownloadEntry
     val filename = de.filenameOption.get
     de.filenameOption = None
@@ -155,6 +155,26 @@ class HttpDownloaderSpec
     server.respondWith { (req, res) =>
       serveContentNormally(expectedBytes)(req, res)
       res.setHeader("Content-Disposition", s"Attachment; filename=/?${filename}?/")
+    }
+
+    expectStatusChangeEvents(de, Status.Running, Status.Complete)
+    downloader.start(de, 999999)
+    await.firedAndStopped()
+
+    assert(de.filenameOption === Some("__" + filename + "__"))
+    assert(readLocalFile(de) === expectedBytes)
+    assert(server.reqCounter === 1)
+    assert(transferMgr.bytesRead === 5)
+  }
+
+  test("deduce filename from header - Google Drive UTF-8") {
+    val de = createDownloadEntry
+    val filename = "Они не прилетят - сборник рассказов читает А. Дунин.zip"
+    de.filenameOption = None
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+    server.respondWith { (req, res) =>
+      serveContentNormally(expectedBytes)(req, res)
+      res.setHeader("Content-Disposition", """attachment;filename="___ __ ________ - _______ _________ ______ _. _____.zip";filename*=UTF-8''%D0%9E%D0%BD%D0%B8%20%D0%BD%D0%B5%20%D0%BF%D1%80%D0%B8%D0%BB%D0%B5%D1%82%D1%8F%D1%82%20-%20%D1%81%D0%B1%D0%BE%D1%80%D0%BD%D0%B8%D0%BA%20%D1%80%D0%B0%D1%81%D1%81%D0%BA%D0%B0%D0%B7%D0%BE%D0%B2%20%D1%87%D0%B8%D1%82%D0%B0%D0%B5%D1%82%20%D0%90.%20%D0%94%D1%83%D0%BD%D0%B8%D0%BD.zip""")
     }
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)

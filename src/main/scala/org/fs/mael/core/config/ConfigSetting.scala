@@ -57,8 +57,6 @@ object ConfigSetting {
   // Internal stuff, should not be used directly
   //
 
-  private type GetSetting[T] = (IPreferenceStore, String) => T
-
   protected[config] class PreferenceStoreDao[T](
     protected[config] val getT:        (IPreferenceStore, String) => T,
     protected[config] val setT:        (IPreferenceStore, String, T) => Unit,
