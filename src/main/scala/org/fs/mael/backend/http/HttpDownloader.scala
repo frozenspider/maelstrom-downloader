@@ -250,7 +250,15 @@ class HttpDownloader(
             } yield (param.getName -> param.getValue)
           ).toMap
           // As per RFC-6266
-          headerParts.get("filename*") orElse headerParts.get("filename")
+          headerParts.get("filename*") flatMap { filenameEnc =>
+            try {
+              Some(HttpUtils.decodeRfc5987ExtValue(filenameEnc))
+            } catch {
+              case ex: Exception =>
+                errorLogAndFire(de, "Failed to decode filename from server response: " + ex)
+                None
+            }
+          } orElse headerParts.get("filename")
         })
       } orElse {
         // Try to use the last part of URL path as filename
