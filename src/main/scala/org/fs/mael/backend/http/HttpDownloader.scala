@@ -255,7 +255,7 @@ class HttpDownloader(
               Some(HttpUtils.decodeRfc5987ExtValue(filenameEnc))
             } catch {
               case ex: Exception =>
-                errorLogAndFire(de, "Failed to decode filename from server response: " + ex)
+                addLogAndFire(de, LogEntry.error("Server responded with malformed filename*: " + ex))
                 None
             }
           } orElse headerParts.get("filename")

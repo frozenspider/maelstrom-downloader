@@ -69,7 +69,7 @@ class HttpDownloaderSpec
   }
 
   test("regular download of 5 bytes") {
-    val de = createDownloadEntry
+    val de = createDownloadEntry()
     de.checksumOption = Some(Checksum(ChecksumType.MD5, "7cfdd07889b3295d6a550914ab35e068"))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
     server.respondWith(serveContentNormally(expectedBytes))
@@ -84,7 +84,7 @@ class HttpDownloaderSpec
   }
 
   test("download 5 bytes, stop, download 5 more") {
-    val de = createDownloadEntry
+    val de = createDownloadEntry()
     de.checksumOption = Some(Checksum(ChecksumType.MD5, "70903e79b7575e3f4e7ffa15c2608ac7"))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
     server.respondWith { (req, res) =>
@@ -118,7 +118,7 @@ class HttpDownloaderSpec
   }
 
   test("download 5 bytes, stop, redownload file with unsupported resuming") {
-    val de = createDownloadEntry
+    val de = createDownloadEntry()
     de.checksumOption = Some(Checksum(ChecksumType.MD5, "70903e79b7575e3f4e7ffa15c2608ac7"))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
     server.respondWith(serveContentNormally(expectedBytes))
@@ -148,7 +148,7 @@ class HttpDownloaderSpec
   }
 
   test("deduce filename from header - simple") {
-    val de = createDownloadEntry
+    val de = createDownloadEntry()
     val filename = de.filenameOption.get
     de.filenameOption = None
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
@@ -168,7 +168,7 @@ class HttpDownloaderSpec
   }
 
   test("deduce filename from header - Google Drive UTF-8 Russian") {
-    val de = createDownloadEntry
+    val de = createDownloadEntry()
     val filename = "Они не прилетят - сборник рассказов читает А. Дунин.zip"
     de.filenameOption = None
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
@@ -191,8 +191,33 @@ class HttpDownloaderSpec
     }
   }
 
+  test("deduce filename from header - illegal filename*") {
+    val de = createDownloadEntry()
+    de.filenameOption = None
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+    server.respondWith { (req, res) =>
+      serveContentNormally(expectedBytes)(req, res)
+      res.setHeader("Content-Disposition", """attachment;filename*=somerandomgibberish""")
+    }
+
+    expectStatusChangeEvents(de, Status.Running, Status.Complete)
+    try {
+      downloader.start(de, 999999)
+      await.firedAndStopped()
+
+      assert(de.filenameOption === Some("qwe"))
+      assert(readLocalFile(de) === expectedBytes)
+      assert(server.reqCounter === 1)
+      assert(transferMgr.bytesRead === 5)
+
+      assertHasLogEntry(de, "malformed filename*")
+    } finally {
+      de.fileOption foreach { _.delete() }
+    }
+  }
+
   test("deduce filename from URL") {
-    val de = createDownloadEntry
+    val de = createDownloadEntry()
     val filename = de.filenameOption.get
     val encodedFilename = URLEncoder.encode(s"/?${filename}?/", Codec.UTF8.name)
     de.filenameOption = None
@@ -211,7 +236,7 @@ class HttpDownloaderSpec
   }
 
   test("deduce filename from entry id (fallback)") {
-    val de = createDownloadEntry
+    val de = createDownloadEntry()
     de.filenameOption = None
     de.uri = new URI(de.uri.toString replaceAllLiterally (de.uri.getPath, ""))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
@@ -229,7 +254,7 @@ class HttpDownloaderSpec
   }
 
   test("file size - pre-allocate if known") {
-    val de = createDownloadEntry
+    val de = createDownloadEntry()
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
     server.respondWith(serveContentNormally(expectedBytes))
 
@@ -247,7 +272,7 @@ class HttpDownloaderSpec
   }
 
   test("file size - expand dynamically if unknown") {
-    val de = createDownloadEntry
+    val de = createDownloadEntry()
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
     server.respondWith { (req, res) =>
       res.setStatusCode(HttpStatus.SC_OK)
@@ -275,7 +300,7 @@ class HttpDownloaderSpec
   }
 
   test("failure - server responds with an error") {
-    val de = createDownloadEntry
+    val de = createDownloadEntry()
     server.respondWith { (req, res) =>
       res.setStatusCode(HttpStatus.SC_FORBIDDEN)
     }
@@ -290,7 +315,7 @@ class HttpDownloaderSpec
   }
 
   test("failure - file size changed") {
-    val de = createDownloadEntry
+    val de = createDownloadEntry()
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
     server.respondWith { (req, res) =>
       res.setStatusCode(if (req.getHeaders(HttpHeaders.RANGE).isEmpty) HttpStatus.SC_OK else HttpStatus.SC_PARTIAL_CONTENT)
@@ -318,7 +343,7 @@ class HttpDownloaderSpec
   }
 
   test("failure - local file disappeared") {
-    val de = createDownloadEntry
+    val de = createDownloadEntry()
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
     server.respondWith(serveContentNormally(expectedBytes))
 
@@ -345,7 +370,7 @@ class HttpDownloaderSpec
   }
 
   test("failure - path is not accessible") {
-    val de = createDownloadEntry
+    val de = createDownloadEntry()
     de.location = new File("?*|\u0000><'\"%:")
     server.respondWith(serveContentNormally(Array.empty[Byte]))
 
@@ -358,7 +383,7 @@ class HttpDownloaderSpec
   }
 
   test("failure - checksum doesn't match") {
-    val de = createDownloadEntry
+    val de = createDownloadEntry()
     de.checksumOption = Some(Checksum(ChecksumType.MD5, "7cfdd07889b3295d6a550914ab35e067"))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
     server.respondWith(serveContentNormally(expectedBytes))
@@ -376,7 +401,7 @@ class HttpDownloaderSpec
   // WARNING: Unstable test!
   // server.reqCounter is sometimes 0
   test("failure - request timeout") {
-    val de = createDownloadEntry
+    val de = createDownloadEntry()
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
     server.respondWith { (req, res) =>
       Thread.sleep(200)
@@ -395,7 +420,7 @@ class HttpDownloaderSpec
   // WARNING: Unstable test!
   // server.reqCounter is sometimes 2
   test("failure - server unexpectedly disconnected") {
-    val de = createDownloadEntry
+    val de = createDownloadEntry()
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
     server.respondWith { (req, res) =>
       res.setStatusCode(HttpStatus.SC_OK)
@@ -429,7 +454,7 @@ class HttpDownloaderSpec
     filename
   }
 
-  private def createDownloadEntry: DownloadEntry = {
+  private def createDownloadEntry(): DownloadEntry = {
     val uri = new URI(s"http://localhost:$port/mySubUrl/qwe?a=b&c=d")
     val filename = requestTempFilename()
     DownloadEntry(
