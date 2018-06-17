@@ -167,7 +167,7 @@ class HttpDownloaderSpec
     assert(transferMgr.bytesRead === 5)
   }
 
-  test("deduce filename from header - Google Drive UTF-8") {
+  test("deduce filename from header - Google Drive UTF-8 Russian") {
     val de = createDownloadEntry
     val filename = "Они не прилетят - сборник рассказов читает А. Дунин.zip"
     de.filenameOption = None
@@ -178,13 +178,17 @@ class HttpDownloaderSpec
     }
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
-    downloader.start(de, 999999)
-    await.firedAndStopped()
+    try {
+      downloader.start(de, 999999)
+      await.firedAndStopped()
 
-    assert(de.filenameOption === Some("__" + filename + "__"))
-    assert(readLocalFile(de) === expectedBytes)
-    assert(server.reqCounter === 1)
-    assert(transferMgr.bytesRead === 5)
+      assert(de.filenameOption === Some(filename))
+      assert(readLocalFile(de) === expectedBytes)
+      assert(server.reqCounter === 1)
+      assert(transferMgr.bytesRead === 5)
+    } finally {
+      de.fileOption foreach { _.delete() }
+    }
   }
 
   test("deduce filename from URL") {
@@ -451,7 +455,7 @@ class HttpDownloaderSpec
       case Events.StatusChanged(`de`, _) if de.status == status2 && firstStatusAdopted =>
         succeeded = true
       case Events.StatusChanged(`de`, _) =>
-        failureOption = Some(new IllegalStateException(s"Unexpected status ${de.status}"))
+        failureOption = Some(new IllegalStateException(s"Unexpected status ${de.status}, log: ${de.downloadLog.mkString("\n", "\n", "")}"))
     }
   }
 
