@@ -13,6 +13,8 @@ import org.slf4s.Logging
 class MigrationManager(globalCfg: ConfigStore, downloadListFile: File) extends Logging {
   import MigrationManager._
 
+  // TODO: What if config didn't exist before? No migrations should be applied in that case!
+
   def apply(): Unit = {
     val currVer = globalCfg(VersionSetting)
     val newerVersions = remainingVersions(currVer)
