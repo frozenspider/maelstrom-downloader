@@ -313,8 +313,7 @@ object DownloadsTable {
         case s if s >= 86400 => (s / 86400) + "d"
         case s if s >= 36000 => (s / 3600) + "h" // >10h
         case s if s >= 3600  => (s / 3600) + "h " + fmtTimePretty(s % 3600)
-        case s if s >= 600   => (s / 60) + "m" // >10m
-        case s if s >= 60    => (s / 60) + "m " + fmtTimePretty(s % 60)
+        case s if s >= 60    => (s / 60) + "m"
         case s               => s + "s"
       }
     }

@@ -22,29 +22,36 @@ class SpeedTrackerImpl(
 ) extends SpeedTracker with UiSubscriber { self =>
   private type Timestamp = Long
   private type CurrentSize = Long
+  private type Speed = Long
+
+  private val whmSizes = new WeakHashMap[DownloadEntry, SortedMap[Timestamp, CurrentSize]]
+  private val whmSpeeds = new WeakHashMap[DownloadEntry, SortedMap[Timestamp, Speed]]
 
   override val subscriberId = "speed-tracker"
 
-  private val whm = new WeakHashMap[DownloadEntry, SortedMap[Timestamp, CurrentSize]]
-
   override def reset(de: DownloadEntry): Unit = this.synchronized {
-    whm.put(de, SortedMap.empty[Timestamp, CurrentSize])
+    whmSizes.put(de, SortedMap.empty[Timestamp, CurrentSize])
+    whmSpeeds.put(de, SortedMap.empty[Timestamp, Speed])
     eventMgr.fireSpeedEta(de, None, None)
   }
 
-  // TODO: Use something like exponential moving average
-  // or https://stackoverflow.com/questions/2779600/how-to-estimate-download-time-remaining-accurately
   override def update(de: DownloadEntry): Unit = this.synchronized {
-    val oldV = whm.getOrElse(de, SortedMap.empty[Timestamp, CurrentSize])
     val now = DateTime.now().getMillis
-    val newV = oldV.filterKeys(_ >= (now - bufferMs)) + (now -> de.downloadedSize)
-    whm.put(de, newV)
-    val speedOption = calcSpeedOption(newV)
-    val etaOption = calcEtaOption(de, speedOption)
+
+    val oldSizes = whmSizes.getOrElse(de, SortedMap.empty[Timestamp, CurrentSize]).filterKeys(_ >= (now - bufferMs))
+    val newSizes = oldSizes + (now -> de.downloadedSize)
+    whmSizes.put(de, newSizes)
+
+    val speedOption = calcSpeedOption(newSizes)
+    val oldSpeeds = whmSpeeds.getOrElse(de, SortedMap.empty[Timestamp, Speed]).filterKeys(_ >= (now - bufferMs))
+    val newSpeeds = oldSpeeds + (now -> speedOption.getOrElse(0L))
+    whmSpeeds.put(de, newSpeeds)
+
+    val etaOption = calcEtaOption(de, newSpeeds)
     eventMgr.fireSpeedEta(de, speedOption, etaOption)
   }
 
-  def calcSpeedOption(entries: SortedMap[Timestamp, CurrentSize]): Option[Long] = {
+  def calcSpeedOption(entries: SortedMap[Timestamp, CurrentSize]): Option[Speed] = {
     if (entries.size <= 3) {
       // No point in calculations, it would be very inaccurate anyway
       None
@@ -64,13 +71,23 @@ class SpeedTrackerImpl(
     }
   }
 
-  def calcEtaOption(de: DownloadEntry, speedOption: Option[Long]): Option[Long] = {
-    (de.sizeOption, speedOption) match {
-      case (Some(totalSize), Some(speed)) if speed > 1000 =>
-        val remaining = totalSize - de.downloadedSize
-        Some(remaining / speed)
-      case _ =>
-        None
+  def calcEtaOption(de: DownloadEntry, speeds: SortedMap[Timestamp, Speed]): Option[Long] = {
+    val speeds2 = speeds.map(_._2).toSeq.dropWhile(_ == 0)
+    if (speeds2.size <= 2) {
+      None
+    } else {
+      // Exponential moving average
+      val a = 0.3 // Smoothing factor
+      val exponentiallySmoothedSpeed = speeds2.tail.foldLeft(speeds2.head.toDouble) {
+        case (prev, curr) => a * curr + (1 - a) * prev
+      }
+      (de.sizeOption, exponentiallySmoothedSpeed) match {
+        case (Some(totalSize), speed) if speed > 1000 =>
+          val remaining = totalSize - de.downloadedSize
+          Some(remaining / speed.toLong)
+        case _ =>
+          None
+      }
     }
   }
 
@@ -80,7 +97,7 @@ class SpeedTrackerImpl(
       override def run(): Unit = {
         while (true) {
           val map = self.synchronized {
-            whm.toMap
+            whmSizes.toMap
           }
           map.keys.foreach { de =>
             update(de)
