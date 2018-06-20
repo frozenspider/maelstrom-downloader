@@ -32,17 +32,19 @@ class SpeedTrackerImpl(
     eventMgr.fireSpeedEta(de, None, None)
   }
 
+  // TODO: Use something like exponential moving average
+  // or https://stackoverflow.com/questions/2779600/how-to-estimate-download-time-remaining-accurately
   override def update(de: DownloadEntry): Unit = this.synchronized {
     val oldV = whm.getOrElse(de, SortedMap.empty[Timestamp, CurrentSize])
     val now = DateTime.now().getMillis
     val newV = oldV.filterKeys(_ >= (now - bufferMs)) + (now -> de.downloadedSize)
     whm.put(de, newV)
-    val speedOption = calcSpeed(newV)
-    val etaOption = getEtaOption(de, speedOption)
+    val speedOption = calcSpeedOption(newV)
+    val etaOption = calcEtaOption(de, speedOption)
     eventMgr.fireSpeedEta(de, speedOption, etaOption)
   }
 
-  private def calcSpeed(entries: SortedMap[Timestamp, CurrentSize]): Option[Long] = {
+  def calcSpeedOption(entries: SortedMap[Timestamp, CurrentSize]): Option[Long] = {
     if (entries.size <= 3) {
       // No point in calculations, it would be very inaccurate anyway
       None
@@ -62,7 +64,7 @@ class SpeedTrackerImpl(
     }
   }
 
-  private def getEtaOption(de: DownloadEntry, speedOption: Option[Long]): Option[Long] = {
+  def calcEtaOption(de: DownloadEntry, speedOption: Option[Long]): Option[Long] = {
     (de.sizeOption, speedOption) match {
       case (Some(totalSize), Some(speed)) if speed > 1000 =>
         val remaining = totalSize - de.downloadedSize
@@ -71,9 +73,6 @@ class SpeedTrackerImpl(
         None
     }
   }
-
-  /** For test usage only! */
-  def test_calcSpeed(entries: SortedMap[Timestamp, CurrentSize]): Option[Long] = calcSpeed(entries)
 
   /** Thread which updates download speed every second */
   private val speedUpdateThread: Thread = {

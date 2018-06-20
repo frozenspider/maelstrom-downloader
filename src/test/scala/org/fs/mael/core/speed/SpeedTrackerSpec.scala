@@ -24,15 +24,15 @@ class SpeedTrackerSpec
 
   test("calculation - not enough info") {
     val tracker = getSimpleTracker()._1
-    assert(tracker.test_calcSpeed(asMap(0L -> 0L)) === None)
-    assert(tracker.test_calcSpeed(asMap(0L -> 0L, System.currentTimeMillis -> 100L)) === None)
+    assert(tracker.calcSpeedOption(asMap(0L -> 0L)) === None)
+    assert(tracker.calcSpeedOption(asMap(0L -> 0L, System.currentTimeMillis -> 100L)) === None)
   }
 
   test("calculation - uniform size growth") {
     val tracker = getSimpleTracker()._1
     val pairs = (0 to 100000 by 1000) map (i => (i.toLong -> i.toLong * 5))
     val map = asMap(pairs: _*)
-    assert(tracker.test_calcSpeed(map) === Some(5000))
+    assert(tracker.calcSpeedOption(map) === Some(5000))
   }
 
   test("calculation - non-uniform size growth - 0 then even") {
@@ -42,7 +42,7 @@ class SpeedTrackerSpec
       case i              => (i.toLong -> i.toLong * 5)
     }
     val map = asMap(pairs: _*)
-    assert(tracker.test_calcSpeed(map) === Some(5000))
+    assert(tracker.calcSpeedOption(map) === Some(5000))
   }
 
   test("calculation - non-uniform size growth - 0 then full") {
@@ -52,21 +52,21 @@ class SpeedTrackerSpec
       case i              => (i.toLong -> 500000L)
     }
     val map = asMap(pairs: _*)
-    assert(tracker.test_calcSpeed(map) === Some(5000))
+    assert(tracker.calcSpeedOption(map) === Some(5000))
   }
 
   test("calculation - no size growth") {
     val tracker = getSimpleTracker()._1
     val pairs = (0 to 100000 by 1000) map (_.toLong -> 500000L)
     val map = asMap(pairs: _*)
-    assert(tracker.test_calcSpeed(map) === Some(0))
+    assert(tracker.calcSpeedOption(map) === Some(0))
   }
 
   test("calculation - size decreased") {
     val tracker = getSimpleTracker()._1
     val pairs = (0 to 100000 by 1000) map (i => (i.toLong -> (500000L - i)))
     val map = asMap(pairs: _*)
-    assert(tracker.test_calcSpeed(map) === None)
+    assert(tracker.calcSpeedOption(map) === None)
   }
 
   //
