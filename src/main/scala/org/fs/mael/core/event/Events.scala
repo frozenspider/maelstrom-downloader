@@ -100,4 +100,14 @@ object Events {
     override def msg = "Progress for " + de.uri
   }
 
+  /**
+   * Download speed (calculated value) changed.
+   *
+   * Should be fired by speed tracker.
+   *
+   * (Note that these events will be fired much more often than UI would wish to process.)
+   */
+  case class SpeedEta(de: DownloadEntry, speedOption: Option[Long], etaSecondsOption: Option[Long]) extends PriorityEventImpl(Int.MinValue) with EventForUi {
+    override def msg = "Speed for " + de.uri
+  }
 }

@@ -3,6 +3,9 @@ val prettyName =  "Maelstrom Downloader"
 version        := "0.2-SNAPSHOT"
 scalaVersion   := "2.12.3"
 
+// Show tests duration and full stacktrace on test errors
+testOptions in Test += Tests.Argument("-oDF")
+
 sourceManaged            := baseDirectory.value / "src_managed"
 sourceManaged in Compile := baseDirectory.value / "src_managed" / "main" / "scala"
 sourceManaged in Test    := baseDirectory.value / "src_managed" / "test" / "scala"

@@ -10,6 +10,7 @@ import org.eclipse.swt.widgets.TableColumn
 import org.eclipse.swt.widgets.TableItem
 import org.fs.mael.core.config.ConfigStore
 import org.fs.mael.core.entry.DownloadEntry
+import org.fs.mael.core.speed.SpeedTracker
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components.DownloadsTable._
 import org.fs.mael.ui.config.GlobalSettings
@@ -24,14 +25,18 @@ class DownloadsTable(
   globalCfg: ConfigStore
 ) extends MUiComponent[Table](parent) {
 
-  private val columnDefs: IndexedSeq[ColumnDef[_]] = {
+  // TODO: Save/restore column widths
+  // TODO: Reorder columns
+  private val columnDefs: IndexedSeq[ColumnDef] = {
     IndexedSeq(
-      ColumnDef("file-name", "File Name", _.displayName)(),
-      ColumnDef("dl-percent", "%", _.downloadedPercentOption, 45, false)(_ map (_ + "%") getOrElse ""),
-      ColumnDef("dl-value", "Downloaded", _.downloadedSizeOption)(Format.fmtSizeOptionPretty),
-      ColumnDef("file-size", "Size", _.sizeOption, 80)(Format.fmtSizeOptionPretty),
-      ColumnDef("comment", "Comment", _.comment, 200)(),
-      ColumnDef("date-created", "Added", _.dateCreated, 120)(_.toString(resources.dateTimeFmt))
+      ColumnFormattedDef("file-name", "File Name", _.displayName)(),
+      ColumnFormattedDef("dl-percent", "%", _.downloadedPercentOption, 45, false)(_ map (_ + "%") getOrElse ""),
+      ColumnFormattedDef("dl-value", "Downloaded", _.downloadedSizeOption)(Format.fmtSizeOptionPretty),
+      ColumnFormattedDef("file-size", "Size", _.sizeOption, 80)(Format.fmtSizeOptionPretty),
+      ColumnValuelessDef("speed", "Speed", 90),
+      ColumnValuelessDef("eta", "ETA", 60),
+      ColumnFormattedDef("comment", "Comment", _.comment, 200)(),
+      ColumnFormattedDef("date-created", "Added", _.dateCreated, 120)(_.toString(resources.dateTimeFmt))
     )
   }
 
@@ -47,7 +52,9 @@ class DownloadsTable(
       c.setText(cd.name)
       c.setWidth(cd.width)
       c.setResizable(cd.resizable)
-      c.addListener(SWT.Selection, sortListener)
+      if (cd.ordered) {
+        c.addListener(SWT.Selection, sortListener)
+      }
     }
 
     installDefaultHotkeys(table)
@@ -89,7 +96,7 @@ class DownloadsTable(
       fillRow(newRow, de)
     }
     adjustColumnWidths()
-    sortContent()
+    sortContentCurr()
     fireSelectionUpdated()
   }
 
@@ -99,7 +106,7 @@ class DownloadsTable(
     peer.deselectAll()
     peer.showItem(newRow)
     peer.select(peer.getItems.indexOf(newRow))
-    sortContent()
+    sortContentCurr()
     fireSelectionUpdated()
   }
 
@@ -111,11 +118,22 @@ class DownloadsTable(
   }
 
   def update(de: DownloadEntry): Unit = {
+    // TODO: Do not table scroll if entity is selected
     // TODO: Avoid excessive sorting when download progress is updated?
     indexOfOption(de) match {
       case Some(idx) =>
         fillRow(peer.getItem(idx), de)
-        sortContent()
+        sortContentCurr()
+      case None => // NOOP
+    }
+  }
+
+  def updateSpeedEta(de: DownloadEntry, speedOption: Option[Long], etaSecondsOption: Option[Long]): Unit = {
+    indexOfOption(de) match {
+      case Some(idx) =>
+        val row = peer.getItem(idx)
+        row.setText(columnDefs.indexWhere(_.id == "speed"), Format.fmtSpeedOptionPretty(speedOption))
+        row.setText(columnDefs.indexWhere(_.id == "eta"), Format.fmtTimeOptionPretty(etaSecondsOption))
       case None => // NOOP
     }
   }
@@ -126,11 +144,10 @@ class DownloadsTable(
   }
 
   private def fillRow(row: TableItem, de: DownloadEntry): Unit = {
-    // TODO: Speed calculation
     row.setData(de)
     row.setImage(0, resources.icon(de.status))
     columnDefs.zipWithIndex.foreach {
-      case (cd, i) => row.setText(i, cd.getFormattedValue(de))
+      case (cd, i) => cd.getFormattedValueOption(de) map (fv => row.setText(i, fv))
     }
     if (de.supportsResumingOption == Some(false)) {
       // Would be better to add red-ish border, but that's non-trivial
@@ -146,15 +163,23 @@ class DownloadsTable(
   private def sortContent(column: TableColumn, asc: Boolean): Unit = {
     peer.setSortColumn(column)
     peer.setSortDirection(if (asc) SWT.UP else SWT.DOWN)
-    sortContent()
+    sortContentCurr()
   }
 
   /** Sort table content according to currently set sort column and direction */
-  private def sortContent(): Unit = {
+  private def sortContentCurr(): Unit = {
+    val colIdx = peer.getColumns.indexOf(peer.getSortColumn)
+    if (colIdx != -1) {
+      peer.getColumn(colIdx).columnDef match {
+        case colDef: ColumnFormattedDef[_] => sortContentCurrInner(colIdx, colDef)
+        case _                             => // Not sortable, NOOP
+      }
+    }
+  }
+
+  private def sortContentCurrInner(colIdx: Int, colDef: ColumnFormattedDef[_]): Unit = {
     val oldSelectedData = peer.getSelection.map(_.de).toSet
     val asc = peer.getSortDirection == SWT.UP
-    val colIdx = peer.getColumns.indexOf(peer.getSortColumn)
-    val colDef = peer.getColumn(colIdx).columnDef
     val items = peer.getItems
     // Selection sort
     for (i <- 0 until (items.length - 1)) {
@@ -225,33 +250,76 @@ class DownloadsTable(
   }
 
   private implicit class RichTableColumn(tc: TableColumn) {
-    def columnDef: ColumnDef[_] = {
-      tc.getData.asInstanceOf[ColumnDef[_]]
+    def columnDef: ColumnDef = {
+      tc.getData.asInstanceOf[ColumnDef]
     }
   }
 }
 
 object DownloadsTable {
-  private case class ColumnDef[T: Ordering](
-    id:        String, // Used to uniquely identify column
+  private sealed trait ColumnDef {
+    /** Used to uniquely identify column */
+    def id: String
+    def name: String
+    def width: Int
+    def resizable: Boolean
+    def ordered = false
+    /** Returns this column's formatted value for the given entity, if applicable */
+    def getFormattedValueOption(de: DownloadEntry): Option[String] = None
+  }
+
+  private case class ColumnFormattedDef[T: Ordering](
+    id:        String,
     name:      String,
     getValue:  DownloadEntry => T,
     width:     Int                = 0,
     resizable: Boolean            = true
-  )(fmt: T => String = (x: T) => x.toString) {
+  )(fmt: T => String = (x: T) => x.toString) extends ColumnDef {
+    override val ordered = true
+    override def getFormattedValueOption(de: DownloadEntry) = Some(getFormattedValue(de))
+
     implicit val ordering = implicitly[Ordering[T]]
     def compare(de1: DownloadEntry, de2: DownloadEntry): Int = ordering.compare(getValue(de1), getValue(de2))
     def getFormattedValue(de: DownloadEntry) = fmt(getValue(de))
   }
 
+  private case class ColumnValuelessDef(
+    id:        String,
+    name:      String,
+    width:     Int     = 0,
+    resizable: Boolean = true
+  ) extends ColumnDef
+
   private object Format {
-    def fmtSizePretty(size: Long): String = {
+    def fmtSizePretty(size: Long, suffix: String): String = {
       val groups = size.toString.reverse.grouped(3).map(_.reverse).toSeq.reverse
-      groups.mkString("", " ", " B")
+      groups.mkString("", " ", suffix)
+    }
+
+    def fmtSizePretty(size: Long): String = {
+      fmtSizePretty(size, " B")
     }
 
     def fmtSizeOptionPretty(sizeOption: Option[Long]): String = {
       sizeOption map fmtSizePretty getOrElse ""
+    }
+
+    def fmtSpeedOptionPretty(speedOption: Option[Long]): String = {
+      speedOption map (speed => fmtSizePretty(speed, " B/s")) getOrElse ""
+    }
+
+    def fmtTimePretty(seconds: Long): String = {
+      seconds match {
+        case s if s >= 86400 => (s / 86400) + "d"
+        case s if s >= 36000 => (s / 3600) + "h" // >10h
+        case s if s >= 3600  => (s / 3600) + "h " + fmtTimePretty(s % 3600)
+        case s if s >= 60    => (s / 60) + "m"
+        case s               => s + "s"
+      }
+    }
+
+    def fmtTimeOptionPretty(secondsOption: Option[Long]): String = {
+      secondsOption map (fmtTimePretty) getOrElse ""
     }
   }
 }

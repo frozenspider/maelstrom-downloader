@@ -37,8 +37,6 @@ class DownloadEntry private (
 
   var supportsResumingOption: Option[Boolean] = None
 
-  var speedOption: Option[Long] = None
-
   val sections: mutable.Map[Start, Downloaded] = mutable.Map.empty
 
   var downloadLog: IndexedSeq[LogEntry] = IndexedSeq.empty

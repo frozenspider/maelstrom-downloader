@@ -70,8 +70,6 @@ trait DownloadEntryView {
   /** Whether resuming is supported, if known */
   def supportsResumingOption: Option[Boolean]
 
-  def speedOption: Option[Long]
-
   def sections: MapLike[Start, Downloaded, _]
 
   def downloadLog: IndexedSeq[LogEntry]

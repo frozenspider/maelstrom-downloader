@@ -4,6 +4,7 @@ import java.awt.Desktop
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 
+import scala.collection.mutable.WeakHashMap
 import scala.util.Random
 
 import org.eclipse.jface.dialogs.MessageDialog
@@ -33,7 +34,6 @@ import org.fs.mael.ui.utils.Hotkey
 import org.fs.mael.ui.utils.Hotkey._
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
-import org.fs.mael.core.entry.DownloadEntry
 
 class MainFrame(
   display:         Display,
@@ -51,9 +51,6 @@ class MainFrame(
 
   private var btnStart: ToolItem = _
   private var btnStop: ToolItem = _
-
-  /** When the download progress update was rendered for the last time, used to avoid excessive load */
-  private var lastProgressUpdateTS: Long = System.currentTimeMillis
 
   val peer: Shell = new Shell(display).withCode { peer =>
     peer.addListener(SWT.Close, actions.onWindowClose)
@@ -115,7 +112,7 @@ class MainFrame(
     trayItem.setImage(resources.mainIcon)
     trayItem.setToolTipText(BuildInfo.prettyName)
 
-    import GlobalSettings._
+    import org.fs.mael.ui.config.GlobalSettings._
     globalCfg.addSettingChangedListener(ShowTrayIconBehavior)(e => {
       updateTrayIconVisibility(e.newValue)
     })
@@ -313,6 +310,7 @@ class MainFrame(
       val selected = mainTable.selectedEntries
       val locations = selected.map(_.location).distinct
       locations foreach Desktop.getDesktop.open
+      // TODO: Select files?
     }
 
     def onWindowClose(closeEvent: Event): Unit = {
@@ -407,6 +405,7 @@ class MainFrame(
           }
         }
         if (closeEvent.doit) {
+          // TODO: Doesn't work! Need another workaround
           trayOption foreach { _ =>
             // It was sometimes left visible in system tray after termination
             trayItem.dispose()
@@ -429,8 +428,13 @@ class MainFrame(
   private object subscriber extends UiSubscriber {
     override val subscriberId: String = "swt-ui"
 
-    // TODO: Make per-download?
     val ProgressUpdateThresholdMs = 100
+    val SpeedUpdateThresholdMs = 100
+
+    /** When the download progress update was rendered for the last time, used to avoid excessive load */
+    private val lastProgressUpdateTS: WeakHashMap[DownloadEntry, Long] = WeakHashMap.empty
+    /** When the download speed/ETA update was rendered for the last time, used to avoid excessive load */
+    private val lastSpeedUpdateTS: WeakHashMap[DownloadEntry, Long] = WeakHashMap.empty
 
     override def fired(event: EventForUi): Unit = event match {
       case Added(de) => syncExecSafely {
@@ -448,16 +452,6 @@ class MainFrame(
         mainTable.update(de)
       }
 
-      case Progress(de) =>
-        // We assume this is only called by event manager processing thread, so no additional sync needed
-        if (System.currentTimeMillis() - lastProgressUpdateTS > ProgressUpdateThresholdMs) {
-          syncExecSafely {
-            // TODO: Optimize?
-            mainTable.update(de)
-          }
-          lastProgressUpdateTS = System.currentTimeMillis()
-        }
-
       case DetailsChanged(de) => syncExecSafely {
         mainTable.update(de)
       }
@@ -467,9 +461,37 @@ class MainFrame(
           logTable.append(entry, false)
         }
       }
+
+      case Progress(de) =>
+        updateTableDetailsWithThreshold(de)
+
+      case SpeedEta(de, speedOption, etaSecondsOption) =>
+        updateTableSpeedWithThreshold(de, speedOption, etaSecondsOption)
+    }
+
+    private def updateTableDetailsWithThreshold(de: DownloadEntry): Unit = {
+      // We assume this is only called by event manager processing thread, so no additional sync needed
+      if (System.currentTimeMillis() - lastProgressUpdateTS.getOrElse(de, 0L) > ProgressUpdateThresholdMs) {
+        syncExecSafely {
+          // TODO: Optimize, updating only specific columns?
+          mainTable.update(de)
+        }
+        lastProgressUpdateTS(de) = System.currentTimeMillis()
+      }
+    }
+
+    private def updateTableSpeedWithThreshold(de: DownloadEntry, speedOption: Option[Long], etaSecondsOption: Option[Long]): Unit = {
+      // We assume this is only called by event manager processing thread, so no additional sync needed
+      if (System.currentTimeMillis() - lastSpeedUpdateTS.getOrElse(de, 0L) > SpeedUpdateThresholdMs) {
+        syncExecSafely {
+          mainTable.updateSpeedEta(de, speedOption, etaSecondsOption)
+        }
+        lastSpeedUpdateTS(de) = System.currentTimeMillis()
+      }
     }
   }
 
+  import scala.language.reflectiveCalls
   private implicit class ItemExt[T <: { def setEnabled(b: Boolean): Unit }](item: T) {
     def forSingleDownloads(): T = {
       mainTable.peer.addListener(SWT.Selection, e => {

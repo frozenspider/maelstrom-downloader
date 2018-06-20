@@ -18,7 +18,6 @@ object TestUtils extends Assertions {
     assert(de1.status === de2.status)
     assert(de1.sizeOption === de2.sizeOption)
     assert(de1.supportsResumingOption === de2.supportsResumingOption)
-    assert(de1.speedOption === de2.speedOption)
     assert(de1.sections === de2.sections)
     assert(de1.downloadedSize === de2.downloadedSize)
     assert(de1.downloadLog === de2.downloadLog)
