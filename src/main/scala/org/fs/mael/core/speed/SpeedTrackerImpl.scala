@@ -1,10 +1,11 @@
-package org.fs.mael.core.event
+package org.fs.mael.core.speed
 
 import scala.collection.SortedMap
 import scala.collection.mutable.WeakHashMap
 
 import org.fs.mael.core.entry.DownloadEntry
-import org.fs.mael.core.event.Events._
+import org.fs.mael.core.event.EventManager
+import org.fs.mael.core.event.UiSubscriber
 
 import com.github.nscala_time.time.Imports._
 
@@ -14,39 +15,31 @@ import com.github.nscala_time.time.Imports._
  *
  * @author FS
  */
-class SpeedCalculator(
+class SpeedTrackerImpl(
   eventMgr: EventManager,
   /** Time during which downloaded chunk sizes are accumulated and accounted for speed calculation */
   bufferMs: Int = 3000
-) extends UiSubscriber { self =>
+) extends SpeedTracker with UiSubscriber { self =>
   private type Timestamp = Long
   private type CurrentSize = Long
 
-  override val subscriberId = "speed-calculator"
+  override val subscriberId = "speed-tracker"
 
   private val whm = new WeakHashMap[DownloadEntry, SortedMap[Timestamp, CurrentSize]]
 
-  eventMgr.subscribe(this)
-
-  override def fired(event: EventForUi): Unit = event match {
-    case StatusChanged(de, _) => reset(de)
-    case Progress(de)         => update(de)
-    case _                    => // NOOP
-  }
-
-  private def reset(de: DownloadEntry): Unit = this.synchronized {
-    de.speedOption = None
+  override def reset(de: DownloadEntry): Unit = this.synchronized {
     whm.put(de, SortedMap.empty[Timestamp, CurrentSize])
-    eventMgr.fireSpeed(de)
+    eventMgr.fireSpeedEta(de, None, None)
   }
 
-  private def update(de: DownloadEntry): Unit = this.synchronized {
+  override def update(de: DownloadEntry): Unit = this.synchronized {
     val oldV = whm.getOrElse(de, SortedMap.empty[Timestamp, CurrentSize])
     val now = DateTime.now().getMillis
     val newV = oldV.filterKeys(_ >= (now - bufferMs)) + (now -> de.downloadedSize)
-    de.speedOption = calcSpeed(newV)
     whm.put(de, newV)
-    eventMgr.fireSpeed(de)
+    val speedOption = calcSpeed(newV)
+    val etaOption = getEtaOption(de, speedOption)
+    eventMgr.fireSpeedEta(de, speedOption, etaOption)
   }
 
   private def calcSpeed(entries: SortedMap[Timestamp, CurrentSize]): Option[Long] = {
@@ -66,6 +59,16 @@ class SpeedCalculator(
         // Can happen e.g. if download was restarted
         None
       }
+    }
+  }
+
+  private def getEtaOption(de: DownloadEntry, speedOption: Option[Long]): Option[Long] = {
+    (de.sizeOption, speedOption) match {
+      case (Some(totalSize), Some(speed)) if speed > 1000 =>
+        val remaining = totalSize - de.downloadedSize
+        Some(remaining / speed)
+      case _ =>
+        None
     }
   }
 

@@ -107,7 +107,7 @@ object Events {
    *
    * (Note that these events will be fired much more often than UI would wish to process.)
    */
-  case class Speed(de: DownloadEntry) extends PriorityEventImpl(Int.MinValue) with EventForUi {
+  case class SpeedEta(de: DownloadEntry, speedOption: Option[Long], etaSecondsOption: Option[Long]) extends PriorityEventImpl(Int.MinValue) with EventForUi {
     override def msg = "Speed for " + de.uri
   }
 }

@@ -13,6 +13,8 @@ import org.fs.mael.core.event.EventManagerImpl
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.list.DownloadListSerializerImpl
 import org.fs.mael.core.migration.MigrationManager
+import org.fs.mael.core.speed.SpeedTracker
+import org.fs.mael.core.speed.SpeedTrackerImpl
 import org.fs.mael.core.transfer.SimpleTransferManager
 import org.fs.mael.core.transfer.TransferManager
 import org.fs.mael.ui.MainFrame
@@ -22,7 +24,6 @@ import org.fs.utility.StopWatch
 import org.slf4s.Logging
 
 import javax.swing.JOptionPane
-import org.fs.mael.core.event.SpeedCalculator
 
 object MaelstromDownloaderMain extends App with Logging {
 
@@ -47,7 +48,8 @@ object MaelstromDownloaderMain extends App with Logging {
       val display = new Display()
       val resources = new ResourcesImpl(display)
       val eventMgr = new EventManagerImpl
-      val speedCalc = new SpeedCalculator(eventMgr)
+      val speedTracker = new SpeedTrackerImpl(eventMgr)
+      eventMgr.subscribe(speedTracker)
       val backendMgr = new BackendManager
       val transferMgr = new SimpleTransferManager
       initBackends(backendMgr, transferMgr, globalCfg, eventMgr)

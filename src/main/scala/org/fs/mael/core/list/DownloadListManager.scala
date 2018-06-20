@@ -50,7 +50,6 @@ class DownloadListManager(
     this.synchronized {
       require(this.entries.isEmpty, "Entries already loaded")
       // Mutating code!
-      entries.foreach { _.speedOption = None }
       this.entries = entries.collect {
         case de if de.status == Status.Running =>
           de.status = Status.Stopped

@@ -53,7 +53,7 @@ trait EventManager {
   }
 
   /** Download speed changed */
-  def fireSpeed(de: DownloadEntry): Unit = {
-    fire(Speed(de))
+  def fireSpeedEta(de: DownloadEntry, speedOption: Option[Long], etaSecondsOption: Option[Long]): Unit = {
+    fire(SpeedEta(de, speedOption, etaSecondsOption))
   }
 }

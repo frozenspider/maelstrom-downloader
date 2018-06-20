@@ -70,19 +70,6 @@ trait DownloadEntryView {
   /** Whether resuming is supported, if known */
   def supportsResumingOption: Option[Boolean]
 
-  /** Current (cached) download speed, avg. bytes per second */
-  def speedOption: Option[Long]
-
-  def timeRemainngSecondsOption: Option[Long] = {
-    (sizeOption, speedOption) match {
-      case (Some(totalSize), Some(speed)) if speed > 1000 =>
-        val remaining = totalSize - downloadedSize
-        Some(remaining / speed)
-      case _ =>
-        None
-    }
-  }
-
   def sections: MapLike[Start, Downloaded, _]
 
   def downloadLog: IndexedSeq[LogEntry]
