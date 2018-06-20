@@ -80,7 +80,7 @@ class SpeedTrackerSpec
         subscribed = true
       }
     }
-    val calc = new SpeedTrackerImpl(eventMgr)
+    val calc = new SpeedTrackerImpl(eventMgr, startBackgroundUpdateThread = false)
     assert(!subscribed)
   }
 
@@ -93,7 +93,7 @@ class SpeedTrackerSpec
 
   test("progress events are processed properly") {
     val eventMgr = new StoringEventManager
-    val tracker = new SpeedTrackerImpl(eventMgr, Int.MaxValue)
+    val tracker = new SpeedTrackerImpl(eventMgr, Int.MaxValue, false)
     val de = getEmptyDownloadEntry()
 
     DateTimeUtils.setCurrentMillisFixed(0)
@@ -123,7 +123,7 @@ class SpeedTrackerSpec
 
   test("progress events filters out old data") {
     val eventMgr = new StoringEventManager
-    val tracker = new SpeedTrackerImpl(eventMgr, 10)
+    val tracker = new SpeedTrackerImpl(eventMgr, 10, false)
     val de = getEmptyDownloadEntry()
     val startTime = getNow()
 
@@ -151,7 +151,7 @@ class SpeedTrackerSpec
 
   private def getSimpleTracker(): (SpeedTrackerImpl, StoringEventManager) = {
     val eventMgr = new StoringEventManager
-    (new SpeedTrackerImpl(eventMgr), eventMgr)
+    (new SpeedTrackerImpl(eventMgr, startBackgroundUpdateThread = false), eventMgr)
   }
 
   private def getEmptyDownloadEntry(): DownloadEntry =

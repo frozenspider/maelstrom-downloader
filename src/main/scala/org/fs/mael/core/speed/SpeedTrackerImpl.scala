@@ -18,7 +18,8 @@ import com.github.nscala_time.time.Imports._
 class SpeedTrackerImpl(
   eventMgr: EventManager,
   /** Time during which downloaded chunk sizes are accumulated and accounted for speed calculation */
-  bufferMs: Int = 3000
+  bufferMs:                    Int     = 3000,
+  startBackgroundUpdateThread: Boolean = true
 ) extends SpeedTracker with UiSubscriber { self =>
   private type Timestamp = Long
   private type CurrentSize = Long
@@ -106,9 +107,11 @@ class SpeedTrackerImpl(
         }
       }
     }
-    thread.setName("speed-calculator-thread")
+    thread.setName("speed-tracker-thread")
     thread.setDaemon(true)
-    thread.start()
+    if (startBackgroundUpdateThread) {
+      thread.start()
+    }
     thread
   }
 }
