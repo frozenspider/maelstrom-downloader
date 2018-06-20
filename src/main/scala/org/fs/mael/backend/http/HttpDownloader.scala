@@ -105,7 +105,7 @@ class HttpDownloader(
   }
 
   private class DownloadingThread(val de: DownloadEntry, timeoutMs: Int)
-    extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
+      extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
 
     this.setDaemon(true)
 
@@ -180,6 +180,7 @@ class HttpDownloader(
           // Note that range upper-bound is inclusive
           rb.addHeader(HttpHeaders.RANGE, "bytes=" + de.downloadedSize + "-")
         }
+        addCustomHeaders(rb)
         rb.build()
       }
 
@@ -236,6 +237,15 @@ class HttpDownloader(
         downloadEntity(req, entity)
       } finally {
         res.close()
+      }
+    }
+
+    private def addCustomHeaders(rb: RequestBuilder): Unit = {
+      import HttpSettings._
+      val localCfg = de.backendSpecificCfg
+      val userAgentOption = localCfg(UserAgent)
+      userAgentOption foreach { userAgent =>
+        rb.setHeader(HttpHeaders.USER_AGENT, userAgent)
       }
     }
 
