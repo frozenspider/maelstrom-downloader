@@ -2,17 +2,18 @@ package org.fs.mael.core.speed
 
 import java.io.File
 import java.net.URI
+
 import scala.collection.immutable.SortedMap
+
 import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.core.entry.DownloadEntry
+import org.fs.mael.core.event.EventSubscriber
+import org.fs.mael.core.event.Events
 import org.fs.mael.core.event.Events._
 import org.fs.mael.test.stub.StoringEventManager
 import org.joda.time.DateTimeUtils
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
-import org.fs.mael.core.event.EventSubscriber
-import org.fs.mael.core.event.Events
-import org.scalactic.source.Position.apply
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class SpeedTrackerSpec

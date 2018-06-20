@@ -9,12 +9,6 @@ import org.fs.mael.core.event.UiSubscriber
 
 import com.github.nscala_time.time.Imports._
 
-/**
- * Keeps track and calculates the download speed, updating the cached speed value in download entry.
- * Fires `Speed` event.
- *
- * @author FS
- */
 class SpeedTrackerImpl(
   eventMgr: EventManager,
   /** Time during which downloaded chunk sizes are accumulated and accounted for speed calculation */
