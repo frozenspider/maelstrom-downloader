@@ -220,7 +220,7 @@ class EditDownloadDialog(
         layout.marginTop = 0
         layout.marginBottom = 0
       })
-      composite.setLayoutData(new GridData(GridData.CENTER, GridData.CENTER, true, false))
+      composite.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, false))
     }
 
     val advancedButton = new Button(bottomButtonRow, SWT.PUSH).withCode { btn =>
