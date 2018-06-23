@@ -3,12 +3,10 @@ package org.fs.mael.backend.http.ui
 import scala.collection.immutable.ListMap
 
 import org.eclipse.jface.preference.FieldEditor
-import org.eclipse.swt.widgets._
-import org.eclipse.swt.layout.GridData
 import org.eclipse.swt.SWT
-import org.fs.mael.core.entry.LogEntry
+import org.eclipse.swt.layout.GridData
+import org.eclipse.swt.widgets._
 import org.fs.mael.core.utils.CoreUtils._
-import org.eclipse.swt.layout.GridLayout
 
 class CookiesFieldEditor(name: String, labelText: String, parent: Composite)
     extends FieldEditor(name, labelText, parent) {
@@ -28,7 +26,7 @@ class CookiesFieldEditor(name: String, labelText: String, parent: Composite)
 
   override def doStore(): Unit = {
     if (!cookiesMap.isEmpty) {
-      val itemsString = CookiesConfigSetting.format(cookiesMap)
+      val itemsString = CookiesConfigSetting.serialize(cookiesMap)
       getPreferenceStore().setValue(getPreferenceName, itemsString)
     } else {
       getPreferenceStore().setToDefault(getPreferenceName)
@@ -77,7 +75,7 @@ class CookiesFieldEditor(name: String, labelText: String, parent: Composite)
   }
 
   private def loadMapFromString(itemsString: String): Unit = {
-    cookiesMap = CookiesConfigSetting.parse(itemsString)
+    cookiesMap = CookiesConfigSetting.deserialize(itemsString)
     table.removeAll()
     cookiesMap.foreach { entry =>
       val row = new TableItem(table, SWT.NONE)
