@@ -81,7 +81,7 @@ class MainFrame(
     val toolbar = new ToolBar(group, SWT.FLAT)
 
     val sashForm = new SashForm(group, SWT.VERTICAL)
-    sashForm.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true))
+    sashForm.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true))
 
     mainTable = new DownloadsTable(sashForm, resources, globalCfg)
     logTable = new LogTable(sashForm, resources)
@@ -174,7 +174,7 @@ class MainFrame(
       btnAdd.addListener(SWT.Selection, e => {
         tryShowingError(peer, log) {
           val dialog = new EditDownloadDialog(None, shell, resources, globalCfg, backendMgr, downloadListMgr, eventMgr)
-          dialog.peer.open()
+          dialog.shell.open()
         }
       })
     }
@@ -207,7 +207,7 @@ class MainFrame(
 
     toolbar.pack()
     toolbar.setLayoutData((new GridData()).withCode { gridData =>
-      gridData.horizontalAlignment = GridData.FILL
+      gridData.horizontalAlignment = SWT.FILL
       gridData.grabExcessHorizontalSpace = true
     })
   }
@@ -248,7 +248,7 @@ class MainFrame(
           val deOption = mainTable.selectedEntryOption
           require(deOption.isDefined)
           val dialog = new EditDownloadDialog(deOption, shell, resources, globalCfg, backendMgr, downloadListMgr, eventMgr)
-          dialog.peer.open()
+          dialog.shell.open()
         }
       }.forSingleDownloads()
       mainTable.peer.addListener(SWT.MouseDoubleClick, e => openProps.notifyListeners(SWT.Selection, e))

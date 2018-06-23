@@ -55,34 +55,33 @@ class EditDownloadDialog(
   private var backendOption: Option[Backend] = deOption map (de => backendMgr(de.backendId))
   private var backendCfgUiOption: Option[BackendConfigUi] = None
 
-  val peer = new Shell(parent, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL).withCode { shell =>
-    if (!deOption.isDefined) {
-      shell.setText("Add Download")
-    } else {
-      shell.setText("Edit Download")
-    }
-
-    shell.setLayout(new GridLayout())
-    tabFolder = new TabFolder(shell, SWT.NONE)
-    tabFolder.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true))
-
-    val mainTab = new TabItem(tabFolder, SWT.NONE).withCode { tab =>
-      tab.setText("Main")
-      val mainPage = new Composite(tabFolder, SWT.NONE).withCode { composite =>
-        fillMainPage(composite)
-      }
-      tab.setControl(mainPage)
-    }
-
-    fillButtons(shell)
-
-    shell.pack()
-    centerOnScreen(shell)
-
-    deOption foreach (de => goAdvanced())
-
-    uriInput.setFocus()
+  val shell = new Shell(parent, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL)
+  if (!deOption.isDefined) {
+    shell.setText("Add Download")
+  } else {
+    shell.setText("Edit Download")
   }
+
+  shell.setLayout(new GridLayout())
+  tabFolder = new TabFolder(shell, SWT.NONE)
+  tabFolder.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true))
+
+  val mainTab = new TabItem(tabFolder, SWT.NONE).withCode { tab =>
+    tab.setText("Main")
+    val mainPage = new Composite(tabFolder, SWT.NONE).withCode { composite =>
+      fillMainPage(composite)
+    }
+    tab.setControl(mainPage)
+  }
+
+  fillButtons(shell)
+
+  shell.pack()
+  centerOnScreen(shell)
+
+  deOption foreach (de => goAdvanced())
+
+  uriInput.setFocus()
 
   private def fillMainPage(parent: Composite): Unit = {
     parent.setLayout(new GridLayout())
@@ -259,7 +258,7 @@ class EditDownloadDialog(
   }
 
   private def advancedClicked(advancedButton: Button, okButton: Button, cancelButton: Button): Unit = {
-    tryShowingError(peer, log) {
+    tryShowingError(shell, log) {
       val backend = backendOption getOrElse getBackend(getUri())
       // From now on, backend is frozen
       backendOption = Some(backend)
@@ -276,7 +275,7 @@ class EditDownloadDialog(
   }
 
   private def okClicked(): Unit = {
-    tryShowingError(peer, log) {
+    tryShowingError(shell, log) {
       requireFriendly(locationInput.isValid, "Invalid location: " + locationInput.getErrorMessage)
       val locationString = locationInput.getStringValue.trim
       val location = new File(locationString)
@@ -307,7 +306,7 @@ class EditDownloadDialog(
         case None     => create(backend, uri, location, filenameOption, checksumOption, comment)(deCfgOption)
         case Some(de) => edit(de, backend, uri, location, filenameOption, checksumOption, comment)(deCfgOption)
       }
-      peer.dispose()
+      shell.dispose()
     }
   }
 
@@ -357,7 +356,7 @@ class EditDownloadDialog(
 
   private def relocateWithProgress(from: File, to: File): Unit = {
     requireFriendly(!to.exists, "File with the same name already exists in the specified location")
-    (new ProgressMonitorDialog(peer)).run(true, true, monitor => {
+    (new ProgressMonitorDialog(shell)).run(true, true, monitor => {
       monitor.beginTask("Moving file", (from.length / 100).toInt)
       try {
         moveFile(from.toPath, to.toPath, (portion, total) => {

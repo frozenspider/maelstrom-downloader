@@ -16,6 +16,7 @@ import org.fs.mael.ui.config.MPreferencePageDescriptor
 abstract class AbstractBackend extends Backend {
   protected def pageDescriptors: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]]
 
+  /** Global application config, its subpath serves as template for download-specific configs */
   protected def globalCfg: ConfigStore
 
   /** Initialize default config for a new entry */

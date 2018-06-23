@@ -13,7 +13,6 @@ import org.fs.mael.core.event.EventManagerImpl
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.list.DownloadListSerializerImpl
 import org.fs.mael.core.migration.MigrationManager
-import org.fs.mael.core.speed.SpeedTracker
 import org.fs.mael.core.speed.SpeedTrackerImpl
 import org.fs.mael.core.transfer.SimpleTransferManager
 import org.fs.mael.core.transfer.TransferManager
