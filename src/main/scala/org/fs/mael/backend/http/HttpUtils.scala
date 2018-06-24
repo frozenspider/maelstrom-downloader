@@ -2,6 +2,8 @@ package org.fs.mael.backend.http
 
 import java.net.URLDecoder
 
+import scala.collection.immutable.ListMap
+
 object HttpUtils {
   /**
    * Decodes a string from the RFC 5987 `ext-value` syntax element,
@@ -22,5 +24,12 @@ object HttpUtils {
     // TODO: What to do with language?
     val decoded = URLDecoder.decode(encoded, charset)
     decoded
+  }
+
+  /**
+   * Parse a cookie header string (with or without "Set-Cookie: " prefix), yielding a list of key-value pairs
+   */
+  def parseCookies(cookieString: String): ListMap[String, String] = {
+    ???
   }
 }
