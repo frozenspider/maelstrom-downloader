@@ -251,7 +251,10 @@ class HttpDownloader(
       }
       val cookies = localCfg(Cookies)
       cookies.foreach {
-        case (k, v) => cookieStore.addCookie(new BasicClientCookie(k, v))
+        case (k, v) => 
+          val cookie = new BasicClientCookie(k, v)
+          cookie.setDomain(rb.getUri.getHost)
+          cookieStore.addCookie(cookie)
       }
     }
 
