@@ -4,6 +4,8 @@ import java.net.URLDecoder
 
 import scala.collection.immutable.ListMap
 
+import org.fs.mael.core.entry.DownloadEntry
+
 object HttpUtils {
   /**
    * Decodes a string from the RFC 5987 `ext-value` syntax element,
@@ -31,5 +33,19 @@ object HttpUtils {
    */
   def parseCookies(cookieString: String): ListMap[String, String] = {
     ???
+  }
+
+  /**
+   * Parse a textual HTTP request, yielding a downloa1dable entry
+   */
+  def parseHttpRequest(cookieString: String): DownloadEntry = {
+    ??? // TODO: #39
+  }
+
+  /**
+   * Parse a curl request, yielding a downloadable entry
+   */
+  def parseCurlRequest(cookieString: String): DownloadEntry = {
+    ??? // TODO: #40
   }
 }
