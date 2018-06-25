@@ -7,10 +7,11 @@ import scala.collection.immutable.ListMap
 import scala.io.Codec
 
 import org.fs.mael.core.config.ConfigSetting
-import org.fs.mael.core.config.ConfigSetting.CustomConfigSetting
 import org.fs.mael.core.utils.CoreUtils._
 
-class CookiesConfigSetting(id: String) extends CustomConfigSetting[Map[String, String], String](id, Map.empty)(ConfigSetting.ImplicitDao.String) {
+class CookiesConfigSetting(id: String)
+  extends ConfigSetting.CustomConfigSetting[Map[String, String], String](id, Map.empty)(ConfigSetting.ImplicitDao.String) {
+
   def toRepr(cookies: Map[String, String]): String =
     CookiesConfigSetting.serialize(cookies)
 

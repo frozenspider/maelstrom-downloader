@@ -7,7 +7,6 @@ import org.eclipse.swt.SWT
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.core.utils.CoreUtils._
-import org.eclipse.swt.custom.ScrolledComposite
 
 class CookiesFieldEditor(name: String, labelText: String, parent: Composite)
     extends FieldEditor(name, labelText, parent) {
