@@ -36,7 +36,14 @@ class CookiesFieldEditorDialog(parent: Shell, cookiesMap: ListMap[String, String
 
   render(cookiesMap)
 
-  // TODO: "+" button
+  private val addBtn = new Button(shell, SWT.PUSH)
+  addBtn.setText("Add new row")
+  addBtn.setLayoutData(new GridData(SWT.FILL, SWT.TRAIL, true, false))
+  addBtn.addListener(SWT.Selection, e => {
+    appendRow("", "")
+    updateScroll()
+  })
+
   fillBottomButtons(shell)
 
   shell.pack()
@@ -49,37 +56,40 @@ class CookiesFieldEditorDialog(parent: Shell, cookiesMap: ListMap[String, String
   }
 
   private def render(cookiesMap: ListMap[String, String]) = {
-    val keyValueSeq = cookiesMap.toSeq :+ ("", "") :+ ("", "") :+ ("", "") :+ ("", "") :+ ("", "") :+ ("", "")
+    val keyValueSeq = cookiesMap.toSeq :+ ("", "")
     keyValueSeq foreach {
-      case (k, v) =>
-        val nameEditor = new Text(dataPane, SWT.BORDER)
-        val valueEditor = new Text(dataPane, SWT.BORDER)
-        val removeBtn = new Button(dataPane, SWT.NONE)
-        val tuple = (nameEditor, valueEditor, removeBtn)
-
-        nameEditor.setLayoutData(new GridData(SWT.FILL, SWT.LEAD, true, false))
-        nameEditor.setText(k)
-        nameEditor.setToolTipText("Cookie name")
-        valueEditor.setLayoutData(new GridData(SWT.FILL, SWT.LEAD, true, false))
-        valueEditor.setText(v)
-        valueEditor.setToolTipText("Cookie value")
-        removeBtn.setText("-")
-        removeBtn.setToolTipText("Remove cookie entry")
-        removeBtn.setFont(new Font(parent.getDisplay, monospacedFontData))
-        removeBtn.setLayoutData(new GridData(SWT.TRAIL, SWT.LEAD, false, false).withCode { gd =>
-          val sz = valueEditor.computeSize(SWT.DEFAULT, SWT.DEFAULT)
-          gd.widthHint = sz.y
-          gd.heightHint = sz.y
-        })
-        removeBtn.addListener(SWT.Selection, e => {
-          editors = editors filter { case (_, _, btn2) => btn2 != removeBtn }
-          tuple.productIterator.foreach { case w: Widget => w.dispose() }
-          updateScroll()
-          dataPane.layout()
-        })
-        editors = editors :+ tuple
+      case (k, v) => appendRow(k, v)
     }
     updateScroll()
+  }
+
+  private def appendRow(k: String, v: String): Unit = {
+    val nameEditor = new Text(dataPane, SWT.BORDER)
+    val valueEditor = new Text(dataPane, SWT.BORDER)
+    val removeBtn = new Button(dataPane, SWT.NONE)
+    val tuple = (nameEditor, valueEditor, removeBtn)
+
+    nameEditor.setLayoutData(new GridData(SWT.FILL, SWT.LEAD, true, false))
+    nameEditor.setText(k)
+    nameEditor.setToolTipText("Cookie name")
+    valueEditor.setLayoutData(new GridData(SWT.FILL, SWT.LEAD, true, false))
+    valueEditor.setText(v)
+    valueEditor.setToolTipText("Cookie value")
+    removeBtn.setText("-")
+    removeBtn.setToolTipText("Remove cookie entry")
+    removeBtn.setFont(new Font(parent.getDisplay, monospacedFontData))
+    removeBtn.setLayoutData(new GridData(SWT.TRAIL, SWT.LEAD, false, false).withCode { gd =>
+      val sz = valueEditor.computeSize(SWT.DEFAULT, SWT.DEFAULT)
+      gd.widthHint = sz.y
+      gd.heightHint = sz.y
+    })
+    removeBtn.addListener(SWT.Selection, e => {
+      editors = editors filter { case (_, _, btn2) => btn2 != removeBtn }
+      tuple.productIterator.foreach { case w: Widget => w.dispose() }
+      updateScroll()
+      dataPane.layout()
+    })
+    editors = editors :+ tuple
   }
 
   private def updateScroll(): Unit = {
