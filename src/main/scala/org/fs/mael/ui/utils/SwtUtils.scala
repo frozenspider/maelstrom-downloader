@@ -142,6 +142,12 @@ object SwtUtils {
   // More general stuff
   //
 
+  /** Execute code in UI thread iff UI is not disposed yet */
+  def syncExecSafely(widget: Widget)(code: => Unit): Unit =
+    if (!widget.isDisposed) widget.getDisplay.syncExec { () =>
+      if (!widget.isDisposed) code
+    }
+
   /** Shitty SWT design makes this necessary */
   def toEvent(te: TypedEvent): Event = {
     val e = new Event

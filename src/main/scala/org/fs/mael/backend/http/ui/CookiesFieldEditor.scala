@@ -1,15 +1,17 @@
 package org.fs.mael.backend.http.ui
 
 import scala.collection.immutable.ListMap
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import org.eclipse.jface.preference.FieldEditor
 import org.eclipse.swt.SWT
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.ui.utils.SwtUtils._
 
 class CookiesFieldEditor(name: String, labelText: String, parent: Composite)
-    extends FieldEditor(name, labelText, parent) {
+  extends FieldEditor(name, labelText, parent) {
 
   private var cookiesMap: ListMap[String, String] = ListMap.empty
   private var top: Composite = _
@@ -92,6 +94,9 @@ class CookiesFieldEditor(name: String, labelText: String, parent: Composite)
       btn.setFont(parent.getFont)
       btn.setText("Edit...")
       btn.setLayoutData(new GridData(SWT.LEAD, SWT.BEGINNING, false, false))
+      btn.addListener(SWT.Selection, e => {
+        openEditor()
+      })
     }
   }
 
@@ -101,11 +106,27 @@ class CookiesFieldEditor(name: String, labelText: String, parent: Composite)
 
   private def loadMapFromString(itemsString: String): Unit = {
     cookiesMap = CookiesConfigSetting.deserialize(itemsString)
+    renderCookies()
+  }
+
+  private def renderCookies(): Unit = {
     table.removeAll()
     cookiesMap.foreach { entry =>
       val row = new TableItem(table, SWT.NONE)
       row.setText(0, entry._1)
       row.setText(1, entry._2)
+    }
+  }
+
+  def openEditor(): Unit = {
+    val dialog = new CookiesFieldEditorDialog(top.getShell, cookiesMap)
+    dialog.prompt().foreach {
+      case Some(newCookiesMap) =>
+        cookiesMap = newCookiesMap
+        syncExecSafely(parent) {
+          renderCookies()
+        }
+      case None => // NOOP
     }
   }
 }
