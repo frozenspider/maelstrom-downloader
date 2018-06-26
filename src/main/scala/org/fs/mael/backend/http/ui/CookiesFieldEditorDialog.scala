@@ -36,6 +36,7 @@ class CookiesFieldEditorDialog(parent: Shell, cookiesMap: ListMap[String, String
 
   render(cookiesMap)
 
+  // TODO: "+" button
   fillBottomButtons(shell)
 
   shell.pack()
@@ -113,10 +114,15 @@ class CookiesFieldEditorDialog(parent: Shell, cookiesMap: ListMap[String, String
       val nameValPairs = editors.map {
         case (nameEditor, valueEditor, _) => (nameEditor.getText.trim, valueEditor.getText.trim)
       } filter {
-        case (k, v) => !k.isEmpty && !v.isEmpty
+        case (k, v) => !k.isEmpty // Value can be empty
       }
-      // TODO: Validate
-      // TODO: requireFriendly(???, "Invalid location: " + ???)
+
+      val duplicates = nameValPairs.groupBy(_._1).collect { case (n, vs) if vs.size > 1 => (n, vs.size) }
+      requireFriendly(duplicates.size == 0, "Duplicate keys: " + duplicates.keys.mkString(", "))
+      nameValPairs.foreach {
+        case (k, v) => CookiesConfigSetting.validateCharacterSet(k, v)
+      }
+
       result.success(Some(ListMap(nameValPairs: _*)))
       shell.dispose()
     }

@@ -23,11 +23,15 @@ object CookiesConfigSetting {
   private val KeyPattern = "[a-zA-Z0-9!#$%&'*.^_`|~+-]+"
   private val ValPattern = "[a-zA-Z0-9!#$%&'()*./:<=>?@\\[\\]^_`{|}~+-]+"
 
+  def validateCharacterSet(k: String, v: String): Unit = {
+    requireFriendly(k matches KeyPattern, s"Key ${k} contains illegal characters")
+    requireFriendly(v matches ValPattern, s"Value ${v} contains illegal characters")
+  }
+
   def serialize(cookies: Map[String, String]): String = {
     val cookieObjs = cookies.map {
       case (k, v) =>
-        requireFriendly(k matches KeyPattern, s"Key ${k} contains illegal characters")
-        requireFriendly(v matches ValPattern, s"Value ${v} contains illegal characters")
+        validateCharacterSet(k, v)
         enc(k) + "=" + enc(v)
     }.toSeq
     cookieObjs.mkString(";")
