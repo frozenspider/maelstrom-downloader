@@ -3,6 +3,7 @@ package org.fs.mael.backend.http.ui
 import scala.collection.immutable.ListMap
 import scala.concurrent.Future
 import scala.concurrent.Promise
+import scala.util.control.NonFatal
 
 import org.eclipse.jface.dialogs.MessageDialog
 import org.eclipse.swt.SWT
@@ -168,8 +169,8 @@ class CookiesFieldEditorDialog(parent: Shell, initialCookiesMap: ListMap[String,
         render(cookiesMap)
       }
     } catch {
-      case ex: Exception if silent => // NOOP
-      case ex: Exception           => MessageDialog.openError(shell, title, "Clipboard doesn't contain a valid cookie string")
+      case NonFatal(ex) if silent => // NOOP
+      case NonFatal(ex)           => MessageDialog.openError(shell, title, "Clipboard doesn't contain a valid cookie string")
     }
   }
 

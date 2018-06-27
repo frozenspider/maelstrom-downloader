@@ -155,7 +155,7 @@ object SwtUtils {
 
   def getStringFromClipboard(): String =
     clipboard.getData(DataFlavor.stringFlavor).asInstanceOf[String].trim
-  
+
   /** Shitty SWT design makes this necessary */
   def toEvent(te: TypedEvent): Event = {
     val e = new Event
