@@ -3,6 +3,7 @@ package org.fs.mael.backend.http
 import java.net.URLDecoder
 
 import scala.collection.immutable.ListMap
+import scala.util.parsing.combinator.RegexParsers
 
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.utils.CoreUtils._
@@ -29,22 +30,20 @@ object HttpUtils {
     decoded
   }
 
-  private val CookieKeyPattern = "[a-zA-Z0-9!#$%&'*.^_`|~+-]+"
-  private val CookieValPattern = "[a-zA-Z0-9!#$%&'()*./:<=>?@\\[\\]^_`{|}~+-]*"
-
   /** Checks that cookie key and value contains no illegal characters */
   def validateCookieCharacterSet(k: String, v: String): Unit = {
     requireFriendly(!k.isEmpty, s"Key is empty")
-    requireFriendly(k matches CookieKeyPattern, s"Key ${k} contains illegal characters")
-    requireFriendly(v matches CookieValPattern, s"Value ${v} contains illegal characters")
+    requireFriendly(k matches CookieParsing.KeyPattern, s"Key ${k} contains illegal characters")
+    requireFriendly(v matches CookieParsing.ValPattern, s"Value ${v} contains illegal characters")
   }
 
-  /**
-   * Parse a cookie header string (with or without "Cookie:"/"Set-Cookie: " prefix),
-   * yielding key-value pairs
-   */
-  def parseCookies(cookieString: String): ListMap[String, String] = {
-    ???
+  /** Parse a cookie header string (with or without "Cookie:" prefix), yielding key-value pairs  */
+  def parseClientCookies(cookieString: String): ListMap[String, String] = {
+    CookieParsing.parseAll(CookieParsing.ClientPattern, cookieString) match {
+      case CookieParsing.Success(x, _)   => ListMap(x: _*)
+      case CookieParsing.Failure(msg, _) => failFriendly(msg)
+      case CookieParsing.Error(msg, _)   => failFriendly(msg)
+    }
   }
 
   /**
@@ -59,5 +58,17 @@ object HttpUtils {
    */
   def parseCurlRequest(cookieString: String): DownloadEntry = {
     ??? // TODO: #40
+  }
+
+  private object CookieParsing extends RegexParsers {
+    val KeyPattern = "[a-zA-Z0-9!#$%&'*.^_`|~+-]+"
+    val ValPattern = "[a-zA-Z0-9!#$%&'()*./:<=>?@\\[\\]^_`{|}~+-]*"
+
+    val ClientPrefix = """(?i)\QCookie:\E""".r
+
+    val KeyEqualsValue = KeyPattern.r ~ ("=" ~> ValPattern.r) ^^ { case k ~ v => (k, v) }
+    val ClientPattern = (ClientPrefix.? ~> KeyEqualsValue ~ (";" ~> KeyEqualsValue).*) ^^ {
+      case x ~ y => x +: y
+    }
   }
 }

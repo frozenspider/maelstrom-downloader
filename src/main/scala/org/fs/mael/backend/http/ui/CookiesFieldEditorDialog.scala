@@ -150,7 +150,7 @@ class CookiesFieldEditorDialog(parent: Shell, initialCookiesMap: ListMap[String,
     val title = "Cookies Import"
     try {
       val cookieString = getStringFromClipboard()
-      val cookiesMap = HttpUtils.parseCookies(cookieString)
+      val cookiesMap = HttpUtils.parseClientCookies(cookieString)
 
       if ((initialCookiesMap.isEmpty) || (
         !silent
