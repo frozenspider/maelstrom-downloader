@@ -4,16 +4,18 @@ import scala.collection.immutable.ListMap
 import scala.concurrent.Future
 import scala.concurrent.Promise
 
+import org.eclipse.jface.dialogs.MessageDialog
 import org.eclipse.swt.SWT
 import org.eclipse.swt.custom.ScrolledComposite
 import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
+import org.fs.mael.backend.http.HttpUtils
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
 
-class CookiesFieldEditorDialog(parent: Shell, cookiesMap: ListMap[String, String]) extends Logging {
+class CookiesFieldEditorDialog(parent: Shell, initialCookiesMap: ListMap[String, String]) extends Logging {
 
   private var result: Promise[Option[ListMap[String, String]]] = Promise()
   private var editors: IndexedSeq[(Text, Text, Button)] = IndexedSeq.empty
@@ -45,7 +47,7 @@ class CookiesFieldEditorDialog(parent: Shell, cookiesMap: ListMap[String, String
     itemFromClipboard.setToolTipText("""|Parse a cookie string
       |(either starting with Cookie: or Set-Cookie: or not) from clipboard and import
       |it in into the editor""".stripMargin)
-    itemFromClipboard.addListener(SWT.Selection, e => { () })
+    itemFromClipboard.addListener(SWT.Selection, e => interactiveImportFromClipboard(false))
   }
 
   private val scrollpane = new ScrolledComposite(shell, SWT.H_SCROLL | SWT.V_SCROLL)
@@ -59,14 +61,14 @@ class CookiesFieldEditorDialog(parent: Shell, cookiesMap: ListMap[String, String
   })
   scrollpane.setContent(dataPane)
 
-  render(cookiesMap)
+  render(initialCookiesMap)
 
   fillBottomButtons(shell)
 
   shell.pack()
   centerOnScreen(shell)
 
-  // TODO: Try to import clipboard
+  interactiveImportFromClipboard(true)
 
   def prompt(): Future[Option[ListMap[String, String]]] = {
     require(!result.isCompleted, "Duplicate call to prompt")
@@ -75,6 +77,8 @@ class CookiesFieldEditorDialog(parent: Shell, cookiesMap: ListMap[String, String
   }
 
   private def render(cookiesMap: ListMap[String, String]) = {
+    dataPane.getChildren foreach (_.dispose)
+    editors = IndexedSeq.empty
     val keyValueSeq = cookiesMap.toSeq :+ ("", "")
     keyValueSeq foreach {
       case (k, v) => appendRow(k, v)
@@ -135,6 +139,28 @@ class CookiesFieldEditorDialog(parent: Shell, cookiesMap: ListMap[String, String
       btn.setText("&Cancel")
       btn.setLayoutData(new RowData(100, SWT.DEFAULT))
       btn.addListener(SWT.Selection, e => cancelClicked())
+    }
+  }
+
+  /**
+   * Try to (interactively) import cookies from clipboard, showing confirmations and errors
+   * @param silent if `true`, only proceed with import if no user input is needed
+   */
+  private def interactiveImportFromClipboard(silent: Boolean): Unit = {
+    val title = "Cookies Import"
+    try {
+      val cookieString = getStringFromClipboard()
+      val cookiesMap = HttpUtils.parseCookies(cookieString)
+
+      if ((initialCookiesMap.isEmpty) || (
+        !silent
+        && MessageDialog.openConfirm(parent, title, "Do you want to replace current cookies with the clipboard content?")
+      )) {
+        render(cookiesMap)
+      }
+    } catch {
+      case ex: Exception if silent => // NOOP
+      case ex: Exception           => MessageDialog.openError(shell, title, "Clipboard doesn't contain a valid cookie string")
     }
   }
 

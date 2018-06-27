@@ -1,7 +1,5 @@
 package org.fs.mael.ui
 
-import java.awt.Toolkit
-import java.awt.datatransfer.DataFlavor
 import java.io.File
 import java.net.URI
 import java.net.URL
@@ -202,8 +200,7 @@ class EditDownloadDialog(
       case None =>
         // Try to paste URL from clipboard
         try {
-          val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
-          val content = clipboard.getData(DataFlavor.stringFlavor).asInstanceOf[String].trim
+          val content = getStringFromClipboard()
           if (!content.contains("\n")) {
             val url = new URL(content)
             uriInput.setText(url.toString)

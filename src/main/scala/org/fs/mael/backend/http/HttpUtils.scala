@@ -29,7 +29,8 @@ object HttpUtils {
   }
 
   /**
-   * Parse a cookie header string (with or without "Set-Cookie: " prefix), yielding a list of key-value pairs
+   * Parse a cookie header string (with or without "Cookie:"/"Set-Cookie: " prefix),
+   * yielding key-value pairs
    */
   def parseCookies(cookieString: String): ListMap[String, String] = {
     ???
