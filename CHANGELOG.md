@@ -2,7 +2,7 @@
 * Added ability to restart download from the beginning
 * Added tray icon and minimize to tray setting
 * Added download speed and remaining time columns, implemented related tracking and calculations
-* Implemented HTTP header overrides
+* Added ability to set custom cookies
 * (Internal) Implemented backend-specific settings framework (only used for HTTP headers so far)
   * (Internal) Implemented global defaults serving as template for local per-download settings
 * (Internal) Implemented migrations framework

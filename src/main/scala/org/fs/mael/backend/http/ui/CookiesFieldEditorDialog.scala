@@ -23,6 +23,31 @@ class CookiesFieldEditorDialog(parent: Shell, cookiesMap: ListMap[String, String
   shell.setText("Cookies Editor")
   shell.setLayout(new GridLayout())
 
+  // Since tooltips for top-level MenuItem doesn't work, we're using surrogate menu bar
+  new Composite(shell, SWT.NONE).withCode { menu =>
+    menu.setLayout((new RowLayout).withCode { layout =>
+      layout.marginTop = 0
+      layout.marginBottom = 0
+      layout.marginRight = 0
+      layout.marginLeft = 0
+    })
+    menu.setLayoutData(new GridData(SWT.FILL, SWT.LEAD, true, false))
+
+    val itemAdd = new Button(menu, SWT.PUSH)
+    itemAdd.setText("Add new row")
+    itemAdd.addListener(SWT.Selection, e => {
+      appendRow("", "")
+      updateScroll()
+    })
+
+    val itemFromClipboard = new Button(menu, SWT.PUSH)
+    itemFromClipboard.setText("Import from clipboard")
+    itemFromClipboard.setToolTipText("""|Parse a cookie string
+      |(either starting with Cookie: or Set-Cookie: or not) from clipboard and import
+      |it in into the editor""".stripMargin)
+    itemFromClipboard.addListener(SWT.Selection, e => { () })
+  }
+
   private val scrollpane = new ScrolledComposite(shell, SWT.H_SCROLL | SWT.V_SCROLL)
   scrollpane.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true))
   scrollpane.setExpandHorizontal(true)
@@ -36,18 +61,12 @@ class CookiesFieldEditorDialog(parent: Shell, cookiesMap: ListMap[String, String
 
   render(cookiesMap)
 
-  private val addBtn = new Button(shell, SWT.PUSH)
-  addBtn.setText("Add new row")
-  addBtn.setLayoutData(new GridData(SWT.FILL, SWT.TRAIL, true, false))
-  addBtn.addListener(SWT.Selection, e => {
-    appendRow("", "")
-    updateScroll()
-  })
-
   fillBottomButtons(shell)
 
   shell.pack()
   centerOnScreen(shell)
+
+  // TODO: Try to import clipboard
 
   def prompt(): Future[Option[ListMap[String, String]]] = {
     require(!result.isCompleted, "Duplicate call to prompt")
@@ -87,13 +106,13 @@ class CookiesFieldEditorDialog(parent: Shell, cookiesMap: ListMap[String, String
       editors = editors filter { case (_, _, btn2) => btn2 != removeBtn }
       tuple.productIterator.foreach { case w: Widget => w.dispose() }
       updateScroll()
-      dataPane.layout()
     })
     editors = editors :+ tuple
   }
 
   private def updateScroll(): Unit = {
     scrollpane.setMinSize(dataPane.computeSize(SWT.DEFAULT, SWT.DEFAULT))
+    dataPane.layout()
   }
 
   private def fillBottomButtons(shell: Shell): Unit = {
