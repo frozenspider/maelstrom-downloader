@@ -85,26 +85,4 @@ class HttpUtilsSpec
         "_gid" -> "GA1.2.1130758561.1529901128"
       ))
   }
-
-  //  test("parse server cookies") {
-  //    val p = HttpUtils.parseCookies _
-  //
-  // Google search
-  //    assert(p("set-cookie: "
-  //      + "SIDCC=AEfoLeYFnmCME0f2rKxHDGqJ0GYZfrwfhtbgGES-YsQHgAIMyqeq3wVKCmJ7ttZ9Ef9m7t70Hg; "
-  //      + "expires=Tue, 25-Sep-2018 15:18:03 GMT; path=/; domain=.google.com; priority=high")
-  //      === ListMap(
-  //        "SIDCC" -> "AEfoLeYFnmCME0f2rKxHDGqJ0GYZfrwfhtbgGES-YsQHgAIMyqeq3wVKCmJ7ttZ9Ef9m7t70Hg"
-  //      ))
-  //    assert(p("""|set-cookie: 1P_JAR=2018-06-27-15; expires=Fri, 27-Jul-2018 15:20:12 GMT; path=/; domain=.google.com
-  //      |CGIC=CglmaXJlZm94LWIiP3RleHQvaHRtbCxhcHBsaWNhdGlvbi94aHRtbCt4bWwsYXBwbGljYXRpb24veG1sO3E9MC45LCovKjtxPTAuOA; expires=Thu, 27-Dec-2018 06:14:48 GMT; path=/complete/search; domain=.google.com; HttpOnly
-  //      |CGIC=CglmaXJlZm94LWIiP3RleHQvaHRtbCxhcHBsaWNhdGlvbi94aHRtbCt4bWwsYXBwbGljYXRpb24veG1sO3E9MC45LCovKjtxPTAuOA; expires=Thu, 27-Dec-2018 06:14:48 GMT; path=/search; domain=.google.com; HttpOnly
-  //      |NID=133=VlFPXdvx0K3onZmCPucG3pIOo1aWpGjlLqsVrSYIFsKbBhDtXV9fao0JBCp5uif1sJ3xv92pbcWpEvVttuiNgfR84mM3C2QONI-U6urNW6hPGUt3nJGF9OMgBHunm7kQ; expires=Thu, 27-Dec-2018 15:20:12 GMT; path=/; domain=.google.com; HttpOnly
-  //      |alt-svc: quic=":443"; ma=2592000; v="43,42,41,39,35"""".stripMargin)
-  //      === ListMap(
-  //        "1P_JAR" -> "2018-06-27-15",
-  //        "CGIC" -> "CglmaXJlZm94LWIiP3RleHQvaHRtbCxhcHBsaWNhdGlvbi94aHRtbCt4bWwsYXBwbGljYXRpb24veG1sO3E9MC45LCovKjtxPTAuOA",
-  //        "NID" -> "133=VlFPXdvx0K3onZmCPucG3pIOo1aWpGjlLqsVrSYIFsKbBhDtXV9fao0JBCp5uif1sJ3xv92pbcWpEvVttuiNgfR84mM3C2QONI-U6urNW6hPGUt3nJGF9OMgBHunm7kQ"
-  //      ))
-  //  }
 }

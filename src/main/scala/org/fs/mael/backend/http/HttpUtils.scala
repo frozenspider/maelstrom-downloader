@@ -65,10 +65,10 @@ object HttpUtils {
     val ValPattern = "[a-zA-Z0-9!#$%&'()*./:<=>?@\\[\\]^_`{|}~+-]*"
 
     val ClientPrefix = """(?i)\QCookie:\E""".r
-
     val KeyEqualsValue = KeyPattern.r ~ ("=" ~> ValPattern.r) ^^ { case k ~ v => (k, v) }
+
     val ClientPattern = (ClientPrefix.? ~> KeyEqualsValue ~ (";" ~> KeyEqualsValue).*) ^^ {
-      case x ~ y => x +: y
+      case x ~ xs => x +: xs
     }
   }
 }

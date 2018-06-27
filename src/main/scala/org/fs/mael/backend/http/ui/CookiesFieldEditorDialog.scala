@@ -48,7 +48,7 @@ class CookiesFieldEditorDialog(parent: Shell, initialCookiesMap: ListMap[String,
     val itemFromClipboard = new Button(menu, SWT.PUSH)
     itemFromClipboard.setText("Import from clipboard")
     itemFromClipboard.setToolTipText("""|Parse a cookie string
-      |(either starting with Cookie: or Set-Cookie: or not) from clipboard and import
+      |(with leading "Cookie: " being optional) from clipboard and import
       |it in into the editor""".stripMargin)
     itemFromClipboard.addListener(SWT.Selection, e => interactiveImportFromClipboard(false))
   }
