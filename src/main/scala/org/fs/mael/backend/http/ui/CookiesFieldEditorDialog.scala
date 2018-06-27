@@ -10,7 +10,6 @@ import org.eclipse.swt.custom.ScrolledComposite
 import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
-import org.fs.mael.backend.http.CookiesConfigSetting
 import org.fs.mael.backend.http.HttpUtils
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.utils.SwtUtils._
@@ -176,7 +175,7 @@ class CookiesFieldEditorDialog(parent: Shell, initialCookiesMap: ListMap[String,
       val duplicates = nameValPairs.groupBy(_._1).collect { case (n, vs) if vs.size > 1 => (n, vs.size) }
       requireFriendly(duplicates.size == 0, "Duplicate keys: " + duplicates.keys.mkString(", "))
       nameValPairs.foreach {
-        case (k, v) => CookiesConfigSetting.validateCharacterSet(k, v)
+        case (k, v) => HttpUtils.validateCookieCharacterSet(k, v)
       }
 
       result.success(Some(ListMap(nameValPairs: _*)))

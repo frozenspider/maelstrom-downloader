@@ -5,6 +5,7 @@ import java.net.URLDecoder
 import scala.collection.immutable.ListMap
 
 import org.fs.mael.core.entry.DownloadEntry
+import org.fs.mael.core.utils.CoreUtils._
 
 object HttpUtils {
   /**
@@ -26,6 +27,16 @@ object HttpUtils {
     // TODO: What to do with language?
     val decoded = URLDecoder.decode(encoded, charset)
     decoded
+  }
+
+  private val CookieKeyPattern = "[a-zA-Z0-9!#$%&'*.^_`|~+-]+"
+  private val CookieValPattern = "[a-zA-Z0-9!#$%&'()*./:<=>?@\\[\\]^_`{|}~+-]*"
+
+  /** Checks that cookie key and value contains no illegal characters */
+  def validateCookieCharacterSet(k: String, v: String): Unit = {
+    requireFriendly(!k.isEmpty, s"Key is empty")
+    requireFriendly(k matches CookieKeyPattern, s"Key ${k} contains illegal characters")
+    requireFriendly(v matches CookieValPattern, s"Value ${v} contains illegal characters")
   }
 
   /**
