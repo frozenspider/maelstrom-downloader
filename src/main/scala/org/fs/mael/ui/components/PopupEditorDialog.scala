@@ -116,7 +116,7 @@ abstract class PopupEditorDialog[RT](title: String, parent: Shell, initial: RT) 
     shell.dispose()
   }
 
-  protected def initBeforeMainArea()
+  protected def initBeforeMainArea(): Unit
 
   protected def renderContent(content: RT): Unit
 

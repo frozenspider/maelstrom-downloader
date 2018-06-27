@@ -29,11 +29,11 @@ object CookiesConfigSetting {
     cookieObjs.mkString(";")
   }
 
-  def deserialize(v: String): ListMap[String, String] = {
-    if (v.isEmpty) {
+  def deserialize(cookiesSerialString: String): ListMap[String, String] = {
+    if (cookiesSerialString.isEmpty) {
       ListMap.empty
     } else {
-      val pairs = v.split(";").toIndexedSeq.map(_.split("=")).map { split =>
+      val pairs = cookiesSerialString.split(";").toIndexedSeq.map(_.split("=")).map { split =>
         requireFriendly(split.size == 2, "Malformed cookies")
         dec(split(0)) -> dec(split(1))
       }
