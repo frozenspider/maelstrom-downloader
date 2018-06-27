@@ -1,5 +1,8 @@
 package org.fs.mael.ui.utils
 
+import java.awt.Toolkit
+import java.awt.datatransfer.DataFlavor
+
 import org.eclipse.jface.preference._
 import org.eclipse.swt.SWT
 import org.eclipse.swt.events.KeyEvent
@@ -141,6 +144,17 @@ object SwtUtils {
   //
   // More general stuff
   //
+
+  /** Execute code in UI thread iff UI is not disposed yet */
+  def syncExecSafely(widget: Widget)(code: => Unit): Unit =
+    if (!widget.isDisposed) widget.getDisplay.syncExec { () =>
+      if (!widget.isDisposed) code
+    }
+
+  def clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
+
+  def getStringFromClipboard(): String =
+    clipboard.getData(DataFlavor.stringFlavor).asInstanceOf[String].trim
 
   /** Shitty SWT design makes this necessary */
   def toEvent(te: TypedEvent): Event = {

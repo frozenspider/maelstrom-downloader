@@ -13,6 +13,7 @@ import org.apache.http.HttpEntity
 import org.apache.http.HttpHeaders
 import org.apache.http.HttpResponse
 import org.apache.http.HttpStatus
+import org.apache.http.client.CookieStore
 import org.apache.http.client.methods.HttpUriRequest
 import org.apache.http.client.methods.RequestBuilder
 import org.apache.http.config.Registry
@@ -30,6 +31,7 @@ import org.apache.http.impl.client.HttpClients
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager
 import org.apache.http.impl.conn.DefaultHttpResponseParserFactory
 import org.apache.http.impl.conn.ManagedHttpClientConnectionFactory
+import org.apache.http.impl.cookie.BasicClientCookie
 import org.apache.http.impl.io.DefaultHttpRequestWriterFactory
 import org.fs.mael.core.Status
 import org.fs.mael.core.UserFriendlyException
@@ -105,7 +107,7 @@ class HttpDownloader(
   }
 
   private class DownloadingThread(val de: DownloadEntry, timeoutMs: Int)
-    extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
+      extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
 
     this.setDaemon(true)
 
@@ -180,6 +182,7 @@ class HttpDownloader(
           // Note that range upper-bound is inclusive
           rb.addHeader(HttpHeaders.RANGE, "bytes=" + de.downloadedSize + "-")
         }
+        addCustomHeaders(rb, cookieStore)
         rb.build()
       }
 
@@ -236,6 +239,22 @@ class HttpDownloader(
         downloadEntity(req, entity)
       } finally {
         res.close()
+      }
+    }
+
+    private def addCustomHeaders(rb: RequestBuilder, cookieStore: CookieStore): Unit = {
+      import HttpSettings._
+      val localCfg = de.backendSpecificCfg
+      val userAgentOption = localCfg(UserAgent)
+      userAgentOption foreach { userAgent =>
+        rb.setHeader(HttpHeaders.USER_AGENT, userAgent)
+      }
+      val cookies = localCfg(Cookies)
+      cookies.foreach {
+        case (k, v) =>
+          val cookie = new BasicClientCookie(k, v)
+          cookie.setDomain(rb.getUri.getHost)
+          cookieStore.addCookie(cookie)
       }
     }
 

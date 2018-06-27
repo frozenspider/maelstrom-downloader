@@ -1,5 +1,8 @@
 package org.fs.mael.backend.http
 
+import scala.collection.immutable.ListMap
+
+import org.fs.mael.core.UserFriendlyException
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 
@@ -20,4 +23,88 @@ class HttpUtilsSpec
     assert(d("UTF-8''%D0%9E%D0%BD%D0%B8%20%D0%BD%D0%B5%20%D0%BF%D1%80%D0%B8%D0%BB%D0%B5%D1%82%D1%8F%D1%82%20-%20%D1%81%D0%B1%D0%BE%D1%80%D0%BD%D0%B8%D0%BA%20%D1%80%D0%B0%D1%81%D1%81%D0%BA%D0%B0%D0%B7%D0%BE%D0%B2%20%D1%87%D0%B8%D1%82%D0%B0%D0%B5%D1%82%20%D0%90.%20%D0%94%D1%83%D0%BD%D0%B8%D0%BD.zip")
       === "Они не прилетят - сборник рассказов читает А. Дунин.zip")
   }
+
+  test("validate cookie character set") {
+    val v = HttpUtils.validateCookieCharacterSet _
+
+    // General cases
+    v("qwe", "ewq")
+    v("qwe", "")
+    intercept[UserFriendlyException] { v("", "ewq") }
+    v("a-zA-Z0-9!#$%&'*.^_`|~+-", "a-zA-Z0-9!#$%&'()*./:<=>?@[]^_`{|}~+-")
+
+    // Illegal keys
+    intercept[UserFriendlyException] { v("=", "") }
+    intercept[UserFriendlyException] { v("\\", "") }
+    intercept[UserFriendlyException] { v("абвгд", "") }
+
+    // Illegal values
+    intercept[UserFriendlyException] { v("qwe", "\\") }
+    intercept[UserFriendlyException] { v("qwe", "абвгд") }
+  }
+
+  test("parse client cookies") {
+    val p = HttpUtils.parseClientCookies _
+
+    // Google search
+    assert(p("Cookie: "
+      + "1P_JAR=2018-06-27-15; "
+      + "NID=133=hpjOnZWhyu_sOZoGR9McAvXcruhNHeAi212P2Mz5VzhVTqmTG4qe4cd2guiq344hgObQY5QzG8O9TX8o9-FzMJvC4SmTeUo2S4a1pIEinC08ZRN_BRNspq6f68hN_B8F; "
+      + "APISID=1EwD5_BAx04fHU22/A_1BhR2dudWqncydX; "
+      + "OGP=-5061451:")
+      === ListMap(
+        "1P_JAR" -> "2018-06-27-15",
+        "NID" -> "133=hpjOnZWhyu_sOZoGR9McAvXcruhNHeAi212P2Mz5VzhVTqmTG4qe4cd2guiq344hgObQY5QzG8O9TX8o9-FzMJvC4SmTeUo2S4a1pIEinC08ZRN_BRNspq6f68hN_B8F",
+        "APISID" -> "1EwD5_BAx04fHU22/A_1BhR2dudWqncydX",
+        "OGP" -> "-5061451:"
+      ))
+    // StackOverflow
+    assert(p("Cookie: "
+      + "_ga=GA1.2.463278568.1382713854; "
+      + "__hstc=104375039.7bf30a8f3502ef7923f2bb559bf9a992.1429404550127.1483013765730.1486018725052.4; "
+      + "hubspotutk=7af30a8f3502ef7923f2bb559bf9a992; "
+      + "prov=137476a9-015e-43e1-aa87-1c6a968e2438; "
+      + "cc=ad289322b1064442a225af18887e1ebd; "
+      + "_ym_uid=1476221257350236490; "
+      + "acct=t=SapsnqQflCuLG%2fWZahMZdE%2fNDzLLeQN2&s=WQeiW8%2fTzAu%2bSuhISWRsakSu3tz0N9Wg; "
+      + "mfnes=6d1fCCIQAxoLCLzV7MqJlK42EAUgCigBMghjMDc3NjNkYg==; "
+      + "__qca=P0-1652149249-1528687764649; "
+      + "interest-tour-dismissed=1; "
+      + "_gid=GA1.2.1130758561.1529901128")
+      === ListMap(
+        "_ga" -> "GA1.2.463278568.1382713854",
+        "__hstc" -> "104375039.7bf30a8f3502ef7923f2bb559bf9a992.1429404550127.1483013765730.1486018725052.4",
+        "hubspotutk" -> "7af30a8f3502ef7923f2bb559bf9a992",
+        "prov" -> "137476a9-015e-43e1-aa87-1c6a968e2438",
+        "cc" -> "ad289322b1064442a225af18887e1ebd",
+        "_ym_uid" -> "1476221257350236490",
+        "acct" -> "t=SapsnqQflCuLG%2fWZahMZdE%2fNDzLLeQN2&s=WQeiW8%2fTzAu%2bSuhISWRsakSu3tz0N9Wg",
+        "mfnes" -> "6d1fCCIQAxoLCLzV7MqJlK42EAUgCigBMghjMDc3NjNkYg==",
+        "__qca" -> "P0-1652149249-1528687764649",
+        "interest-tour-dismissed" -> "1",
+        "_gid" -> "GA1.2.1130758561.1529901128"
+      ))
+  }
+
+  //  test("parse server cookies") {
+  //    val p = HttpUtils.parseCookies _
+  //
+  // Google search
+  //    assert(p("set-cookie: "
+  //      + "SIDCC=AEfoLeYFnmCME0f2rKxHDGqJ0GYZfrwfhtbgGES-YsQHgAIMyqeq3wVKCmJ7ttZ9Ef9m7t70Hg; "
+  //      + "expires=Tue, 25-Sep-2018 15:18:03 GMT; path=/; domain=.google.com; priority=high")
+  //      === ListMap(
+  //        "SIDCC" -> "AEfoLeYFnmCME0f2rKxHDGqJ0GYZfrwfhtbgGES-YsQHgAIMyqeq3wVKCmJ7ttZ9Ef9m7t70Hg"
+  //      ))
+  //    assert(p("""|set-cookie: 1P_JAR=2018-06-27-15; expires=Fri, 27-Jul-2018 15:20:12 GMT; path=/; domain=.google.com
+  //      |CGIC=CglmaXJlZm94LWIiP3RleHQvaHRtbCxhcHBsaWNhdGlvbi94aHRtbCt4bWwsYXBwbGljYXRpb24veG1sO3E9MC45LCovKjtxPTAuOA; expires=Thu, 27-Dec-2018 06:14:48 GMT; path=/complete/search; domain=.google.com; HttpOnly
+  //      |CGIC=CglmaXJlZm94LWIiP3RleHQvaHRtbCxhcHBsaWNhdGlvbi94aHRtbCt4bWwsYXBwbGljYXRpb24veG1sO3E9MC45LCovKjtxPTAuOA; expires=Thu, 27-Dec-2018 06:14:48 GMT; path=/search; domain=.google.com; HttpOnly
+  //      |NID=133=VlFPXdvx0K3onZmCPucG3pIOo1aWpGjlLqsVrSYIFsKbBhDtXV9fao0JBCp5uif1sJ3xv92pbcWpEvVttuiNgfR84mM3C2QONI-U6urNW6hPGUt3nJGF9OMgBHunm7kQ; expires=Thu, 27-Dec-2018 15:20:12 GMT; path=/; domain=.google.com; HttpOnly
+  //      |alt-svc: quic=":443"; ma=2592000; v="43,42,41,39,35"""".stripMargin)
+  //      === ListMap(
+  //        "1P_JAR" -> "2018-06-27-15",
+  //        "CGIC" -> "CglmaXJlZm94LWIiP3RleHQvaHRtbCxhcHBsaWNhdGlvbi94aHRtbCt4bWwsYXBwbGljYXRpb24veG1sO3E9MC45LCovKjtxPTAuOA",
+  //        "NID" -> "133=VlFPXdvx0K3onZmCPucG3pIOo1aWpGjlLqsVrSYIFsKbBhDtXV9fao0JBCp5uif1sJ3xv92pbcWpEvVttuiNgfR84mM3C2QONI-U6urNW6hPGUt3nJGF9OMgBHunm7kQ"
+  //      ))
+  //  }
 }

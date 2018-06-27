@@ -33,8 +33,8 @@ class HttpMessageWriterProxyFactory(
       reqStrBuilder ++= buffer.toString
       reqStrBuilder ++= "\n"
       for (header <- message.getAllHeaders) {
-        lineFormatter.formatHeader(buffer, header)
-        reqStrBuilder ++= buffer.toString
+        val reqHeader = lineFormatter.formatHeader(buffer, header)
+        reqStrBuilder ++= reqHeader.toString
         reqStrBuilder ++= "\n"
       }
 

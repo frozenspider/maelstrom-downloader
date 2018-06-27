@@ -81,7 +81,7 @@ class MainFrame(
     val toolbar = new ToolBar(group, SWT.FLAT)
 
     val sashForm = new SashForm(group, SWT.VERTICAL)
-    sashForm.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true))
+    sashForm.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true))
 
     mainTable = new DownloadsTable(sashForm, resources, globalCfg)
     logTable = new LogTable(sashForm, resources)
@@ -174,7 +174,7 @@ class MainFrame(
       btnAdd.addListener(SWT.Selection, e => {
         tryShowingError(peer, log) {
           val dialog = new EditDownloadDialog(None, shell, resources, globalCfg, backendMgr, downloadListMgr, eventMgr)
-          dialog.peer.open()
+          dialog.shell.open()
         }
       })
     }
@@ -207,7 +207,7 @@ class MainFrame(
 
     toolbar.pack()
     toolbar.setLayoutData((new GridData()).withCode { gridData =>
-      gridData.horizontalAlignment = GridData.FILL
+      gridData.horizontalAlignment = SWT.FILL
       gridData.grabExcessHorizontalSpace = true
     })
   }
@@ -248,7 +248,7 @@ class MainFrame(
           val deOption = mainTable.selectedEntryOption
           require(deOption.isDefined)
           val dialog = new EditDownloadDialog(deOption, shell, resources, globalCfg, backendMgr, downloadListMgr, eventMgr)
-          dialog.peer.open()
+          dialog.shell.open()
         }
       }.forSingleDownloads()
       mainTable.peer.addListener(SWT.MouseDoubleClick, e => openProps.notifyListeners(SWT.Selection, e))
@@ -263,12 +263,6 @@ class MainFrame(
   }
 
   private def clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
-
-  /** Execute code in UI thread iff UI is not disposed yet */
-  private def syncExecSafely(code: => Unit): Unit =
-    if (!peer.isDisposed) display.syncExec { () =>
-      if (!peer.isDisposed) code
-    }
 
   private object actions {
     def restartClicked(): Unit = {
@@ -437,26 +431,26 @@ class MainFrame(
     private val lastSpeedUpdateTS: WeakHashMap[DownloadEntry, Long] = WeakHashMap.empty
 
     override def fired(event: EventForUi): Unit = event match {
-      case Added(de) => syncExecSafely {
+      case Added(de) => syncExecSafely(peer) {
         if (!peer.isDisposed) {
           mainTable.add(de)
         }
       }
 
-      case Removed(de) => syncExecSafely {
+      case Removed(de) => syncExecSafely(peer) {
         mainTable.remove(de)
       }
 
-      case StatusChanged(de, prevStatus) => syncExecSafely {
+      case StatusChanged(de, prevStatus) => syncExecSafely(peer) {
         // Full row update
         mainTable.update(de)
       }
 
-      case DetailsChanged(de) => syncExecSafely {
+      case DetailsChanged(de) => syncExecSafely(peer) {
         mainTable.update(de)
       }
 
-      case Logged(de, entry) => syncExecSafely {
+      case Logged(de, entry) => syncExecSafely(peer) {
         if (mainTable.selectedEntryOption == Some(de)) {
           logTable.append(entry, false)
         }
@@ -472,7 +466,7 @@ class MainFrame(
     private def updateTableDetailsWithThreshold(de: DownloadEntry): Unit = {
       // We assume this is only called by event manager processing thread, so no additional sync needed
       if (System.currentTimeMillis() - lastProgressUpdateTS.getOrElse(de, 0L) > ProgressUpdateThresholdMs) {
-        syncExecSafely {
+        syncExecSafely(peer) {
           // TODO: Optimize, updating only specific columns?
           mainTable.update(de)
         }
@@ -483,7 +477,7 @@ class MainFrame(
     private def updateTableSpeedWithThreshold(de: DownloadEntry, speedOption: Option[Long], etaSecondsOption: Option[Long]): Unit = {
       // We assume this is only called by event manager processing thread, so no additional sync needed
       if (System.currentTimeMillis() - lastSpeedUpdateTS.getOrElse(de, 0L) > SpeedUpdateThresholdMs) {
-        syncExecSafely {
+        syncExecSafely(peer) {
           mainTable.updateSpeedEta(de, speedOption, etaSecondsOption)
         }
         lastSpeedUpdateTS(de) = System.currentTimeMillis()
@@ -507,7 +501,7 @@ class MainFrame(
       eventMgr.subscribe(new UiSubscriber {
         override val subscriberId = "_event_forDownloads_" + Random.alphanumeric.take(20).mkString
         override def fired(event: EventForUi): Unit = event match {
-          case StatusChanged(_, _) => syncExecSafely(item.setEnabled(condition(mainTable.selectedEntries)))
+          case StatusChanged(_, _) => syncExecSafely(peer)(item.setEnabled(condition(mainTable.selectedEntries)))
           case _                   => // NOOP
         }
       })

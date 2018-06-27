@@ -63,11 +63,14 @@ object ConfigSetting {
     protected[config] val setDefaultT: (IPreferenceStore, String, T) => Unit
   )
 
-  implicit private val booleanDao = new PreferenceStoreDao[Boolean](_.getBoolean(_), _.setValue(_, _), _.setDefault(_, _))
-  implicit private val intDao = new PreferenceStoreDao[Int](_.getInt(_), _.setValue(_, _), _.setDefault(_, _))
-  implicit private val longDao = new PreferenceStoreDao[Long](_.getLong(_), _.setValue(_, _), _.setDefault(_, _))
-  implicit private val doubleDao = new PreferenceStoreDao[Double](_.getDouble(_), _.setValue(_, _), _.setDefault(_, _))
-  implicit private val stringDao = new PreferenceStoreDao[String](_.getString(_), _.setValue(_, _), _.setDefault(_, _))
+  object ImplicitDao {
+    implicit val Boolean = new PreferenceStoreDao[Boolean](_.getBoolean(_), _.setValue(_, _), _.setDefault(_, _))
+    implicit val Int = new PreferenceStoreDao[Int](_.getInt(_), _.setValue(_, _), _.setDefault(_, _))
+    implicit val Long = new PreferenceStoreDao[Long](_.getLong(_), _.setValue(_, _), _.setDefault(_, _))
+    implicit val Double = new PreferenceStoreDao[Double](_.getDouble(_), _.setValue(_, _), _.setDefault(_, _))
+    implicit val String = new PreferenceStoreDao[String](_.getString(_), _.setValue(_, _), _.setDefault(_, _))
+  }
+  import ImplicitDao._
 
   private abstract class SimpleConfigSetting[T](implicit override val dao: PreferenceStoreDao[T]) extends ConfigSetting[T] {
     override type Repr = T
