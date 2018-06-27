@@ -7,6 +7,7 @@ import org.eclipse.jface.preference.FieldEditor
 import org.eclipse.swt.SWT
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
+import org.fs.mael.backend.http.CookiesConfigSetting
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.utils.SwtUtils._
 

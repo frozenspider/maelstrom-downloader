@@ -1,4 +1,4 @@
-package org.fs.mael.backend.http.ui
+package org.fs.mael.backend.http
 
 import java.net.URLDecoder
 import java.net.URLEncoder

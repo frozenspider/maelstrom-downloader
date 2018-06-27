@@ -2,7 +2,6 @@ package org.fs.mael.backend.http
 
 import org.eclipse.jface.preference.FieldEditorPreferencePage
 import org.eclipse.jface.preference.StringFieldEditor
-import org.fs.mael.backend.http.ui.CookiesConfigSetting
 import org.fs.mael.backend.http.ui.CookiesFieldEditor
 import org.fs.mael.ui.config.EmptyPreferencePage
 import org.fs.mael.ui.config.MFieldEditorPreferencePage

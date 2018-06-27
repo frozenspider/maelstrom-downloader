@@ -10,6 +10,7 @@ import org.eclipse.swt.custom.ScrolledComposite
 import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
+import org.fs.mael.backend.http.CookiesConfigSetting
 import org.fs.mael.backend.http.HttpUtils
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.utils.SwtUtils._
