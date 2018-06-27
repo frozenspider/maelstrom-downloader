@@ -17,6 +17,8 @@ class CookiesFieldEditor(name: String, labelText: String, parent: Composite)
   private var cookiesMap: ListMap[String, String] = ListMap.empty
   private var top: Composite = _
   private var table: Table = _
+  private var control: Composite = _
+  private var editBtn: Button = _
 
   override def doLoad(): Unit = {
     val itemsString = getPreferenceStore().getString(name)
@@ -49,23 +51,23 @@ class CookiesFieldEditor(name: String, labelText: String, parent: Composite)
       gridData.horizontalSpan = numColumns
     })
 
-    val outer = new Composite(parent, SWT.NONE)
-    outer.setLayout(new GridLayout(1, false).withCode { layout =>
+    control = new Composite(parent, SWT.NONE)
+    control.setLayout(new GridLayout(1, false).withCode { layout =>
       layout.marginLeft = 0
       layout.marginRight = 0
       layout.marginWidth = 0
       layout.verticalSpacing = 3
     })
-    outer.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false))
+    control.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false))
 
     Option(getLabelText) foreach { text =>
-      new Label(outer, SWT.LEAD).withCode { label =>
+      getLabelControl(control).withCode { label =>
         label.setFont(parent.getFont)
         label.setText(text)
       }
     }
 
-    val inner = new Composite(outer, SWT.NONE)
+    val inner = new Composite(control, SWT.NONE)
     inner.setLayout(new GridLayout(2, false).withCode { layout =>
       layout.marginLeft = 0
       layout.marginRight = 0
@@ -89,9 +91,9 @@ class CookiesFieldEditor(name: String, labelText: String, parent: Composite)
     val c2 = new TableColumn(table, SWT.NONE)
     c2.setText("Value")
 
-    table.getColumns.filter(_.getWidth == 0).foreach(_.pack())
+    table.getColumns.foreach(_.pack())
 
-    new Button(inner, SWT.LEAD).withCode { btn =>
+    editBtn = new Button(inner, SWT.LEAD).withCode { btn =>
       btn.setFont(parent.getFont)
       btn.setText("Edit...")
       btn.setLayoutData(new GridData(SWT.LEAD, SWT.BEGINNING, false, false))
@@ -103,6 +105,13 @@ class CookiesFieldEditor(name: String, labelText: String, parent: Composite)
 
   override def adjustForNumColumns(numColumns: Int): Unit = {
     (top.getLayoutData.asInstanceOf[GridData]).horizontalSpan = numColumns
+  }
+
+  override def setEnabled(enabled: Boolean, parent: Composite): Unit = {
+    // We do not check the parent here, nor do we use it at all
+    checkParent(control, parent)
+    Option(table).foreach(_.setEnabled(enabled))
+    Option(editBtn).foreach(_.setEnabled(enabled))
   }
 
   private def loadMapFromString(itemsString: String): Unit = {
@@ -117,6 +126,7 @@ class CookiesFieldEditor(name: String, labelText: String, parent: Composite)
       row.setText(0, entry._1)
       row.setText(1, entry._2)
     }
+    table.getColumns().foreach(_.pack())
   }
 
   def openEditor(): Unit = {

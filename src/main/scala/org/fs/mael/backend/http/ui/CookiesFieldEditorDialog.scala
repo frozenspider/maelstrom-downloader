@@ -8,6 +8,7 @@ import org.eclipse.jface.dialogs.MessageDialog
 import org.eclipse.swt.SWT
 import org.eclipse.swt.custom.ScrolledComposite
 import org.eclipse.swt.graphics.Font
+import org.eclipse.swt.graphics.Image
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.backend.http.HttpUtils
@@ -20,8 +21,9 @@ class CookiesFieldEditorDialog(parent: Shell, initialCookiesMap: ListMap[String,
   private var result: Promise[Option[ListMap[String, String]]] = Promise()
   private var editors: IndexedSeq[(Text, Text, Button)] = IndexedSeq.empty
 
-  private val shell = new Shell(parent, SWT.SHELL_TRIM | SWT.APPLICATION_MODAL)
+  private val shell = new Shell(parent, SWT.SHELL_TRIM | SWT.BORDER | SWT.APPLICATION_MODAL)
   shell.setMinimumSize(550, 100)
+  shell.setImage(getImageIcon(parent))
   shell.setText("Cookies Editor")
   shell.setLayout(new GridLayout())
 
@@ -76,6 +78,13 @@ class CookiesFieldEditorDialog(parent: Shell, initialCookiesMap: ListMap[String,
     result.future
   }
 
+  /** Recursively get image icon for the given shell */
+  private def getImageIcon(parent: Composite): Image = parent match {
+    case shell: Shell if shell.getImage != null => shell.getImage
+    case null                                   => null
+    case other                                  => getImageIcon(other.getParent)
+  }
+
   private def render(cookiesMap: ListMap[String, String]) = {
     dataPane.getChildren foreach (_.dispose)
     editors = IndexedSeq.empty
@@ -87,9 +96,9 @@ class CookiesFieldEditorDialog(parent: Shell, initialCookiesMap: ListMap[String,
   }
 
   private def appendRow(k: String, v: String): Unit = {
+    val removeBtn = new Button(dataPane, SWT.NONE)
     val nameEditor = new Text(dataPane, SWT.BORDER)
     val valueEditor = new Text(dataPane, SWT.BORDER)
-    val removeBtn = new Button(dataPane, SWT.NONE)
     val tuple = (nameEditor, valueEditor, removeBtn)
 
     nameEditor.setLayoutData(new GridData(SWT.FILL, SWT.LEAD, true, false))
@@ -101,7 +110,7 @@ class CookiesFieldEditorDialog(parent: Shell, initialCookiesMap: ListMap[String,
     removeBtn.setText("-")
     removeBtn.setToolTipText("Remove cookie entry")
     removeBtn.setFont(new Font(parent.getDisplay, monospacedFontData))
-    removeBtn.setLayoutData(new GridData(SWT.TRAIL, SWT.LEAD, false, false).withCode { gd =>
+    removeBtn.setLayoutData(new GridData(SWT.LEAD, SWT.LEAD, false, false).withCode { gd =>
       val sz = valueEditor.computeSize(SWT.DEFAULT, SWT.DEFAULT)
       gd.widthHint = sz.y
       gd.heightHint = sz.y
