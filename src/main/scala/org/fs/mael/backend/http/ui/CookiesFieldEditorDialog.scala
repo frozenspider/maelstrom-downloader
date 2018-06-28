@@ -6,7 +6,7 @@ import scala.util.control.NonFatal
 import org.eclipse.jface.dialogs.MessageDialog
 import org.eclipse.swt.SWT
 import org.eclipse.swt.widgets._
-import org.fs.mael.backend.http.HttpUtils
+import org.fs.mael.backend.http.utils.HttpUtils
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components.StringTablePopupEditorDialog
 import org.fs.mael.ui.utils.SwtUtils._

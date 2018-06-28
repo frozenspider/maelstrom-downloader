@@ -1,10 +1,8 @@
-package org.fs.mael.backend.http
+package org.fs.mael.backend.http.utils
 
 import java.net.URLDecoder
-
 import scala.collection.immutable.ListMap
 import scala.util.parsing.combinator.RegexParsers
-
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.utils.CoreUtils._
 

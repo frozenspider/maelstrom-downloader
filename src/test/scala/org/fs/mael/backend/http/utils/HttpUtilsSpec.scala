@@ -1,9 +1,10 @@
-package org.fs.mael.backend.http
+package org.fs.mael.backend.http.utils
 
 import scala.collection.immutable.ListMap
 
 import org.fs.mael.core.UserFriendlyException
 import org.junit.runner.RunWith
+import org.scalactic.source.Position.apply
 import org.scalatest.FunSuite
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
