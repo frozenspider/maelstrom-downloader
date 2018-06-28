@@ -251,11 +251,15 @@ class HttpDownloader(
         rb.setHeader(HttpHeaders.USER_AGENT, userAgent)
       }
       val cookies = localCfg(Cookies)
-      cookies.foreach {
+      cookies foreach {
         case (k, v) =>
           val cookie = new BasicClientCookie(k, v)
           cookie.setDomain(rb.getUri.getHost)
           cookieStore.addCookie(cookie)
+      }
+      val customHeaders = localCfg(Headers)
+      customHeaders foreach {
+        case (k, v) => rb.addHeader(k, v)
       }
     }
 
