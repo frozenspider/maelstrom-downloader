@@ -1,6 +1,8 @@
 package org.fs.mael.backend.http
 
 import java.net.URI
+
+import org.fs.mael.backend.http.config.HttpSettings
 import org.fs.mael.core.backend.AbstractBackend
 import org.fs.mael.core.config.ConfigStore
 import org.fs.mael.core.event.EventManager
@@ -12,6 +14,10 @@ class HttpBackend(
   eventMgr:               EventManager
 ) extends AbstractBackend {
   override val id: String = HttpBackend.Id
+
+  override def init(): Unit = {
+    HttpSettings
+  }
 
   override def isSupported(uri: URI): Boolean = {
     try {

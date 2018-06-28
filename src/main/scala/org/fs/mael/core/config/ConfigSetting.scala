@@ -5,6 +5,10 @@ import scala.reflect.runtime.universe._
 import org.eclipse.jface.preference.IPreferenceStore
 
 sealed trait ConfigSetting[T] {
+
+  // As part of init, every setting is put to a global registry
+  ConfigSetting.Registry.put(id, this)
+
   type Repr
 
   def id: String
@@ -23,9 +27,15 @@ sealed trait ConfigSetting[T] {
     case _                      => false
   }
   override val hashCode: Int = this.id.hashCode
+  override def toString: String = "ConfigSetting(" + id + ")"
 }
 
 object ConfigSetting {
+
+  private val Registry: scala.collection.mutable.Map[String, ConfigSetting[_]] = scala.collection.mutable.Map.empty
+
+  def lookup(key: String): Option[ConfigSetting[_]] =
+    Registry.get(key)
 
   //
   // Factory methods for external use

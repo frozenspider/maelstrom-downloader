@@ -3,7 +3,8 @@
 * Added tray icon and minimize to tray setting
 * Added download speed and remaining time columns, implemented related tracking and calculations
 * Added ability to set custom cookies
-* (Internal) Implemented backend-specific settings framework (only used for HTTP headers so far)
+* Added ability to set custom headers
+* (Internal) Implemented backend-specific settings framework
   * (Internal) Implemented global defaults serving as template for local per-download settings
 * (Internal) Implemented migrations framework
 

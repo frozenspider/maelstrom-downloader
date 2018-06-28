@@ -12,13 +12,13 @@ import org.fs.mael.ui.components.StringTablePopupEditorDialog
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
 
-class CookiesFieldEditorDialog(parent: Shell, initialCookiesMap: ListMap[String, String])
-  extends StringTablePopupEditorDialog("Cookies Editor", parent, initialCookiesMap)
+class HeadersFieldEditorDialog(parent: Shell, initialHeadersMap: ListMap[String, String])
+  extends StringTablePopupEditorDialog("Headers Editor", parent, initialHeadersMap)
   with Logging {
 
-  override protected lazy val nameColumnHeader: String = "Cookie name"
-  override protected lazy val valueColumnHeader: String = "Cookie value"
-  override protected lazy val removeEntryTooltipText: String = "Remove cookie entry"
+  override protected lazy val nameColumnHeader: String = "Header name"
+  override protected lazy val valueColumnHeader: String = "Header value"
+  override protected lazy val removeEntryTooltipText: String = "Remove header entry"
 
   override protected def init(): Unit = {
     super.init()
@@ -30,21 +30,21 @@ class CookiesFieldEditorDialog(parent: Shell, initialCookiesMap: ListMap[String,
 
     val itemFromClipboard = new Button(topButtonRow, SWT.PUSH)
     itemFromClipboard.setText("Import from clipboard")
-    itemFromClipboard.setToolTipText("""|Parse a cookie string
-      |(with leading "Cookie: " being optional) from clipboard and import
+    itemFromClipboard.setToolTipText("""|Parse a headers string
+      |(with first line "GET ..." being optional) from clipboard and import
       |it in into the editor""".stripMargin)
     itemFromClipboard.addListener(SWT.Selection, e => interactiveImportFromClipboard(false))
   }
 
   override protected def validateAndGet(nameValPairs: IndexedSeq[(String, String)]): ListMap[String, String] = {
     val nameValPairs2 = nameValPairs filter {
-      case (k, v) => !k.isEmpty // Value can be empty
+      case (k, v) => !k.isEmpty && !v.isEmpty
     }
 
     val duplicates = nameValPairs2.groupBy(_._1).collect { case (n, vs) if vs.size > 1 => (n, vs.size) }
-    requireFriendly(duplicates.size == 0, "Duplicate cookies: " + duplicates.keys.mkString(", "))
+    requireFriendly(duplicates.size == 0, "Duplicate headers: " + duplicates.keys.mkString(", "))
     nameValPairs2.foreach {
-      case (k, v) => HttpUtils.validateCookieCharacterSet(k, v)
+      case (k, v) => HttpUtils.validateHeaderCharacterSet(k, v)
     }
     ListMap(nameValPairs2: _*)
   }
@@ -54,22 +54,22 @@ class CookiesFieldEditorDialog(parent: Shell, initialCookiesMap: ListMap[String,
    * @param silent if `true`, only proceed with import if no user input is needed
    */
   private def interactiveImportFromClipboard(silent: Boolean): Unit = {
-    val title = "Cookies Import"
+    val title = "Headers Import"
     try {
-      val cookieString = getStringFromClipboard()
-      val cookiesMap = HttpUtils.parseClientCookies(cookieString)
+      val headersString = getStringFromClipboard()
+      val headersMap = HttpUtils.parseHeaders(headersString)
 
-      if ((initialCookiesMap.isEmpty) || (
+      if ((initialHeadersMap.isEmpty) || (
         !silent
-        && MessageDialog.openConfirm(parent, title, "Do you want to replace current cookies with the clipboard content?")
+        && MessageDialog.openConfirm(parent, title, "Do you want to replace current headers with the clipboard content?")
       )) {
-        renderContent(cookiesMap)
+        renderContent(headersMap)
         shell.pack()
         centerOnScreen(shell)
       }
     } catch {
       case NonFatal(ex) if silent => // NOOP
-      case NonFatal(ex)           => MessageDialog.openError(shell, title, "Clipboard doesn't contain a valid cookie string")
+      case NonFatal(ex)           => MessageDialog.openError(shell, title, "Clipboard doesn't contain a valid headers string")
     }
   }
 }

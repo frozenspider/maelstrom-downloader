@@ -33,6 +33,7 @@ import org.apache.http.impl.conn.DefaultHttpResponseParserFactory
 import org.apache.http.impl.conn.ManagedHttpClientConnectionFactory
 import org.apache.http.impl.cookie.BasicClientCookie
 import org.apache.http.impl.io.DefaultHttpRequestWriterFactory
+import org.fs.mael.backend.http.utils.HttpUtils
 import org.fs.mael.core.Status
 import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.core.backend.BackendDownloader
@@ -243,18 +244,22 @@ class HttpDownloader(
     }
 
     private def addCustomHeaders(rb: RequestBuilder, cookieStore: CookieStore): Unit = {
-      import HttpSettings._
+      import config.HttpSettings._
       val localCfg = de.backendSpecificCfg
       val userAgentOption = localCfg(UserAgent)
       userAgentOption foreach { userAgent =>
         rb.setHeader(HttpHeaders.USER_AGENT, userAgent)
       }
       val cookies = localCfg(Cookies)
-      cookies.foreach {
+      cookies foreach {
         case (k, v) =>
           val cookie = new BasicClientCookie(k, v)
           cookie.setDomain(rb.getUri.getHost)
           cookieStore.addCookie(cookie)
+      }
+      val customHeaders = localCfg(Headers)
+      customHeaders foreach {
+        case (k, v) => rb.addHeader(k, v)
       }
     }
 

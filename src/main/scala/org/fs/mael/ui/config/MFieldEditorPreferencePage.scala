@@ -2,6 +2,7 @@ package org.fs.mael.ui.config
 
 import org.eclipse.jface.preference.FieldEditor
 import org.eclipse.jface.preference.FieldEditorPreferencePage
+import org.eclipse.jface.preference.IPreferenceStore
 import org.eclipse.jface.preference.RadioGroupFieldEditor
 import org.eclipse.swt.widgets.Composite
 import org.fs.mael.core.config.ConfigSetting
@@ -16,13 +17,24 @@ abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPrefere
    * Please use this if an element is added manually rather than through helpers defined here
    */
   protected var _fieldEditorsWithParents: IndexedSeq[(FieldEditor, Composite)] = IndexedSeq.empty
+  protected var _cfg: ConfigStore = _
 
   /**
    * Initialize a default value for the given config setting.
    * Please use this if an element is added manually rather than through helpers defined here
    */
   protected def initSetting(setting: ConfigSetting[_]): Unit = {
-    ConfigStore.initDefault(getPreferenceStore, setting)
+    require(_cfg != null, "Config store has not been initialized, invoke setConfigStore first")
+    _cfg.initDefault(setting)
+  }
+
+  def setConfigStore(cfg: ConfigStore): Unit = {
+    _cfg = cfg
+    super.setPreferenceStore(cfg.inner)
+  }
+
+  override def setPreferenceStore(store: IPreferenceStore): Unit = {
+    throw new UnsupportedOperationException("Use setConfigStore instead")
   }
 
   def fieldEditorsWithParents: IndexedSeq[(FieldEditor, Composite)] = _fieldEditorsWithParents

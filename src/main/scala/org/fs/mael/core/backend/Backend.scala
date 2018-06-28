@@ -12,6 +12,9 @@ import org.fs.mael.core.entry.DownloadEntry
 trait Backend {
   val id: String
 
+  /** Initialize settings. Repeated calls should be safe. */
+  def init(): Unit
+
   def isSupported(uri: URI): Boolean
 
   /** Create a {@code DownloadEntry} from an URI */

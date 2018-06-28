@@ -1,12 +1,12 @@
-package org.fs.mael.backend.http
+package org.fs.mael.backend.http.utils
 
 import java.net.URLDecoder
-
 import scala.collection.immutable.ListMap
 import scala.util.parsing.combinator.RegexParsers
-
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.utils.CoreUtils._
+import java.io.ByteArrayInputStream
+import scala.io.Codec
 
 object HttpUtils {
   /**
@@ -30,11 +30,27 @@ object HttpUtils {
     decoded
   }
 
+  def validateCookiesCharacterSet(cookiesMap: Map[String, String]): Unit = {
+    cookiesMap foreach { case (k, v) => validateCookieCharacterSet(k, v) }
+  }
+
   /** Checks that cookie key and value contains no illegal characters */
   def validateCookieCharacterSet(k: String, v: String): Unit = {
     requireFriendly(!k.isEmpty, s"Key is empty")
     requireFriendly(k matches CookieParsing.KeyPattern, s"Key ${k} contains illegal characters")
     requireFriendly(v matches CookieParsing.ValPattern, s"Value ${v} contains illegal characters")
+  }
+
+  def validateHeadersCharacterSet(headersMap: Map[String, String]): Unit = {
+    headersMap foreach { case (k, v) => validateHeaderCharacterSet(k, v) }
+  }
+
+  /** Checks that header key and value contains no illegal characters */
+  def validateHeaderCharacterSet(k: String, v: String): Unit = {
+    requireFriendly(!k.isEmpty, s"Key is empty")
+    requireFriendly(!v.isEmpty, s"Value is empty")
+    requireFriendly(k matches HeaderParsing.KeyPattern, s"Key ${k} contains illegal characters")
+    requireFriendly(v matches HeaderParsing.ValPattern, s"Value ${v} contains illegal characters")
   }
 
   /** Parse a cookie header string (with or without "Cookie:" prefix), yielding key-value pairs  */
@@ -44,6 +60,24 @@ object HttpUtils {
       case CookieParsing.Failure(msg, _) => failFriendly(msg)
       case CookieParsing.Error(msg, _)   => failFriendly(msg)
     }
+  }
+
+  /** Parse a headers string (with or without first line "GET ..."), yielding key-value pairs  */
+  def parseHeaders(headersString: String): ListMap[String, String] = {
+    val headersString2 = if (headersString.startsWith("GET ")) {
+      headersString.dropWhile(_ != '\n').drop(1)
+    } else {
+      headersString
+    }
+    // Mimicking the way Apache HttpClient does the parsing
+    import org.apache.http.message._
+    import org.apache.http.impl.io._
+    val is = new ByteArrayInputStream(headersString2.getBytes(Codec.UTF8.charSet))
+    val inputBuffer = new SessionInputBufferImpl(new HttpTransportMetricsImpl(), headersString.length)
+    inputBuffer.bind(is)
+    val lineParser = BasicLineParser.INSTANCE
+    val headers = AbstractMessageParser.parseHeaders(inputBuffer, 0, 0, lineParser)
+    ListMap(headers.map(h => (h.getName -> h.getValue)): _*)
   }
 
   /**
@@ -70,5 +104,10 @@ object HttpUtils {
     val ClientPattern = (ClientPrefix.? ~> KeyEqualsValue ~ (";" ~> KeyEqualsValue).*) ^^ {
       case x ~ xs => x +: xs
     }
+  }
+
+  private object HeaderParsing extends RegexParsers {
+    val KeyPattern = "[a-zA-Z0-9!#$%&'*.^_`|~+-]+"
+    val ValPattern = "[ -~]*" // All ASCII chars, as per RFC 7230
   }
 }
