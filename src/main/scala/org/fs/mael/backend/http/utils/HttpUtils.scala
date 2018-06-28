@@ -1,18 +1,12 @@
 package org.fs.mael.backend.http.utils
 
 import java.io.ByteArrayInputStream
-import java.io.File
-import java.net.URI
-import java.net.URL
 import java.net.URLDecoder
 
 import scala.collection.immutable.ListMap
 import scala.io.Codec
 import scala.util.parsing.combinator.RegexParsers
 
-import org.fs.mael.backend.http.config.HttpSettings
-import org.fs.mael.core.backend.Backend
-import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.utils.CoreUtils._
 
 object HttpUtils {
@@ -87,50 +81,6 @@ object HttpUtils {
     ListMap(headers.map(h => (h.getName -> h.getValue)): _*)
   }
 
-  /**
-   * Parse a textual HTTP request, yielding a downloa1dable entry
-   */
-  def parseHttpRequest(requestString: String, httpBackend: Backend, location: File): DownloadEntry = {
-    requireFriendly(requestString startsWith "GET ", "Not an HTTP request string")
-    val (headers, cookies, userAgentOption) = {
-      val headers = parseHeaders(requestString)
-      val headersLC = headers map { case (k, v) => (k.toLowerCase, v) }
-      val (headers2, cookies) = headersLC.get("cookie") match {
-        case Some(cookieString) =>
-          val cookies = parseClientCookies(cookieString)
-          (headers.filterKeys(_.toLowerCase != "cookie"), cookies)
-        case None =>
-          (headers, ListMap.empty[String, String])
-      }
-      val (headers3, userAgentOption) = {
-        (headers2.filterKeys(_.toLowerCase != "user-agent"), headersLC.get("user-agent"))
-      }
-      (headers3, cookies, userAgentOption)
-    }
-    val parsedRequestLineUri = requestString.lines.next match {
-      case RequestParsing.Pattern(uri) => uri
-    }
-    val uri = if (parsedRequestLineUri startsWith "/") {
-      val host = headers.find(_._1.toLowerCase == "host").get._2
-      val url = new URL("http", host, parsedRequestLineUri)
-      url.toURI
-    } else {
-      new URI(parsedRequestLineUri)
-    }
-    val de = httpBackend.create(uri, location, None, None, "", None)
-    de.backendSpecificCfg.set(HttpSettings.UserAgent, userAgentOption)
-    de.backendSpecificCfg.set(HttpSettings.Headers, headers)
-    de.backendSpecificCfg.set(HttpSettings.Cookies, cookies)
-    de
-  }
-
-  /**
-   * Parse a curl request, yielding a downloadable entry
-   */
-  def parseCurlRequest(requestString: String, httpBackend: Backend, location: File): DownloadEntry = {
-    failFriendly("Doh!") // TODO: #40
-  }
-
   private object CookieParsing extends RegexParsers {
     val KeyPattern = "[a-zA-Z0-9!#$%&'*.^_`|~+-]+"
     val ValPattern = "[a-zA-Z0-9!#$%&'()*./:<=>?@\\[\\]^_`{|}~+-]*"
@@ -146,9 +96,5 @@ object HttpUtils {
   private object HeaderParsing extends RegexParsers {
     val KeyPattern = "[a-zA-Z0-9!#$%&'*.^_`|~+-]+"
     val ValPattern = "[ -~]*" // All ASCII chars, as per RFC 7230
-  }
-
-  private object RequestParsing {
-    val Pattern = "GET ([^\\s]+) HTTP/[\\d.]+".r
   }
 }

@@ -125,9 +125,9 @@ class EditDownloadDialog(
         val httpBackend = backendMgr(HttpBackend.Id).asInstanceOf[HttpBackend]
         val location = new File(locationInput.getStringValue.trim)
         Try {
-          Some(HttpUtils.parseCurlRequest(content, httpBackend, location))
+          Some(httpBackend.parseCurlRequest(content, location))
         } orElse Try {
-          Some(HttpUtils.parseHttpRequest(content, httpBackend, location))
+          Some(httpBackend.parseHttpRequest(content, location))
         }
       }
     }.flatten.toOption.flatten
