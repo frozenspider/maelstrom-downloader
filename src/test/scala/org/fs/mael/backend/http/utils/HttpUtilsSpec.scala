@@ -86,4 +86,42 @@ class HttpUtilsSpec
         "_gid" -> "GA1.2.1130758561.1529901128"
       ))
   }
+
+  test("parse headers") {
+    val p = HttpUtils.parseHeaders _
+
+    // Tenor
+    assert(p("""|Host: media1.tenor.com
+                |User-Agent: Mozilla/5.0 (Windows NT 6.3; Win64; x64; rv:56.0) Gecko/20100101 Firefox/56.0
+                |Accept: */*
+                |Accept-Language: ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3
+                |Accept-Encoding: gzip, deflate, br
+                |Referer: https://media1.tenor.com/
+                |Cookie: _ga=GA1.3.882922505.1517916457; _gid=GA1.3.64347108.1530116012
+                |DNT: 1
+                |Connection: keep-alive
+                |Pragma: no-cache
+                |Cache-Control: no-cache""".stripMargin)
+      === ListMap(
+        "Host" -> "media1.tenor.com",
+        "User-Agent" -> "Mozilla/5.0 (Windows NT 6.3; Win64; x64; rv:56.0) Gecko/20100101 Firefox/56.0",
+        "Accept" -> "*/*",
+        "Accept-Language" -> "ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3",
+        "Accept-Encoding" -> "gzip, deflate, br",
+        "Referer" -> "https://media1.tenor.com/",
+        "Cookie" -> "_ga=GA1.3.882922505.1517916457; _gid=GA1.3.64347108.1530116012",
+        "DNT" -> "1",
+        "Connection" -> "keep-alive",
+        "Pragma" -> "no-cache",
+        "Cache-Control" -> "no-cache"
+      ))
+    assert(p("""|GET /images/635c059475e08aa3c8334c2e5d86f638/tenor.gif
+                |Host: media1.tenor.com
+                |Cache-Control: no-cache""".stripMargin)
+      === ListMap(
+        "Host" -> "media1.tenor.com",
+        "Cache-Control" -> "no-cache"
+      ))
+  }
 }
+
