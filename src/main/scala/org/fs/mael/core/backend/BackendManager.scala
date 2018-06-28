@@ -11,6 +11,7 @@ class BackendManager {
 
   def +=(backend: Backend, priority: Int): Unit = {
     this.synchronized {
+      backend.init()
       _backends += (backend -> priority)
     }
   }

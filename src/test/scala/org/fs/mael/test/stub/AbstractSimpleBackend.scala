@@ -12,6 +12,8 @@ abstract class AbstractSimpleBackend(
   override val id:        String,
   override val globalCfg: ConfigStore = new InMemoryConfigStore
 ) extends AbstractBackend {
+  override def init(): Unit = {}
+
   override def downloader: BackendDownloader = new BackendDownloader(id) {
     override def eventMgr = ???
     override def transferMgr = ???

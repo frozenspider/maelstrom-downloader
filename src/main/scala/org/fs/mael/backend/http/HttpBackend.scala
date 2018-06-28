@@ -13,6 +13,10 @@ class HttpBackend(
 ) extends AbstractBackend {
   override val id: String = HttpBackend.Id
 
+  override def init(): Unit = {
+    HttpSettings
+  }
+
   override def isSupported(uri: URI): Boolean = {
     try {
       val url = uri.toURL

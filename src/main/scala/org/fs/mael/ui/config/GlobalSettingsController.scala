@@ -1,5 +1,7 @@
 package org.fs.mael.ui.config
 
+import scala.collection.JavaConverters
+
 import org.eclipse.jface.preference.PreferenceDialog
 import org.eclipse.jface.preference.PreferenceManager
 import org.eclipse.swt.widgets.Shell
@@ -26,8 +28,21 @@ class GlobalSettingsController(val globalCfg: ConfigStore) {
   }
 
   def showDialog(parent: Shell): Unit = {
+    initPages()
     val dlg = new PreferenceDialog(parent, mgr)
     dlg.setPreferenceStore(globalCfg.inner)
     dlg.open()
+  }
+
+  /** Initialize pages, setting config store for them*/
+  private def initPages(): Unit = {
+    val prefNodes = JavaConverters.asScalaBuffer(mgr.getElements(PreferenceManager.PRE_ORDER))
+    prefNodes.foreach { pn =>
+      pn.createPage()
+      pn.getPage match {
+        case page: MFieldEditorPreferencePage => page.setConfigStore(globalCfg)
+        case _                                => // NOOP
+      }
+    }
   }
 }

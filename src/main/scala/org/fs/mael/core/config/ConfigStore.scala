@@ -50,21 +50,23 @@ trait ConfigStore {
     }
   }
 
+  private def toByteArrayOutputStream: ByteArrayOutputStream = {
+    val baos = new ByteArrayOutputStream
+    inner.save(baos, null)
+    baos
+  }
+
   /**
    * Serializes the store content of this manager into byte array.
    * Note that due to presence of comment with current date/time, its content will differ between invocations!
    */
   protected[config] def toByteArray: Array[Byte] = {
-    val baos = new ByteArrayOutputStream
-    inner.save(baos, null)
-    baos.toByteArray()
+    toByteArrayOutputStream.toByteArray()
   }
 
   def toSerialString: String = {
-    val baos = new ByteArrayOutputStream
-    inner.save(baos, null)
     // Charset is taken from java.util.Properties.store
-    val lines = baos.toString(Codec.ISO8859.name).split("[\r\n]+").sorted
+    val lines = toByteArrayOutputStream.toString(Codec.ISO8859.name).split("[\r\n]+").sorted
     // Removing comments
     lines.filter(!_.startsWith("#")).mkString("\n")
   }
