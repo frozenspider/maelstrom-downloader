@@ -42,7 +42,7 @@ class CookiesFieldEditorDialog(parent: Shell, initialCookiesMap: ListMap[String,
     }
 
     val duplicates = nameValPairs2.groupBy(_._1).collect { case (n, vs) if vs.size > 1 => (n, vs.size) }
-    requireFriendly(duplicates.size == 0, "Duplicate keys: " + duplicates.keys.mkString(", "))
+    requireFriendly(duplicates.size == 0, "Duplicate cookies: " + duplicates.keys.mkString(", "))
     nameValPairs2.foreach {
       case (k, v) => HttpUtils.validateCookieCharacterSet(k, v)
     }
@@ -64,6 +64,8 @@ class CookiesFieldEditorDialog(parent: Shell, initialCookiesMap: ListMap[String,
         && MessageDialog.openConfirm(parent, title, "Do you want to replace current cookies with the clipboard content?")
       )) {
         renderContent(cookiesMap)
+        shell.pack()
+        centerOnScreen(shell)
       }
     } catch {
       case NonFatal(ex) if silent => // NOOP

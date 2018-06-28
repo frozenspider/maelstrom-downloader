@@ -37,8 +37,8 @@ class GlobalSettingsController(val globalCfg: ConfigStore) {
   /** Initialize pages, setting config store for them*/
   private def initPages(): Unit = {
     val prefNodes = JavaConverters.asScalaBuffer(mgr.getElements(PreferenceManager.PRE_ORDER))
-    prefNodes.foreach { pn =>
-      pn.createPage()
+    prefNodes foreach { pn =>
+      if (pn.getPage == null) pn.createPage()
       pn.getPage match {
         case page: MFieldEditorPreferencePage => page.setConfigStore(globalCfg)
         case _                                => // NOOP
