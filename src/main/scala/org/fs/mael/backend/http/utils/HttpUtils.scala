@@ -7,7 +7,6 @@ import scala.collection.immutable.ListMap
 import scala.io.Codec
 import scala.util.parsing.combinator.RegexParsers
 
-import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.utils.CoreUtils._
 
 object HttpUtils {
@@ -80,20 +79,6 @@ object HttpUtils {
     val lineParser = BasicLineParser.INSTANCE
     val headers = AbstractMessageParser.parseHeaders(inputBuffer, 0, 0, lineParser)
     ListMap(headers.map(h => (h.getName -> h.getValue)): _*)
-  }
-
-  /**
-   * Parse a textual HTTP request, yielding a downloa1dable entry
-   */
-  def parseHttpRequest(cookieString: String): DownloadEntry = {
-    ??? // TODO: #39
-  }
-
-  /**
-   * Parse a curl request, yielding a downloadable entry
-   */
-  def parseCurlRequest(cookieString: String): DownloadEntry = {
-    ??? // TODO: #40
   }
 
   private object CookieParsing extends RegexParsers {

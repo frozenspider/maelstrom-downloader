@@ -62,6 +62,7 @@ object HttpSettings {
   private class LocalHeadersPage extends MFieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
     override def createFieldEditors(): Unit = {
       row(UserAgent) { (setting, parent) =>
+        // TODO: Add optional dropdown with existing user-agents
         new StringFieldEditor(setting.id, "User-Agent:", parent)
       }
       row(Cookies) { (setting, parent) =>

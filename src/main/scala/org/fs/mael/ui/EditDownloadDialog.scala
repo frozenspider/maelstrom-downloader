@@ -4,6 +4,8 @@ import java.io.File
 import java.net.URI
 import java.net.URL
 
+import scala.util.Try
+
 import org.eclipse.jface.dialogs.ProgressMonitorDialog
 import org.eclipse.jface.preference.DirectoryFieldEditor
 import org.eclipse.swt._
@@ -11,6 +13,8 @@ import org.eclipse.swt.events._
 import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
+import org.fs.mael.backend.http.HttpBackend
+import org.fs.mael.backend.http.utils.HttpUtils
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.Backend
 import org.fs.mael.core.backend.BackendManager
@@ -30,7 +34,7 @@ import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
 
 class EditDownloadDialog(
-  deOption:        Option[DownloadEntry],
+  _deOption:       Option[DownloadEntry],
   parent:          Shell,
   resources:       Resources,
   globalCfg:       ConfigStore,
@@ -42,6 +46,7 @@ class EditDownloadDialog(
   private var tabFolder: TabFolder = _
 
   private var uriInput: Text = _
+  private var locationRow: Composite = _ // Serves as a parent for locationInput
   private var locationInput: DirectoryFieldEditor = _
   private var filenameInput: Text = _
   private var commentInput: Text = _
@@ -50,36 +55,83 @@ class EditDownloadDialog(
 
   /** Switch to advanced mode, enabling backend-specific config options */
   private var goAdvanced: () => Unit = _
-  private var backendOption: Option[Backend] = deOption map (de => backendMgr(de.backendId))
+  private var backendOption: Option[Backend] = _
   private var backendCfgUiOption: Option[BackendConfigUi] = None
 
-  val shell = new Shell(parent, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL)
-  if (!deOption.isDefined) {
-    shell.setText("Add Download")
-  } else {
-    shell.setText("Edit Download")
+  val shell = new Shell(parent, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL).withCode { shell =>
+    _deOption match {
+      case None    => shell.setText("Add Download")
+      case Some(_) => shell.setText("Edit Download")
+    }
+
+    shell.setLayout(new GridLayout())
   }
 
-  shell.setLayout(new GridLayout())
   tabFolder = new TabFolder(shell, SWT.NONE)
   tabFolder.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true))
 
   val mainTab = new TabItem(tabFolder, SWT.NONE).withCode { tab =>
     tab.setText("Main")
-    val mainPage = new Composite(tabFolder, SWT.NONE).withCode { composite =>
-      fillMainPage(composite)
-    }
+    val mainPage = new Composite(tabFolder, SWT.NONE)
+    fillMainPage(mainPage)
     tab.setControl(mainPage)
   }
 
   fillButtons(shell)
 
+  val deOption = _deOption orElse initWithClipboard()
+  backendOption = deOption map (de => backendMgr(de.backendId))
+
+  deOption foreach (de => {
+    uriInput.setText(de.uri.toString)
+    uriInput.setEditable(de.status.canBeStarted)
+
+    locationInput.setStringValue(de.location.getAbsolutePath)
+    filenameInput.setText(de.filenameOption getOrElse "")
+    if (de.status == Status.Running) {
+      disable(locationInput, locationRow)
+      filenameInput.setEditable(false)
+    }
+
+    checksumDropdown.setEnabled(de.status != Status.Complete)
+    checksumInput.setEditable(de.status != Status.Complete)
+
+    de.checksumOption match {
+      case Some(Checksum(tpe, value)) =>
+        checksumDropdown.select(tpe.ordinal)
+        checksumInput.setText(value)
+      case None => // NOOP
+    }
+
+    commentInput.setText(de.comment)
+
+    goAdvanced()
+  })
+
   shell.pack()
   centerOnScreen(shell)
-
-  deOption foreach (de => goAdvanced())
-
   uriInput.setFocus()
+
+  /** Try to initialize download entry - or at least URI field - from clipboard */
+  private def initWithClipboard(): Option[DownloadEntry] = {
+    Try {
+      val content = Clipboard.getString()
+      Try {
+        require(!content.contains("\n"))
+        val url = new URL(content)
+        uriInput.setText(url.toString)
+        None
+      } orElse {
+        val httpBackend = backendMgr(HttpBackend.Id).asInstanceOf[HttpBackend]
+        val location = new File(locationInput.getStringValue.trim)
+        Try {
+          Some(httpBackend.parseCurlRequest(content, location))
+        } orElse Try {
+          Some(httpBackend.parseHttpRequest(content, location))
+        }
+      }
+    }.flatten.toOption.flatten
+  }
 
   private def fillMainPage(parent: Composite): Unit = {
     parent.setLayout(new GridLayout())
@@ -105,7 +157,7 @@ class EditDownloadDialog(
       label.setText("Location:")
     }
 
-    val locationRow = new Composite(parent, SWT.NONE).withCode { row =>
+    locationRow = new Composite(parent, SWT.NONE).withCode { row =>
       row.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false))
       row.setLayout(new GridLayout().withCode { layout =>
         layout.marginWidth = 0
@@ -171,43 +223,6 @@ class EditDownloadDialog(
         d.widthHint = 500
       })
       installDefaultHotkeys(input)
-    }
-
-    deOption match {
-      case Some(de) =>
-        uriInput.setText(de.uri.toString)
-        uriInput.setEditable(de.status.canBeStarted)
-
-        locationInput.setStringValue(de.location.getAbsolutePath)
-        filenameInput.setText(de.filenameOption getOrElse "")
-        if (de.status == Status.Running) {
-          disable(locationInput, locationRow)
-          filenameInput.setEditable(false)
-        }
-
-        checksumDropdown.setEnabled(de.status != Status.Complete)
-        checksumInput.setEditable(de.status != Status.Complete)
-
-        de.checksumOption match {
-          case Some(Checksum(tpe, value)) =>
-            checksumDropdown.select(tpe.ordinal)
-            checksumInput.setText(value)
-          case None => // NOOP
-        }
-
-        commentInput.setText(de.comment)
-
-      case None =>
-        // Try to paste URL from clipboard
-        try {
-          val content = Clipboard.getString()
-          if (!content.contains("\n")) {
-            val url = new URL(content)
-            uriInput.setText(url.toString)
-          }
-        } catch {
-          case ex: Exception => // Ignore
-        }
     }
   }
 
