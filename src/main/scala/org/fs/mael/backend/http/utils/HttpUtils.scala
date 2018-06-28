@@ -7,6 +7,7 @@ import scala.collection.immutable.ListMap
 import scala.io.Codec
 import scala.util.parsing.combinator.RegexParsers
 
+import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.utils.CoreUtils._
 
@@ -85,14 +86,14 @@ object HttpUtils {
   /**
    * Parse a textual HTTP request, yielding a downloa1dable entry
    */
-  def parseHttpRequest(cookieString: String): DownloadEntry = {
+  def parseHttpRequest(backend: HttpBackend, requestString: String): DownloadEntry = {
     ??? // TODO: #39
   }
 
   /**
    * Parse a curl request, yielding a downloadable entry
    */
-  def parseCurlRequest(cookieString: String): DownloadEntry = {
+  def parseCurlRequest(backend: HttpBackend, requestString: String): DownloadEntry = {
     ??? // TODO: #40
   }
 

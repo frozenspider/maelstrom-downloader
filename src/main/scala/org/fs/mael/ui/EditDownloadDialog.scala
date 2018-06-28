@@ -4,6 +4,9 @@ import java.io.File
 import java.net.URI
 import java.net.URL
 
+import scala.util.Try
+import scala.util.control.NonFatal
+
 import org.eclipse.jface.dialogs.ProgressMonitorDialog
 import org.eclipse.jface.preference.DirectoryFieldEditor
 import org.eclipse.swt._
@@ -11,6 +14,8 @@ import org.eclipse.swt.events._
 import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
+import org.fs.mael.backend.http.HttpBackend
+import org.fs.mael.backend.http.utils.HttpUtils
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.Backend
 import org.fs.mael.core.backend.BackendManager
@@ -201,12 +206,21 @@ class EditDownloadDialog(
         // Try to paste URL from clipboard
         try {
           val content = Clipboard.getString()
-          if (!content.contains("\n")) {
-            val url = new URL(content)
-            uriInput.setText(url.toString)
+          val httpBackend = backendMgr(HttpBackend.Id).asInstanceOf[HttpBackend]
+          Try {
+            HttpUtils.parseCurlRequest(httpBackend, content)
+            backendOption = Some(httpBackend)
+          } orElse Try {
+            HttpUtils.parseHttpRequest(httpBackend, content)
+            backendOption = Some(httpBackend)
+          } orElse Try {
+            if (!content.contains("\n")) {
+              val url = new URL(content)
+              uriInput.setText(url.toString)
+            }
           }
         } catch {
-          case ex: Exception => // Ignore
+          case NonFatal(ex) => // Ignore
         }
     }
   }
