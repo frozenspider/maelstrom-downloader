@@ -5,7 +5,7 @@ import scala.collection.JavaConverters
 import org.eclipse.jface.preference.PreferenceDialog
 import org.eclipse.jface.preference.PreferenceManager
 import org.eclipse.swt.widgets.Shell
-import org.fs.mael.backend.http.HttpSettings
+import org.fs.mael.backend.http.config.HttpSettings
 import org.fs.mael.core.config.ConfigStore
 import org.fs.mael.core.utils.CoreUtils._
 

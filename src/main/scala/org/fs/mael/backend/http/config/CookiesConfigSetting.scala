@@ -1,4 +1,4 @@
-package org.fs.mael.backend.http
+package org.fs.mael.backend.http.config
 
 import org.fs.mael.backend.http.utils.HttpUtils
 import org.fs.mael.backend.http.utils.SimpleTableSerializer

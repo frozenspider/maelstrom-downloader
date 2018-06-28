@@ -1,7 +1,8 @@
-package org.fs.mael.backend.http
+package org.fs.mael.backend.http.config
 
 import org.eclipse.jface.preference.FieldEditorPreferencePage
 import org.eclipse.jface.preference.StringFieldEditor
+import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.backend.http.ui._
 import org.fs.mael.ui.config.EmptyPreferencePage
 import org.fs.mael.ui.config.MFieldEditorPreferencePage

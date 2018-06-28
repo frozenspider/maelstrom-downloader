@@ -244,7 +244,7 @@ class HttpDownloader(
     }
 
     private def addCustomHeaders(rb: RequestBuilder, cookieStore: CookieStore): Unit = {
-      import HttpSettings._
+      import config.HttpSettings._
       val localCfg = de.backendSpecificCfg
       val userAgentOption = localCfg(UserAgent)
       userAgentOption foreach { userAgent =>
