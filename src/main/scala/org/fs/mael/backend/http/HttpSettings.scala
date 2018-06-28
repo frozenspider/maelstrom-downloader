@@ -2,7 +2,7 @@ package org.fs.mael.backend.http
 
 import org.eclipse.jface.preference.FieldEditorPreferencePage
 import org.eclipse.jface.preference.StringFieldEditor
-import org.fs.mael.backend.http.ui.CookiesFieldEditor
+import org.fs.mael.backend.http.ui._
 import org.fs.mael.ui.config.EmptyPreferencePage
 import org.fs.mael.ui.config.MFieldEditorPreferencePage
 import org.fs.mael.ui.config.MPreferencePageDescriptor
@@ -40,6 +40,9 @@ object HttpSettings {
   val Cookies: ConfigSetting[Map[String, String]] =
     new CookiesConfigSetting(prefix + ".cookies")
 
+  val Headers: ConfigSetting[Map[String, String]] =
+    new CookiesConfigSetting(prefix + ".headers")
+
   //
   // Pages
   //
@@ -49,6 +52,9 @@ object HttpSettings {
       row(UserAgent) { (setting, parent) =>
         new StringFieldEditor(setting.id, "User-Agent:", parent)
       }
+      row(Headers) { (setting, parent) =>
+        new HeadersFieldEditor(setting.id, "Headers:", parent)
+      }
     }
   }
 
@@ -57,8 +63,11 @@ object HttpSettings {
       row(UserAgent) { (setting, parent) =>
         new StringFieldEditor(setting.id, "User-Agent:", parent)
       }
-      row(Cookies){ (setting, parent) =>
+      row(Cookies) { (setting, parent) =>
         new CookiesFieldEditor(setting.id, "Cookies:", parent)
+      }
+      row(Headers) { (setting, parent) =>
+        new HeadersFieldEditor(setting.id, "Headers:", parent)
       }
     }
   }

@@ -37,6 +37,15 @@ object HttpUtils {
     requireFriendly(v matches CookieParsing.ValPattern, s"Value ${v} contains illegal characters")
   }
 
+  /** Checks that header key and value contains no illegal characters */
+  def validateHeaderCharacterSet(k: String, v: String): Unit = {
+    requireFriendly(!k.isEmpty, s"Key is empty")
+    requireFriendly(!v.isEmpty, s"Value is empty")
+    // FIXME
+    //    requireFriendly(k matches CookieParsing.KeyPattern, s"Key ${k} contains illegal characters")
+    //    requireFriendly(v matches CookieParsing.ValPattern, s"Value ${v} contains illegal characters")
+  }
+
   /** Parse a cookie header string (with or without "Cookie:" prefix), yielding key-value pairs  */
   def parseClientCookies(cookieString: String): ListMap[String, String] = {
     CookieParsing.parseAll(CookieParsing.ClientPattern, cookieString) match {

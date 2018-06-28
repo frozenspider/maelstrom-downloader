@@ -16,6 +16,10 @@ class CookiesFieldEditorDialog(parent: Shell, initialCookiesMap: ListMap[String,
   extends StringTablePopupEditorDialog("Cookies Editor", parent, initialCookiesMap)
   with Logging {
 
+  override protected lazy val nameColumnHeader: String = "Cookie name"
+  override protected lazy val valueColumnHeader: String = "Cookie value"
+  override protected lazy val removeEntryTooltipText: String = "Remove cookie entry"
+
   override protected def init(): Unit = {
     super.init()
     interactiveImportFromClipboard(true)
@@ -31,10 +35,6 @@ class CookiesFieldEditorDialog(parent: Shell, initialCookiesMap: ListMap[String,
       |it in into the editor""".stripMargin)
     itemFromClipboard.addListener(SWT.Selection, e => interactiveImportFromClipboard(false))
   }
-
-  override protected lazy val nameColumnHeader: String = "Cookie name"
-  override protected lazy val valueColumnHeader: String = "Cookie value"
-  override protected lazy val removeEntryTooltipText: String = "Remove cookie entry"
 
   override protected def validateAndGet(nameValPairs: IndexedSeq[(String, String)]): ListMap[String, String] = {
     val nameValPairs2 = nameValPairs filter {
