@@ -4,6 +4,7 @@
 * Added download speed and remaining time columns, implemented related tracking and calculations
 * Added ability to set custom cookies
 * Added ability to set custom headers
+* When creating new download, will attempt to parse a full HTTP request from clipboard
 * (Internal) Implemented backend-specific settings framework
   * (Internal) Implemented global defaults serving as template for local per-download settings
 * (Internal) Implemented migrations framework
