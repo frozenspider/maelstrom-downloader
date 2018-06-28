@@ -294,8 +294,7 @@ class MainFrame(
     def copyUrisClicked(): Unit = {
       val selected = mainTable.selectedEntries
       val uris = selected.map(_.uri)
-      val content = new StringSelection(uris.mkString("\n"))
-      clipboard.setContents(content, null)
+      Clipboard.copyString(uris.mkString("\n"))
     }
 
     def openFoldersClicked(): Unit = {

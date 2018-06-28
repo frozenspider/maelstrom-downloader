@@ -143,6 +143,21 @@ object SwtUtils {
   }
 
   //
+  // Clipboard
+  //
+
+  object Clipboard {
+    lazy val value = Toolkit.getDefaultToolkit.getSystemClipboard
+
+    def getString(): String =
+      value.getData(DataFlavor.stringFlavor).asInstanceOf[String].trim
+
+    def copyString(s: String): Unit = {
+      value.setContents(new StringSelection(s), null)
+    }
+  }
+
+  //
   // More general stuff
   //
 
@@ -151,15 +166,6 @@ object SwtUtils {
     if (!widget.isDisposed) widget.getDisplay.syncExec { () =>
       if (!widget.isDisposed) code
     }
-
-  def clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
-
-  def getStringFromClipboard(): String =
-    clipboard.getData(DataFlavor.stringFlavor).asInstanceOf[String].trim
-
-  def copyStringToClipboard(s: String): Unit = {
-    clipboard.setContents(new StringSelection(s), null)
-  }
 
   /** Shitty SWT design makes this necessary */
   def toEvent(te: TypedEvent): Event = {

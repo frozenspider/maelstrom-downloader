@@ -148,7 +148,7 @@ abstract class StringTableFieldEditor(name: String, labelText: String, parent: C
         val contentSeq = content.toIndexedSeq
         val selected = table.getSelectionIndices map (contentSeq)
         if (selected.size > 0) {
-          copyStringToClipboard(toClipboardString(selected))
+          Clipboard.copyString(toClipboardString(selected))
         }
       }
       e.doit = false

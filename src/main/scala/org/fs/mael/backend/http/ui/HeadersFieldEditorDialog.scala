@@ -56,7 +56,7 @@ class HeadersFieldEditorDialog(parent: Shell, initialHeadersMap: ListMap[String,
   private def interactiveImportFromClipboard(silent: Boolean): Unit = {
     val title = "Headers Import"
     try {
-      val headersString = getStringFromClipboard()
+      val headersString = Clipboard.getString()
       val headersMap = HttpUtils.parseHeaders(headersString)
 
       if ((initialHeadersMap.isEmpty) || (

@@ -200,7 +200,7 @@ class EditDownloadDialog(
       case None =>
         // Try to paste URL from clipboard
         try {
-          val content = getStringFromClipboard()
+          val content = Clipboard.getString()
           if (!content.contains("\n")) {
             val url = new URL(content)
             uriInput.setText(url.toString)
