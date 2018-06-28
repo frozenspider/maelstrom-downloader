@@ -262,8 +262,6 @@ class MainFrame(
     })
   }
 
-  private def clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
-
   private object actions {
     def restartClicked(): Unit = {
       val msg = "Are you sure you wish to restart selected downloads from the beginning?" +

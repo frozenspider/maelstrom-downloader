@@ -1,12 +1,14 @@
 package org.fs.mael.backend.http.utils
 
+import java.io.ByteArrayInputStream
 import java.net.URLDecoder
+
 import scala.collection.immutable.ListMap
+import scala.io.Codec
 import scala.util.parsing.combinator.RegexParsers
+
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.utils.CoreUtils._
-import java.io.ByteArrayInputStream
-import scala.io.Codec
 
 object HttpUtils {
   /**
@@ -70,8 +72,8 @@ object HttpUtils {
       headersString
     }
     // Mimicking the way Apache HttpClient does the parsing
-    import org.apache.http.message._
     import org.apache.http.impl.io._
+    import org.apache.http.message._
     val is = new ByteArrayInputStream(headersString2.getBytes(Codec.UTF8.charSet))
     val inputBuffer = new SessionInputBufferImpl(new HttpTransportMetricsImpl(), headersString.length)
     inputBuffer.bind(is)

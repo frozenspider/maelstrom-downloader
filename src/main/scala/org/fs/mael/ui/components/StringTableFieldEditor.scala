@@ -9,9 +9,12 @@ import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.utils.SwtUtils._
+import org.fs.mael.ui.utils.Hotkey
+import org.fs.mael.ui.utils.Hotkey._
+import org.slf4s.Logging
 
 abstract class StringTableFieldEditor(name: String, labelText: String, parent: Composite)
-  extends FieldEditor(name, labelText, parent) {
+  extends FieldEditor(name, labelText, parent) { this: Logging =>
 
   private var content: ListMap[String, String] = ListMap.empty
   private var top: Composite = _
@@ -86,6 +89,8 @@ abstract class StringTableFieldEditor(name: String, labelText: String, parent: C
       gridData.heightHint = 100
     })
 
+    installTableHotkeys(table)
+
     val c1 = new TableColumn(table, SWT.NONE)
     c1.setText("Name")
 
@@ -136,9 +141,25 @@ abstract class StringTableFieldEditor(name: String, labelText: String, parent: C
     }
   }
 
+  protected def installTableHotkeys(table: Table): Unit = {
+    installDefaultHotkeys(table)
+    installHotkey(table, Hotkey(Ctrl, Key('C'))) { e =>
+      tryShowingError(table.getShell, log) {
+        val contentSeq = content.toIndexedSeq
+        val selected = table.getSelectionIndices map (contentSeq)
+        if (selected.size > 0) {
+          copyStringToClipboard(toClipboardString(selected))
+        }
+      }
+      e.doit = false
+    }
+  }
+
   protected def serialize(content: ListMap[String, String]): String
 
   protected def deserialize(contentString: String): ListMap[String, String]
+
+  protected def toClipboardString(selected: Seq[(String, String)]): String
 
   protected def createPopupEditorDialog(shell: Shell, initialContent: ListMap[String, String]): StringTablePopupEditorDialog
 }

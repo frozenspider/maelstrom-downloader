@@ -2,6 +2,7 @@ package org.fs.mael.ui.utils
 
 import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
+import java.awt.datatransfer.StringSelection
 
 import org.eclipse.jface.preference._
 import org.eclipse.swt.SWT
@@ -155,6 +156,10 @@ object SwtUtils {
 
   def getStringFromClipboard(): String =
     clipboard.getData(DataFlavor.stringFlavor).asInstanceOf[String].trim
+
+  def copyStringToClipboard(s: String): Unit = {
+    clipboard.setContents(new StringSelection(s), null)
+  }
 
   /** Shitty SWT design makes this necessary */
   def toEvent(te: TypedEvent): Event = {
