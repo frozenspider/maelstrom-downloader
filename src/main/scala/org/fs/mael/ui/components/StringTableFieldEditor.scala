@@ -111,7 +111,6 @@ abstract class StringTableFieldEditor(name: String, labelText: String, parent: C
   override def setEnabled(enabled: Boolean, parent: Composite): Unit = {
     // We do not check the parent here, nor do we use it at all
     checkParent(control, parent)
-    Option(table).foreach(_.setEnabled(enabled))
     Option(editBtn).foreach(_.setEnabled(enabled))
   }
 
