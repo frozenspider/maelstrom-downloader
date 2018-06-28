@@ -11,9 +11,7 @@ import org.fs.mael.core.utils.CoreUtils._
 object SimpleTableSerializer {
   def serialize(table: Map[String, String]): String = {
     val tableEntryStrings = table.map {
-      case (k, v) =>
-        HttpUtils.validateCookieCharacterSet(k, v)
-        enc(k) + "=" + enc(v)
+      case (k, v) => enc(k) + "=" + enc(v)
     }.toSeq
     tableEntryStrings.mkString(";")
   }

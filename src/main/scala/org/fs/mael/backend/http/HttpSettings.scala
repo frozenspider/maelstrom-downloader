@@ -41,7 +41,7 @@ object HttpSettings {
     new CookiesConfigSetting(prefix + ".cookies")
 
   val Headers: ConfigSetting[Map[String, String]] =
-    new CookiesConfigSetting(prefix + ".headers")
+    new HeadersConfigSetting(prefix + ".headers")
 
   //
   // Pages

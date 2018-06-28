@@ -4,14 +4,17 @@ import scala.collection.immutable.ListMap
 
 import org.eclipse.swt.widgets.Composite
 import org.eclipse.swt.widgets.Shell
+import org.fs.mael.backend.http.utils.HttpUtils
 import org.fs.mael.backend.http.utils.SimpleTableSerializer
 import org.fs.mael.ui.components.StringTableFieldEditor
 
 class CookiesFieldEditor(name: String, labelText: String, parent: Composite)
   extends StringTableFieldEditor(name, labelText, parent) {
 
-  override protected def serialize(cookiesMap: ListMap[String, String]): String =
+  override protected def serialize(cookiesMap: ListMap[String, String]): String = {
+    HttpUtils.validateCookiesCharacterSet(cookiesMap)
     SimpleTableSerializer.serialize(cookiesMap)
+  }
 
   override protected def deserialize(cookiesSerialString: String): ListMap[String, String] =
     SimpleTableSerializer.deserialize(cookiesSerialString)

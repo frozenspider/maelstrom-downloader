@@ -28,11 +28,19 @@ object HttpUtils {
     decoded
   }
 
+  def validateCookiesCharacterSet(cookiesMap: Map[String, String]): Unit = {
+    cookiesMap foreach { case (k, v) => validateCookieCharacterSet(k, v) }
+  }
+
   /** Checks that cookie key and value contains no illegal characters */
   def validateCookieCharacterSet(k: String, v: String): Unit = {
     requireFriendly(!k.isEmpty, s"Key is empty")
     requireFriendly(k matches CookieParsing.KeyPattern, s"Key ${k} contains illegal characters")
     requireFriendly(v matches CookieParsing.ValPattern, s"Value ${v} contains illegal characters")
+  }
+
+  def validateHeadersCharacterSet(headersMap: Map[String, String]): Unit = {
+    headersMap foreach { case (k, v) => validateHeaderCharacterSet(k, v) }
   }
 
   /** Checks that header key and value contains no illegal characters */
