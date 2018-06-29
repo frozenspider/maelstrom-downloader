@@ -361,6 +361,7 @@ class EditDownloadDialog(
     deCfgOption foreach { cfg =>
       de.backendSpecificCfg.resetTo(cfg)
     }
+    downloadListMgr.add(de) // This is needed if download entry was imported from clipboard
     downloadListMgr.save() // We don't want to lose changes
     eventMgr.fireDetailsChanged(de)
     eventMgr.fireConfigChanged(de)

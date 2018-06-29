@@ -60,13 +60,16 @@ class DownloadListManager(
     }
   }
 
-  /** Add a new entry to a download list, firing an event */
-  def add(de: DownloadEntry): Unit = {
+  /** Add a new entry to a download list if it's not already there, firing an event */
+  def add(de: DownloadEntry): Boolean = {
     this.synchronized {
       if (!entries.contains(de)) {
         entries = entries :+ de
+        eventMgr.fireAdded(de)
+        true
+      } else {
+        false
       }
-      eventMgr.fireAdded(de)
     }
   }
 
@@ -81,7 +84,7 @@ class DownloadListManager(
   /** Remove existing entries from a download list, firing events */
   def removeAll(des: Iterable[DownloadEntry]): Unit = {
     this.synchronized {
-      des.foreach (de => entries = entries.filter(_ != de))
+      des foreach (de => entries = entries.filter(_ != de))
       des foreach eventMgr.fireRemoved
     }
   }
