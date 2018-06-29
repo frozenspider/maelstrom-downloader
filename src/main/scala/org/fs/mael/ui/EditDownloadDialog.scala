@@ -79,7 +79,10 @@ class EditDownloadDialog(
 
   fillButtons(shell)
 
-  val deOption = _deOption orElse initWithClipboard()
+  shell.pack()
+  centerOnScreen(shell)
+
+  private val deOption = _deOption orElse initWithClipboard()
   backendOption = deOption map (de => backendMgr(de.backendId))
 
   deOption foreach (de => {
@@ -107,9 +110,6 @@ class EditDownloadDialog(
 
     goAdvanced()
   })
-
-  shell.pack()
-  centerOnScreen(shell)
   uriInput.setFocus()
 
   /** Try to initialize download entry - or at least URI field - from clipboard */
@@ -127,7 +127,7 @@ class EditDownloadDialog(
         Try {
           Some(httpBackend.parseCurlRequest(content, location))
         } orElse Try {
-          Some(httpBackend.parseHttpRequest(content, location))
+          Some(httpBackend.parsePlaintextRequest(content, location))
         }
       }
     }.flatten.toOption.flatten
