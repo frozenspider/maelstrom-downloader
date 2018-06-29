@@ -81,24 +81,24 @@ class HttpBackend(
     createFrom(uri, headers, location)
   }
 
-  private def createFrom(uri: URI, _headers: Map[String, String], location: File): DownloadEntry = {
-    val (headers, cookies, userAgentOption) = {
-      val headersLC = _headers map { case (k, v) => (k.toLowerCase, v) }
-      val (headers2, cookies) = headersLC.get("cookie") match {
+  private def createFrom(uri: URI, headers: Map[String, String], location: File): DownloadEntry = {
+    val (headersFiltered, cookies, userAgentOption) = {
+      val headersLC = headers map { case (k, v) => (k.toLowerCase, v) }
+      val (headers3, cookies) = headersLC.get("cookie") match {
         case Some(cookieString) =>
           val cookies = HttpUtils.parseClientCookies(cookieString)
-          (_headers.filterKeys(_.toLowerCase != "cookie"), cookies)
+          (headers.filterKeys(_.toLowerCase != "cookie"), cookies)
         case None =>
-          (_headers, ListMap.empty[String, String])
+          (headers, ListMap.empty[String, String])
       }
-      val (headers3, userAgentOption) = {
-        (headers2.filterKeys(_.toLowerCase != "user-agent"), headersLC.get("user-agent"))
+      val (headers4, userAgentOption) = {
+        (headers3.filterKeys(_.toLowerCase != "user-agent"), headersLC.get("user-agent"))
       }
-      (headers3, cookies, userAgentOption)
+      (headers4, cookies, userAgentOption)
     }
     val de = create(uri, location, None, None, "", None)
     de.backendSpecificCfg.set(HttpSettings.UserAgent, userAgentOption)
-    de.backendSpecificCfg.set(HttpSettings.Headers, headers)
+    de.backendSpecificCfg.set(HttpSettings.Headers, headersFiltered)
     de.backendSpecificCfg.set(HttpSettings.Cookies, cookies)
     de
   }
@@ -120,14 +120,17 @@ object HttpBackend {
     val CurlPrefix = "curl(\\..+)?".r ^^^ {}
 
     val UnquotedString = "[^'\"\\s-]+".r
-    val SingleQuotedString = "'((\\\\')|[^\'])*'".r ^^ (s => s substring (1, s.length - 1) replace ("\\'", "'"))
-    val DoubleQuotedString = "\"((\\\\\")|(\"[\\S]\")|[^\"])*\"".r ^^ (s => {
+    val SingleQuotedString = """ '((\\')|[^'])*' """.trim.r ^^ (s => s substring (1, s.length - 1) replace ("\\'", "'"))
+    val DoubleQuotedString = """ "((\\")|("[\S]")|[^"])*" """.trim.r ^^ (s => {
       val trimmed = s substring (1, s.length - 1)
       val unescapedQuotedChars = {
         // Tricky stuff: replace "x" with x without considering escaped quotes
         val escapedCharIndices = trimmed.sliding(3).zipWithIndex.toList.foldLeft(Seq.empty[Int]) {
-          case (acc, (s, i)) if (s startsWith "\"") && (s endsWith "\"") && (trimmed.charAt(i - 1) != '\\') && (acc.isEmpty || (i - acc.head >= 3)) =>
-            i +: acc
+          case (acc, (s, i)) if (
+            (s startsWith "\"") && (s endsWith "\"")
+            && (trimmed.charAt(i - 1) != '\\')
+            && (acc.isEmpty || (i - acc.head >= 3))
+          ) => i +: acc
           case (acc, _) => acc
         }
         val sb = new StringBuffer(trimmed)
@@ -139,12 +142,12 @@ object HttpBackend {
       val unescapedQuotes = unescapedQuotedChars replace ("\\\"", "\"")
       unescapedQuotes
     })
-    val String = SingleQuotedString | DoubleQuotedString | UnquotedString
+    val StringP = SingleQuotedString | DoubleQuotedString | UnquotedString
 
-    val Url = String
+    val Url = StringP
 
-    val ShortOption = ("-" + UnquotedString.regex).r ~ (S ~> String).* ^^ { case (o ~ args) => (o.drop(1), args) }
-    val LongOption = ("--" + UnquotedString.regex).r ~ ("=" ~> String).? ^^ { case (o ~ argOpt) => (o.drop(2), argOpt.toSeq) }
+    val ShortOption = ("-" + UnquotedString.regex).r ~ (S ~> StringP).* ^^ { case (o ~ args) => (o.drop(1), args) }
+    val LongOption = ("--" + UnquotedString.regex).r ~ ("=" ~> StringP).? ^^ { case (o ~ argOpt) => (o.drop(2), argOpt.toSeq) }
     val Option = ShortOption | LongOption
 
     val Pattern = CurlPrefix ~> S ~> Url ~ (S ~> Option).* ^^ { case (url ~ options) => (url, options) }
