@@ -66,15 +66,14 @@ class HttpBackend(
       import HttpBackend.CurlParsing._
       parseAll(Pattern, requestString) match {
         case Success((uri, options), _) => (uri, options)
-        case f @ Failure(msg, _) =>
-          println(f); failFriendly(msg)
-        case e @ Error(msg, _) => println(e); failFriendly(msg)
+        case Failure(msg, _)            => failFriendly(msg)
+        case Error(msg, _)              => failFriendly(msg)
       }
     }
     val uri = new URI(uriString)
     val headersString = options collect {
       case (o, args) if o == "H" =>
-        requireFriendly(args.size == 1, "Malformed CLI string")
+        requireFriendly(args.size == 1, s"Malformed CLI string: ($o) with ($args)")
         args.head
     } mkString "\n"
     val headers = HttpUtils.parseHeaders(headersString)
@@ -119,15 +118,36 @@ object HttpBackend {
 
     val CurlPrefix = "curl(\\..+)?".r ^^^ {}
 
-    val UnquotedString = "[^'\"\\s-]+".r
+    val UnquotedUnixString = "[^'\"\\s-]+".r
+    val UnquotedWindowsString = "[^\"\\s=;,-][^\"\\s=;,]*".r
+    val UnquotedString = UnquotedWindowsString | UnquotedUnixString
     val SingleQuotedString = """ '((\\')|[^'])*' """.trim.r ^^ (s => s substring (1, s.length - 1) replace ("\\'", "'"))
-    val DoubleQuotedString = """ "((\\")|("[\S]")|[^"])*" """.trim.r ^^ (s => {
+    val SimpleDoubleQuotedString = """ "((\\")|("[\S]")|[^"])*" """.trim.r ^^ processDoubleQuotedString
+    // Damn you, Windows CLI parsing! https://stackoverflow.com/a/15262019/466646
+    val TripleQuote = "\"\"\"" ^^^ ("\"")
+    val MixedWindowsString1: Parser[String] = SimpleDoubleQuotedString ~ "\"" ~ MixedWindowsString2 ^^ { case (s1 ~ q ~ s2) => s1 + q + s2 }
+    val MixedWindowsString2: Parser[String] = UnquotedWindowsString ~ (TripleQuote | MixedWindowsString1).? ^^ { case (s1 ~ s2o) => s2o map (s1 + _) getOrElse s1 }
+    val MixedWindowsString = MixedWindowsString1 | MixedWindowsString2
+
+    val DoubleQuotedString = MixedWindowsString | SimpleDoubleQuotedString
+    val StringP = SingleQuotedString | DoubleQuotedString | UnquotedString
+
+    val Url = StringP
+
+    val OptionName = "[^'\"\\s=;, -]+"
+    val ShortOption = ("-" + OptionName).r ~ (S ~> StringP).* ^^ { case (o ~ args) => (o.drop(1), args) }
+    val LongOption = ("--" + OptionName).r ~ ("=" ~> StringP).? ^^ { case (o ~ argOpt) => (o.drop(2), argOpt.toSeq) }
+    val Option = ShortOption | LongOption
+
+    val Pattern = S.? ~> CurlPrefix ~> S ~> Url ~ (S ~> Option).* <~ S.? ^^ { case (url ~ options) => (url, options) }
+
+    private def processDoubleQuotedString(s: String): String = {
       val trimmed = s substring (1, s.length - 1)
       val unescapedQuotedChars = {
         // Tricky stuff: replace "x" with x without considering escaped quotes
         val escapedCharIndices = trimmed.sliding(3).zipWithIndex.toList.foldLeft(Seq.empty[Int]) {
           case (acc, (s, i)) if (
-            (s startsWith "\"") && (s endsWith "\"")
+            (s.charAt(0) == '"') && (s.charAt(2) == '"')
             && (trimmed.charAt(i - 1) != '\\')
             && (acc.isEmpty || (i - acc.head >= 3))
           ) => i +: acc
@@ -141,15 +161,6 @@ object HttpBackend {
       }
       val unescapedQuotes = unescapedQuotedChars replace ("\\\"", "\"")
       unescapedQuotes
-    })
-    val StringP = SingleQuotedString | DoubleQuotedString | UnquotedString
-
-    val Url = StringP
-
-    val ShortOption = ("-" + UnquotedString.regex).r ~ (S ~> StringP).* ^^ { case (o ~ args) => (o.drop(1), args) }
-    val LongOption = ("--" + UnquotedString.regex).r ~ ("=" ~> StringP).? ^^ { case (o ~ argOpt) => (o.drop(2), argOpt.toSeq) }
-    val Option = ShortOption | LongOption
-
-    val Pattern = CurlPrefix ~> S ~> Url ~ (S ~> Option).* ^^ { case (url ~ options) => (url, options) }
+    }
   }
 }

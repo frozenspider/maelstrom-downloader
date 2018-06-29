@@ -128,5 +128,22 @@ class HttpBackendSpec
       "My-Header" -> "'a'",
       "Cache-Control" -> "max-age=0"
     ))
+
+    // Tricky case - multiple consequent quotes
+    val parsed3 = p((
+      """|curl "https://media1.tenor.com/images/635c059475e08aa3c8334c2e5d86f638/tenor.gif"
+      | --2.0
+      | -H "Referer: https://media1.tenor.com/"""".stripMargin +
+      " -H \"If-None-Match: W/\"\"1627-kOLdcvBtQPvZ7nPlBAXlMl0UsCE\"\"\"" + """|
+      | -H "Cache-Control: max-age=0"""".stripMargin
+    ).replaceAll("\n", " "))
+    assert(parsed3.uri.toString === "https://media1.tenor.com/images/635c059475e08aa3c8334c2e5d86f638/tenor.gif")
+    assert(parsed3.backendSpecificCfg(HttpSettings.UserAgent) === None)
+    assert(parsed3.backendSpecificCfg(HttpSettings.Cookies) === ListMap.empty)
+    assert(parsed3.backendSpecificCfg(HttpSettings.Headers) === ListMap(
+      "Referer" -> "https://media1.tenor.com/",
+      "If-None-Match" -> "W/\"1627-kOLdcvBtQPvZ7nPlBAXlMl0UsCE\"",
+      "Cache-Control" -> "max-age=0"
+    ))
   }
 }
