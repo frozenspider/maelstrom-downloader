@@ -1,8 +1,6 @@
 package org.fs.mael.ui
 
 import java.awt.Desktop
-import java.awt.Toolkit
-import java.awt.datatransfer.StringSelection
 
 import scala.collection.mutable.WeakHashMap
 import scala.util.Random
@@ -11,8 +9,11 @@ import org.eclipse.jface.dialogs.MessageDialog
 import org.eclipse.jface.dialogs.MessageDialogWithToggle
 import org.eclipse.swt._
 import org.eclipse.swt.custom.SashForm
+import org.eclipse.swt.events.ControlEvent
+import org.eclipse.swt.events.ControlListener
 import org.eclipse.swt.events.ShellAdapter
 import org.eclipse.swt.events.ShellEvent
+import org.eclipse.swt.graphics.Rectangle
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.BuildInfo
@@ -53,14 +54,6 @@ class MainFrame(
   private var btnStop: ToolItem = _
 
   val peer: Shell = new Shell(display).withCode { peer =>
-    peer.addListener(SWT.Close, actions.onWindowClose)
-    peer.addShellListener(new ShellAdapter {
-      override def shellIconified(e: ShellEvent): Unit = {
-        // Note: this might be called second time from minimize, but that's not a problem
-        e.doit = false
-        actions.minimizeClicked()
-      }
-    })
 
     // Layout
 
@@ -101,9 +94,21 @@ class MainFrame(
 
     peer.setImage(resources.mainIcon)
     peer.setText(BuildInfo.fullPrettyName)
-    peer.setSize(1000, 600)
-    centerOnScreen(peer)
 
+    loadWindowPosition(peer)
+
+    peer.addListener(SWT.Close, actions.onWindowClose)
+    peer.addControlListener(new ControlListener {
+      override def controlMoved(e: ControlEvent): Unit = actions.onWindowMoveResize(e)
+      override def controlResized(e: ControlEvent): Unit = actions.onWindowMoveResize(e)
+    })
+    peer.addShellListener(new ShellAdapter {
+      override def shellIconified(e: ShellEvent): Unit = {
+        // Note: this might be called second time from minimize, but that's not a problem
+        e.doit = false
+        actions.minimizeClicked()
+      }
+    })
     eventMgr.subscribe(subscriber)
   }
 
@@ -262,6 +267,22 @@ class MainFrame(
     })
   }
 
+  private def loadWindowPosition(shell: Shell): Unit = {
+    val rect = globalCfg(GlobalSettings.WindowBounds) match {
+      case (x, y, w, h) => new Rectangle(x, y, w, h)
+    }
+    val monitors = shell.getDisplay.getMonitors
+    if (rect.width == 0 || rect.height == 0 || monitors.forall(!_.getBounds.intersects(rect))) {
+      val mBounds = getCurrentMonitor(shell).getBounds
+      shell.setSize(mBounds.width / 2, mBounds.height / 2)
+      centerOnScreen(shell)
+    } else {
+      shell.setLocation(rect.x, rect.y)
+      shell.setSize(rect.width, rect.height)
+    }
+    shell.setMaximized(globalCfg(GlobalSettings.WindowIsMaximized))
+  }
+
   private object actions {
     def restartClicked(): Unit = {
       val msg = "Are you sure you wish to restart selected downloads from the beginning?" +
@@ -302,6 +323,17 @@ class MainFrame(
       val locations = selected.map(_.location).distinct
       locations foreach Desktop.getDesktop.open
       // TODO: Select files?
+    }
+
+    def onWindowMoveResize(resizeEvent: ControlEvent): Unit = {
+      val shell = resizeEvent.getSource.asInstanceOf[Shell]
+      globalCfg.set(GlobalSettings.WindowIsMaximized, shell.getMaximized)
+      if (!shell.getMaximized) {
+        val loc = shell.getLocation
+        val sz = shell.getSize
+        val bounds = (loc.x, loc.y, sz.x, sz.y)
+        globalCfg.set(GlobalSettings.WindowBounds, bounds)
+      }
     }
 
     def onWindowClose(closeEvent: Event): Unit = {

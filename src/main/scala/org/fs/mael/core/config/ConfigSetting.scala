@@ -118,4 +118,13 @@ object ConfigSetting {
     def toRepr(v: T): String = v.id
     def fromRepr(v: String): T = values.find(_.id == v).get
   }
+
+  /** Custom configuration setting needed for storing four-integers rectangle (x,y,w,h) */
+  class RectangleConfigSetting(id: String, default: (Int, Int, Int, Int)) extends CustomConfigSetting[(Int, Int, Int, Int), String](id, default) {
+    def toRepr(v: (Int, Int, Int, Int)): String = v.toString
+    def fromRepr(v: String): (Int, Int, Int, Int) = {
+      val ints = v.replaceAll("[()]", "").split(",").map(_.toInt)
+      (ints(0), ints(1), ints(2), ints(3))
+    }
+  }
 }

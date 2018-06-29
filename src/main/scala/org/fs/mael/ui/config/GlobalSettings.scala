@@ -4,8 +4,7 @@ import org.eclipse.jface.preference.DirectoryFieldEditor
 import org.eclipse.jface.preference.FieldEditorPreferencePage
 import org.eclipse.jface.preference.IntegerFieldEditor
 import org.fs.mael.core.config.ConfigSetting
-import org.fs.mael.core.config.ConfigSetting.RadioConfigSetting
-import org.fs.mael.core.config.ConfigSetting.RadioValue
+import org.fs.mael.core.config.ConfigSetting._
 import org.fs.mael.core.utils.CoreUtils._
 
 object GlobalSettings {
@@ -44,7 +43,13 @@ object GlobalSettings {
   val SortAsc: ConfigSetting[Boolean] =
     ConfigSetting("view.sortAsc", true)
 
-  // TODO: Size granularity display
+  val WindowIsMaximized: ConfigSetting[Boolean] =
+    ConfigSetting("view.window.isMaximized", false)
+
+  val WindowBounds: RectangleConfigSetting =
+    new RectangleConfigSetting("view.window.bounds", (0, 0, 0, 0))
+
+  // TODO: File size/speed granularity display
 
   sealed abstract class OnWindowClose(id: String, prettyName: String) extends RadioValue(id, prettyName)
   object OnWindowClose {
