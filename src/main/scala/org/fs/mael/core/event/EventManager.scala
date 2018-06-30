@@ -26,6 +26,10 @@ trait EventManager {
     fire(ConfigChanged(de))
   }
 
+  def fireSelectionChanged(des: Seq[DownloadEntry]): Unit = {
+    fire(SelectionChanged(des))
+  }
+
   def fireAdded(de: DownloadEntry): Unit = {
     fire(Added(de))
   }

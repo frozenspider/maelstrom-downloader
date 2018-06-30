@@ -260,10 +260,9 @@ class MainFrame(
     }
 
     mainTable.peer.addListener(SWT.Selection, e => {
-      val selectedOption = mainTable.selectedEntryOption
-      if (selectedOption != logTable.currentOption) {
-        logTable.render(mainTable.selectedEntryOption)
-      }
+      // Re-fire this event as internal event
+      // (We can't process this here right away to avoid possible race condition)
+      eventMgr.fireSelectionChanged(mainTable.selectedEntries)
     })
   }
 
@@ -482,6 +481,13 @@ class MainFrame(
       case Logged(de, entry) => syncExecSafely(peer) {
         if (mainTable.selectedEntryOption == Some(de)) {
           logTable.append(entry, false)
+        }
+      }
+
+      case SelectionChanged(des) => syncExecSafely(peer) {
+        val selectedOption = if (des.size == 1) Some(des.head) else None
+        if (selectedOption != logTable.currentOption) {
+          logTable.render(mainTable.selectedEntryOption)
         }
       }
 

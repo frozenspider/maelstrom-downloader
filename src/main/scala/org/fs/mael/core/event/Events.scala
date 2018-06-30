@@ -59,7 +59,7 @@ object Events {
   }
 
   //
-  // Backend events
+  // Other events
   //
 
   /**
@@ -87,6 +87,16 @@ object Events {
    */
   case class Logged(de: DownloadEntry, entry: LogEntry) extends PriorityEventImpl(20) with EventForUi {
     override def msg = "Log entry added for " + de.uri
+  }
+
+  /**
+   * Selected rows in main download table changed.
+   *
+   * Should be fired by UI.
+   */
+  // Note that this should have lesser priority than Logged event, otherwise it may cause double-rendering of some log lines
+  case class SelectionChanged(des: Seq[DownloadEntry]) extends PriorityEventImpl(10) with EventForUi {
+    override def msg = s"Selected ${des.size} entries"
   }
 
   /**

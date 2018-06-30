@@ -37,6 +37,9 @@ object GlobalSettings {
   val ShowTrayIconBehavior: RadioConfigSetting[ShowTrayIcon] =
     ConfigSetting("main.showTrayIcon", ShowTrayIcon.Always, ShowTrayIcon.values)
 
+  val AutoStartDownloads: ConfigSetting[Boolean] =
+    ConfigSetting("main.autoStartDownloads", true)
+
   val SortColumn: ConfigSetting[String] =
     ConfigSetting("view.sortColumn", "date-created")
 

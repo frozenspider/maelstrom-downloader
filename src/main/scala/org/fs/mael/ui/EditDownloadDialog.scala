@@ -43,6 +43,7 @@ class EditDownloadDialog(
   eventMgr:        EventManager
 ) extends Logging {
 
+  private val isNewDownload = !_deOption.isDefined
   private var tabFolder: TabFolder = _
 
   private var uriInput: Text = _
@@ -52,6 +53,7 @@ class EditDownloadDialog(
   private var commentInput: Text = _
   private var checksumDropdown: Combo = _
   private var checksumInput: Text = _
+  private var autostartCheckbox: Button = _
 
   /** Switch to advanced mode, enabling backend-specific config options */
   private var goAdvanced: () => Unit = _
@@ -59,9 +61,9 @@ class EditDownloadDialog(
   private var backendCfgUiOption: Option[BackendConfigUi] = None
 
   val shell = new Shell(parent, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL).withCode { shell =>
-    _deOption match {
-      case None    => shell.setText("Add Download")
-      case Some(_) => shell.setText("Edit Download")
+    isNewDownload match {
+      case true  => shell.setText("Add Download")
+      case false => shell.setText("Edit Download")
     }
 
     shell.setLayout(new GridLayout())
@@ -224,6 +226,16 @@ class EditDownloadDialog(
       })
       installDefaultHotkeys(input)
     }
+
+    autostartCheckbox = new Button(parent, SWT.CHECK).withCode { checkbox =>
+      checkbox.setText("Start download right away")
+      if (isNewDownload) {
+        checkbox.setSelection(globalCfg(GlobalSettings.AutoStartDownloads))
+      } else {
+        checkbox.setSelection(false)
+        checkbox.setEnabled(false)
+      }
+    }
   }
 
   private def fillButtons(shell: Shell): Unit = {
@@ -330,8 +342,9 @@ class EditDownloadDialog(
     checksumOption: Option[Checksum],
     comment:        String
   )(deCfgOption: Option[InMemoryConfigStore]): Unit = {
-    val entry = backend.create(uri, location, filenameOption, checksumOption, comment, deCfgOption)
-    downloadListMgr.add(entry)
+    val de = backend.create(uri, location, filenameOption, checksumOption, comment, deCfgOption)
+    downloadListMgr.add(de)
+    processAutostart(backend, de)
   }
 
   private def edit(
@@ -365,6 +378,16 @@ class EditDownloadDialog(
     downloadListMgr.save() // We don't want to lose changes
     eventMgr.fireDetailsChanged(de)
     eventMgr.fireConfigChanged(de)
+    if (isNewDownload) {
+      processAutostart(backend, de)
+    }
+  }
+
+  private def processAutostart(backend: Backend, de: DownloadEntry): Unit = {
+    if (autostartCheckbox.getSelection) {
+      backend.downloader.start(de, globalCfg(GlobalSettings.NetworkTimeout))
+    }
+    globalCfg.set(GlobalSettings.AutoStartDownloads, autostartCheckbox.getSelection)
   }
 
   private def relocateWithProgress(from: File, to: File): Unit = {
