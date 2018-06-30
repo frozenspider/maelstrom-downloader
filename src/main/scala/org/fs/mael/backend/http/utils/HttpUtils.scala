@@ -78,7 +78,9 @@ object HttpUtils {
     inputBuffer.bind(is)
     val lineParser = BasicLineParser.INSTANCE
     val headers = AbstractMessageParser.parseHeaders(inputBuffer, 0, 0, lineParser)
-    ListMap(headers.map(h => (h.getName -> h.getValue)): _*)
+    val headersMap = ListMap(headers.map(h => (h.getName -> h.getValue)): _*)
+    validateHeadersCharacterSet(headersMap)
+    headersMap
   }
 
   private object CookieParsing extends RegexParsers {
