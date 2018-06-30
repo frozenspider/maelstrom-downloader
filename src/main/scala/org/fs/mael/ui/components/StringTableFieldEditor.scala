@@ -13,8 +13,8 @@ import org.fs.mael.ui.utils.Hotkey
 import org.fs.mael.ui.utils.Hotkey._
 import org.slf4s.Logging
 
-abstract class StringTableFieldEditor(name: String, labelText: String, parent: Composite)
-  extends FieldEditor(name, labelText, parent) { this: Logging =>
+abstract class StringTableFieldEditor(name: String, labelText: String, _parent: Composite)
+  extends FieldEditor(name, labelText, _parent) { this: Logging =>
 
   private var content: ListMap[String, String] = ListMap.empty
   private var top: Composite = _
@@ -55,7 +55,7 @@ abstract class StringTableFieldEditor(name: String, labelText: String, parent: C
       gridData.horizontalSpan = numColumns
     })
 
-    control = new Composite(parent, SWT.NONE)
+    control = new Composite(top, SWT.NONE)
     control.setLayout(new GridLayout(1, false).withCode { layout =>
       layout.marginLeft = 0
       layout.marginRight = 0
@@ -66,7 +66,7 @@ abstract class StringTableFieldEditor(name: String, labelText: String, parent: C
 
     Option(getLabelText) foreach { text =>
       getLabelControl(control).withCode { label =>
-        label.setFont(parent.getFont)
+        label.setFont(top.getFont)
         label.setText(text)
       }
     }
@@ -81,7 +81,7 @@ abstract class StringTableFieldEditor(name: String, labelText: String, parent: C
     inner.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false))
 
     table = new Table(inner, SWT.MULTI | SWT.BORDER | SWT.FULL_SELECTION)
-    table.setFont(parent.getFont)
+    table.setFont(top.getFont)
     table.setLinesVisible(true)
     table.setHeaderVisible(true)
     table.addDisposeListener(event => this.table = null)
@@ -100,7 +100,7 @@ abstract class StringTableFieldEditor(name: String, labelText: String, parent: C
     table.getColumns.foreach(_.pack())
 
     editBtn = new Button(inner, SWT.LEAD).withCode { btn =>
-      btn.setFont(parent.getFont)
+      btn.setFont(top.getFont)
       btn.setText("Edit...")
       btn.setLayoutData(new GridData(SWT.LEAD, SWT.BEGINNING, false, false))
       btn.addListener(SWT.Selection, e => {
@@ -134,7 +134,7 @@ abstract class StringTableFieldEditor(name: String, labelText: String, parent: C
     dialog.prompt().foreach {
       case Some(newContent) =>
         content = newContent
-        syncExecSafely(parent) {
+        syncExecSafely(top) {
           rerenderContent()
         }
       case None => // NOOP
