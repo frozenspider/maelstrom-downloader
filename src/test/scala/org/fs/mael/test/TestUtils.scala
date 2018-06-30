@@ -25,13 +25,13 @@ object TestUtils extends Assertions {
     assert(de1.backendSpecificCfg === de2.backendSpecificCfg)
   }
 
-  implicit class RichMemoryConfigStore(cfg: InMemoryConfigStore) {
-    def reset(): InMemoryConfigStore = {
+  implicit class RichMemoryConfigStore(val cfg: InMemoryConfigStore) {
+    def reset(): cfg.type = {
       cfg.resetTo(new InMemoryConfigStore)
       cfg
     }
 
-    def updated[T](setting: ConfigSetting[T], value: T): InMemoryConfigStore = {
+    def updated[T](setting: ConfigSetting[T], value: T): cfg.type = {
       cfg.set(setting, value)
       cfg
     }

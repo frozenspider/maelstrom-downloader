@@ -1,7 +1,7 @@
 package org.fs.mael.core.backend.ui
 
-import org.fs.mael.core.config.InMemoryConfigStore
+import org.fs.mael.core.config.BackendConfigStore
 
 trait BackendConfigUi {
-  def get(): InMemoryConfigStore
+  def get(): BackendConfigStore
 }

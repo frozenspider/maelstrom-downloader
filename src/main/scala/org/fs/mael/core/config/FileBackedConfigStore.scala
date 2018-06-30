@@ -7,7 +7,7 @@ import org.eclipse.jface.preference.PreferenceStore
 import org.fs.mael.core.utils.CoreUtils._
 
 class FileBackedConfigStore(val file: File) extends ConfigStore {
-  override val inner = new PreferenceStore().withCode { store =>
+  override lazy val inner = new PreferenceStore().withCode { store =>
     file.getParentFile.mkdirs()
     store.setFilename(file.getAbsolutePath)
     try {

@@ -19,7 +19,7 @@ import org.eclipse.swt.widgets._
 import org.fs.mael.BuildInfo
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.BackendManager
-import org.fs.mael.core.config.ConfigStore
+import org.fs.mael.core.config.IGlobalConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.EventForUi
 import org.fs.mael.core.event.EventManager
@@ -39,7 +39,7 @@ import org.slf4s.Logging
 class MainFrame(
   display:         Display,
   resources:       Resources,
-  globalCfg:       ConfigStore,
+  globalCfg:       IGlobalConfigStore,
   backendMgr:      BackendManager,
   downloadListMgr: DownloadListManager,
   eventMgr:        EventManager

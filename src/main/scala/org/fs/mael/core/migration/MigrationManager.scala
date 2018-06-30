@@ -6,11 +6,11 @@ import java.nio.file.Files
 import scala.io.Codec
 import scala.io.Source
 
-import org.fs.mael.core.config.ConfigStore
 import org.fs.mael.core.config.ConfigSetting
+import org.fs.mael.core.config.IGlobalConfigStore
 import org.slf4s.Logging
 
-class MigrationManager(globalCfg: ConfigStore, downloadListFile: File) extends Logging {
+class MigrationManager(globalCfg: IGlobalConfigStore, downloadListFile: File) extends Logging {
   import MigrationManager._
 
   // TODO: What if config didn't exist before? No migrations should be applied in that case!

@@ -5,7 +5,7 @@ import java.net.URI
 
 import scala.collection.immutable.SortedMap
 
-import org.fs.mael.core.config.InMemoryConfigStore
+import org.fs.mael.core.config.BackendConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.EventSubscriber
 import org.fs.mael.core.event.Events
@@ -156,7 +156,7 @@ class SpeedTrackerSpec
   }
 
   private def getEmptyDownloadEntry(): DownloadEntry =
-    DownloadEntry("", new URI(""), new File(""), None, None, "", new InMemoryConfigStore)
+    DownloadEntry("", new URI(""), new File(""), None, None, "", new BackendConfigStore)
 
   private def getNow() = System.currentTimeMillis
 

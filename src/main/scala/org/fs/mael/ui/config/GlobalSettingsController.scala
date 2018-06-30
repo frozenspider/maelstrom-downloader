@@ -6,10 +6,10 @@ import org.eclipse.jface.preference.PreferenceDialog
 import org.eclipse.jface.preference.PreferenceManager
 import org.eclipse.swt.widgets.Shell
 import org.fs.mael.backend.http.config.HttpSettings
-import org.fs.mael.core.config.ConfigStore
+import org.fs.mael.core.config.IGlobalConfigStore
 import org.fs.mael.core.utils.CoreUtils._
 
-class GlobalSettingsController(val globalCfg: ConfigStore) {
+class GlobalSettingsController(val globalCfg: IGlobalConfigStore) {
 
   val mgr = new PreferenceManager().withCode { mgr =>
     def addPage(pageDescr: MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]): Unit = {

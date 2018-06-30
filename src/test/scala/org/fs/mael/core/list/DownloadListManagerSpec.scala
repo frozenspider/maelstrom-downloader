@@ -10,7 +10,7 @@ import scala.io.Source
 import org.fs.mael.core.Status
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.checksum.ChecksumType
-import org.fs.mael.core.config.InMemoryConfigStore
+import org.fs.mael.core.config.BackendConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.Events._
 import org.fs.mael.core.utils.CoreUtils._
@@ -120,8 +120,8 @@ class DownloadListManagerSpec
     assert(eventMgr.events(5) === Removed(entries(1)))
   }
 
-  private def defaultCfg: InMemoryConfigStore = {
-    val cfg = new InMemoryConfigStore
+  private def defaultCfg: BackendConfigStore = {
+    val cfg = new BackendConfigStore
     cfg.initDefault(StubBackend.StubSetting)
     cfg
   }

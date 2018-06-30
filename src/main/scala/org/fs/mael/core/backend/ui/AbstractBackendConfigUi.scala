@@ -1,8 +1,8 @@
 package org.fs.mael.core.backend.ui
 
 import org.eclipse.swt.widgets.TabFolder
-import org.fs.mael.core.config.ConfigStore
-import org.fs.mael.core.config.InMemoryConfigStore
+import org.fs.mael.core.config.BackendConfigStore
+import org.fs.mael.core.config.IGlobalConfigStore
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.config.MFieldEditorPreferencePage
 import org.fs.mael.ui.config.MPreferencePageDescriptor
@@ -12,15 +12,15 @@ abstract class AbstractBackendConfigUi extends BackendConfigUi {
 
   def isEditable: Boolean
 
-  def cfgOption: Option[ConfigStore]
+  def cfgOption: Option[BackendConfigStore]
 
-  def globalCfg: ConfigStore
+  def globalCfg: IGlobalConfigStore
 
   def tabFolder: TabFolder
 
   def pageDescriptions: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]]
 
-  val cfg = new InMemoryConfigStore
+  val cfg = new BackendConfigStore
 
   val pages: Seq[MFieldEditorPreferencePage] = {
     cfgOption match {
@@ -32,7 +32,7 @@ abstract class AbstractBackendConfigUi extends BackendConfigUi {
     }
   }
 
-  override def get(): InMemoryConfigStore = {
+  override def get(): BackendConfigStore = {
     if (isEditable) {
       requireFriendly(pages.forall(_.performOk), "Some settings are invalid")
     }

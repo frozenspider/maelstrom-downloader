@@ -9,7 +9,7 @@ import scala.collection.immutable.ListMap
 import org.fs.mael.backend.http.config.HttpSettings
 import org.fs.mael.backend.http.utils.HttpUtils
 import org.fs.mael.core.backend.AbstractBackend
-import org.fs.mael.core.config.ConfigStore
+import org.fs.mael.core.config.IGlobalConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
@@ -17,7 +17,7 @@ import org.fs.mael.core.utils.CoreUtils._
 
 class HttpBackend(
   transferMgr:            TransferManager,
-  override val globalCfg: ConfigStore,
+  override val globalCfg: IGlobalConfigStore,
   eventMgr:               EventManager
 ) extends AbstractBackend {
   override val id: String = HttpBackend.Id

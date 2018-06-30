@@ -6,33 +6,10 @@ import scala.io.Codec
 
 import org.eclipse.jface.preference.PreferenceStore
 import org.fs.utility.Imports._
-import org.slf4s.Logging
+import org.slf4s.Logger
 
-class InMemoryConfigStore extends ConfigStore with Logging {
+class InMemoryConfigStore extends ConfigStore {
   override val inner = new PreferenceStore()
-
-  def this(that: ConfigStore) = {
-    this()
-    resetTo(that)
-  }
-
-  def this(that: ConfigStore, pathPrefix: String) = {
-    this()
-    resetTo(that, pathPrefix)
-  }
-
-  def this(serialString: String) = {
-    this()
-    // Charset is taken from java.util.Properties.store
-    val bytes = serialString.getBytes(Codec.ISO8859.charSet)
-    inner.load(new ByteArrayInputStream(bytes))
-    val keys = this.inner.preferenceNames()
-    this.settings = keys.toSeq.map { key =>
-      val lookup = ConfigSetting.lookup(key)
-      if (lookup.isEmpty) log.warn("No config setting for property key " + key)
-      lookup
-    }.yieldDefined.toSet
-  }
 
   /** Reset state to mirror the given one */
   def resetTo(that: ConfigStore): Unit = {
@@ -89,5 +66,37 @@ class InMemoryConfigStore extends ConfigStore with Logging {
     removed ++ changed ++ added
   }
 
-  def save(): Unit = { /* NOOP */ }
+  override def save(): Unit = { /* NOOP */ }
+}
+
+object InMemoryConfigStore {
+  def apply(that: ConfigStore): InMemoryConfigStore = {
+    val cfg = new InMemoryConfigStore
+    cfg.resetTo(that)
+    cfg
+  }
+
+  def apply(that: ConfigStore, pathPrefix: String): InMemoryConfigStore = {
+    val cfg = new InMemoryConfigStore
+    cfg.resetTo(that, pathPrefix)
+    cfg
+  }
+
+  def apply(serialString: String)(implicit log: Logger): InMemoryConfigStore = {
+    val cfg = new InMemoryConfigStore
+    applyTo(cfg, serialString)
+    cfg
+  }
+
+  protected[config] def applyTo(cfg: InMemoryConfigStore, serialString: String)(implicit log: Logger): Unit = {
+    // Charset is taken from java.util.Properties.store
+    val bytes = serialString.getBytes(Codec.ISO8859.charSet)
+    cfg.inner.load(new ByteArrayInputStream(bytes))
+    val keys = cfg.inner.preferenceNames()
+    cfg.settings = keys.toSeq.map { key =>
+      val lookup = ConfigSetting.lookup(key)
+      if (lookup.isEmpty) log.warn("No config setting for property key " + key)
+      lookup
+    }.yieldDefined.toSet
+  }
 }

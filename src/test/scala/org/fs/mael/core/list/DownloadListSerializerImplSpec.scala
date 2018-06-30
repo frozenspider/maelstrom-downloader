@@ -8,6 +8,7 @@ import org.fs.mael.core.Status
 import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.checksum.ChecksumType
+import org.fs.mael.core.config.IGlobalConfigStore
 import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
@@ -30,7 +31,7 @@ class DownloadListSerializerImplSpec
 
   private val backendMgr = (new BackendManager).withCode { backendMgr =>
     backendMgr += (new StubBackend, Int.MinValue)
-    backendMgr += (new HttpBackend(new SimpleTransferManager, new InMemoryConfigStore, eventMgr), 0)
+    backendMgr += (new HttpBackend(new SimpleTransferManager, new InMemoryConfigStore with IGlobalConfigStore, eventMgr), 0)
   }
 
   private val serializer = new DownloadListSerializerImpl()
