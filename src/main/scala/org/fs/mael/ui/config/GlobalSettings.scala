@@ -25,8 +25,8 @@ object GlobalSettings {
       }
     })
 
-  val NetworkTimeout: ConfigSetting[Int] =
-    ConfigSetting("main.networkTimeoutMs", 0)
+  val ConnectionTimeout: ConfigSetting[Int] =
+    ConfigSetting("main.connection.timeoutMs", 0)
 
   val OnWindowCloseBehavior: RadioConfigSetting[OnWindowClose] =
     ConfigSetting("main.onWindowClose", OnWindowClose.Undefined, OnWindowClose.values)
@@ -87,7 +87,7 @@ object GlobalSettings {
         new DirectoryFieldEditor(setting.id, "Download path:", parent)
       }
 
-      row(NetworkTimeout) { (setting, parent) =>
+      row(ConnectionTimeout) { (setting, parent) =>
         new IntegerFieldEditor(setting.id, "Network timeout (ms, 0 means no timeout):", parent).withCode { field =>
           field.setValidRange(0, 7 * 24 * 60 * 60 * 1000) // Up to one week
         }

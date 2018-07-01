@@ -384,7 +384,7 @@ class EditDownloadDialog(
 
   private def processAutostart(backend: Backend, de: DownloadEntry): Unit = {
     if (autostartCheckbox.getSelection) {
-      backend.downloader.start(de, globalCfg(GlobalSettings.NetworkTimeout))
+      backend.downloader.start(de, globalCfg(GlobalSettings.ConnectionTimeout))
     }
     globalCfg.set(GlobalSettings.AutoStartDownloads, autostartCheckbox.getSelection)
   }
