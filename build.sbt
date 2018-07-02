@@ -1,7 +1,7 @@
 name           := "maelstrom-downloader"
 val prettyName =  "Maelstrom Downloader"
 version        := "0.2-SNAPSHOT"
-scalaVersion   := "2.12.3"
+scalaVersion   := "2.12.6"
 
 // Show tests duration and full stacktrace on test errors
 testOptions in Test += Tests.Argument("-oDF")
