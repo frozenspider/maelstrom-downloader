@@ -20,12 +20,12 @@ abstract class AbstractBackendConfigUi extends BackendConfigUi {
 
   def pageDescriptions: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]]
 
-  val cfg = new BackendConfigStore
+  val cfg = new BackendConfigStore(backendId)
 
   val pages: Seq[MFieldEditorPreferencePage] = {
     cfgOption match {
-      case Some(_cfg) => cfg.resetTo(_cfg, backendId) // Ignore default preferences
-      case None       => cfg.resetTo(globalCfg, backendId)
+      case Some(_cfg) => cfg.resetTo(_cfg) // Ignore default preferences
+      case None       => cfg.resetTo(globalCfg)
     }
     pageDescriptions map { pageDescr =>
       createPage(pageDescr, tabFolder)

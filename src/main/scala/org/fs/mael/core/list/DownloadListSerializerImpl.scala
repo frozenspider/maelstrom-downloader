@@ -6,7 +6,7 @@ import java.io.File
 
 import org.fs.mael.core.Status
 import org.fs.mael.core.checksum.ChecksumType
-import org.fs.mael.core.config.BackendConfigStore
+import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.json4s._
@@ -94,15 +94,15 @@ object DownloadListSerializerImpl {
     }
   ))
 
-  object BackendConfigSerializer
-    extends CustomSerializer[BackendConfigStore](format => (
+  object InMemoryConfigSerializer
+    extends CustomSerializer[InMemoryConfigStore](format => (
       {
         case x: JString =>
-          new BackendConfigStore(x.s)
+          new InMemoryConfigStore(x.s)
         case JNothing =>
-          new BackendConfigStore()
+          new InMemoryConfigStore()
       }, {
-        case cfg: BackendConfigStore =>
+        case cfg: InMemoryConfigStore =>
           JString(cfg.toSerialString)
       }
     ))

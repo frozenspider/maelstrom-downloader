@@ -11,6 +11,9 @@ import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.config.BackendConfigStore
 
 import com.github.nscala_time.time.Imports._
+import org.fs.mael.core.config.SettingsAccessChecker
+import org.fs.mael.core.config.BackendConfigStore
+import org.fs.mael.core.config.InMemoryConfigStore
 
 /**
  * Entry for a specific download processor, implementation details may vary.
@@ -20,15 +23,15 @@ import com.github.nscala_time.time.Imports._
  * @author FS
  */
 class DownloadEntry private (
-  override val id:          UUID,
-  override val dateCreated: DateTime,
-  val backendId:            String,
-  var uri:                  URI,
-  var location:             File,
-  var filenameOption:       Option[String],
-  var checksumOption:       Option[Checksum],
-  var comment:              String,
-  val backendSpecificCfg:   BackendConfigStore
+  override val id:                 UUID,
+  override val dateCreated:        DateTime,
+  val backendId:                   String,
+  var uri:                         URI,
+  var location:                    File,
+  var filenameOption:              Option[String],
+  var checksumOption:              Option[Checksum],
+  var comment:                     String,
+  private val _backendSpecificCfg: InMemoryConfigStore
 ) extends DownloadEntryView with DownloadEntryLoggableView {
 
   var status: Status = Status.Stopped
@@ -40,6 +43,10 @@ class DownloadEntry private (
   val sections: mutable.Map[Start, Downloaded] = mutable.Map.empty
 
   var downloadLog: IndexedSeq[LogEntry] = IndexedSeq.empty
+
+  def backendSpecificCfg(accessChecker: SettingsAccessChecker): BackendConfigStore = {
+    new BackendConfigStore(_backendSpecificCfg, accessChecker)
+  }
 
   override def addDownloadLogEntry(entry: LogEntry): Unit = {
     this.downloadLog = this.downloadLog :+ entry
@@ -56,7 +63,7 @@ object DownloadEntry {
     comment:            String,
     backendSpecificCfg: BackendConfigStore
   ) = {
-    new DownloadEntry(UUID.randomUUID(), DateTime.now(), backendId, uri, location, filenameOption, checksumOption, comment, backendSpecificCfg)
+    new DownloadEntry(UUID.randomUUID(), DateTime.now(), backendId, uri, location, filenameOption, checksumOption, comment, backendSpecificCfg.innerStore)
   }
 
   def load(
@@ -70,6 +77,6 @@ object DownloadEntry {
     comment:            String,
     backendSpecificCfg: BackendConfigStore
   ) = {
-    new DownloadEntry(id, dateCreated, backendId, uri, location, filenameOption, checksumOption, comment, backendSpecificCfg)
+    new DownloadEntry(id, dateCreated, backendId, uri, location, filenameOption, checksumOption, comment, backendSpecificCfg.innerStore)
   }
 }

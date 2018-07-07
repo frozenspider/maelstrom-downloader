@@ -1,33 +1,42 @@
 package org.fs.mael.core.config
 
 import org.slf4s.Logging
+import org.eclipse.jface.preference.PreferenceStore
 
-class BackendConfigStore extends InMemoryConfigStore with Logging {
-  def this(globalCfg: IGlobalConfigStore, pathPrefix: String) = {
-    this()
-    resetTo(globalCfg, pathPrefix)
+class BackendConfigStore(
+  val innerStore: InMemoryConfigStore,
+  accessChecker: SettingsAccessChecker
+) extends IConfigStore with Logging {
+
+  protected var allowedSettingsOption: Option[Seq[ConfigSetting[_]]] = None
+
+  override def settings: Set[ConfigSetting[_]] = innerStore.settings
+
+  override def inner: PreferenceStore = innerStore.inner
+
+  override def save(): Unit = innerStore.save()
+
+  override def initDefault(setting: ConfigSetting[_]): Unit = {
+    ensureSettingAccess(setting)
+    innerStore.initDefault(setting)
   }
 
-  def this(serialString: String) = {
-    this()
-    InMemoryConfigStore.applyTo(this, serialString)(log)
+  override def apply[T](setting: ConfigSetting[T]): T = {
+    ensureSettingAccess(setting)
+    innerStore(setting)
   }
 
-  override def resetTo(that: ConfigStore): Unit = {
-    super.resetTo(that)
-    that match {
-      case that: IGlobalConfigStore =>
-        ??? // FIXME: Destroy global-linked properties
-      case _ => // NOOP
-    }
+  override def set[T](setting: ConfigSetting[T], value: T): Unit = {
+    ensureSettingAccess(setting)
+    innerStore.set(setting, value)
   }
 
-  override def resetTo(that: ConfigStore, pathPrefix: String): Unit = {
-    super.resetTo(that, pathPrefix)
-    that match {
-      case that: IGlobalConfigStore =>
-        ??? // FIXME: Destroy global-linked properties
-      case _ => // NOOP
-    }
+  override def addSettingChangedListener[T](setting: ConfigSetting[T])(f: ConfigChangedEvent[T] => Unit): Unit = {
+    ensureSettingAccess(setting)
+    innerStore.addSettingChangedListener(setting)(f)
+  }
+
+  protected def ensureSettingAccess(setting: ConfigSetting[_]): Unit = {
+    require(accessChecker.isSettingAccessible(setting), s"Setting $setting is outside the scope!")
   }
 }
