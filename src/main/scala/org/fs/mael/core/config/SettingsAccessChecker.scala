@@ -6,5 +6,10 @@ package org.fs.mael.core.config
  * This is needed to ensure a fail-fast behaviour if some new setting was added partially.
  */
 trait SettingsAccessChecker {
-  def isSettingAccessible(setting: ConfigSetting[_]): Boolean
+  def backendId: String
+
+  def isSettingIdAccessible(settingId: String): Boolean
+
+  def isSettingAccessible(setting: ConfigSetting[_]): Boolean =
+    isSettingIdAccessible(setting.id)
 }

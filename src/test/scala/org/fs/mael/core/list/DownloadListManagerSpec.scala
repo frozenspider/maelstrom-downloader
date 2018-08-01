@@ -121,7 +121,7 @@ class DownloadListManagerSpec
   }
 
   private def defaultCfg: BackendConfigStore = {
-    val cfg = new BackendConfigStore
+    val cfg = BackendConfigStore(StubBackend.SettingsAccessChecker)
     cfg.initDefault(StubBackend.StubSetting)
     cfg
   }

@@ -1,7 +1,9 @@
 package org.fs.mael.test
 
+import org.fs.mael.core.config.BackendConfigStore
 import org.fs.mael.core.config.ConfigSetting
 import org.fs.mael.core.config.InMemoryConfigStore
+import org.fs.mael.core.config.SettingsAccessChecker
 import org.fs.mael.core.entry.DownloadEntry
 import org.scalatest.Assertions
 
@@ -25,12 +27,24 @@ object TestUtils extends Assertions {
     assert(de1.backendSpecificCfg === de2.backendSpecificCfg)
   }
 
-  implicit class RichMemoryConfigStore(val cfg: InMemoryConfigStore) {
+  val DummySettingsAccessChecker = new SettingsAccessChecker {
+    override val backendId = "<none!>"
+    override def isSettingIdAccessible(settingId: String): Boolean = true
+  }
+
+  implicit class RichBackendConfigStore(val cfg: BackendConfigStore) {
     def reset(): cfg.type = {
       cfg.resetTo(new InMemoryConfigStore)
       cfg
     }
 
+    def updated[T](setting: ConfigSetting[T], value: T): cfg.type = {
+      cfg.set(setting, value)
+      cfg
+    }
+  }
+
+  implicit class RichMemoryConfigStore(val cfg: InMemoryConfigStore) {
     def updated[T](setting: ConfigSetting[T], value: T): cfg.type = {
       cfg.set(setting, value)
       cfg

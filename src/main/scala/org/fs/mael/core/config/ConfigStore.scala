@@ -9,7 +9,7 @@ import org.eclipse.jface.preference.PreferenceStore
 import org.eclipse.jface.util.PropertyChangeEvent
 
 trait ConfigStore extends IConfigStore {
-  protected[config] var settings: Set[ConfigSetting[_]] = Set.empty
+  var settings: Set[ConfigSetting[_]] = Set.empty
   protected[config] var listerensEnabled: Boolean = true
 
   override val inner: PreferenceStore

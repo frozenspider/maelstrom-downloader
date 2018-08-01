@@ -5,6 +5,7 @@ import org.fs.mael.core.backend.AbstractBackend
 import org.fs.mael.core.backend.BackendDownloader
 import org.fs.mael.core.backend.ui.BackendConfigUi
 import org.fs.mael.core.config.BackendConfigStore
+import org.fs.mael.core.config.DefaultSettingsAccessChecker
 import org.fs.mael.core.config.IGlobalConfigStore
 import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.core.entry.DownloadEntry
@@ -31,4 +32,6 @@ abstract class AbstractSimpleBackend(
   }
 
   override def pageDescriptors = Seq.empty
+
+  override val settingsAccessChecker = new DefaultSettingsAccessChecker(id)
 }

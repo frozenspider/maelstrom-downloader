@@ -466,7 +466,7 @@ class HttpDownloaderSpec
       filenameOption     = Some(filename),
       checksumOption     = None,
       comment            = "my comment",
-      backendSpecificCfg = new BackendConfigStore
+      backendSpecificCfg = BackendConfigStore(HttpBackend.SettingsAccessChecker)
     )
   }
 

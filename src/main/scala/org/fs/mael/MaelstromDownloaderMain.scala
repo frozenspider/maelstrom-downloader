@@ -52,7 +52,7 @@ object MaelstromDownloaderMain extends App with Logging {
       val transferMgr = new SimpleTransferManager
       initBackends(backendMgr, transferMgr, globalCfg, eventMgr)
       val downloadListMgr = {
-        val serializer = new DownloadListSerializerImpl
+        val serializer = new DownloadListSerializerImpl(backendMgr)
         new DownloadListManager(serializer, downloadListFile, eventMgr)
       }
       downloadListMgr.load()

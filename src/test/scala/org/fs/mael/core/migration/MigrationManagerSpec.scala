@@ -20,13 +20,13 @@ class MigrationManagerSpec
 
   import MigrationManager._
 
-  val cfg = new InMemoryConfigStore with IGlobalConfigStore
+  var cfg = new InMemoryConfigStore with IGlobalConfigStore
   val file = File.createTempFile("temp", ".tmp")
 
   val mgr = new MigrationManager(cfg, file)
 
   after {
-    cfg.reset()
+    cfg = new InMemoryConfigStore with IGlobalConfigStore
     Files.write(file.toPath(), Array.emptyByteArray)
   }
 

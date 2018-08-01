@@ -8,12 +8,13 @@ import org.eclipse.swt.widgets.TabFolder
 import org.eclipse.swt.widgets.TabItem
 import org.fs.mael.core.config.BackendConfigStore
 import org.fs.mael.core.config.IGlobalConfigStore
+import org.fs.mael.core.config.SettingsAccessChecker
 import org.fs.mael.ui.config.MFieldEditorPreferencePage
 import org.fs.mael.ui.config.MPreferencePageDescriptor
 import org.fs.mael.ui.utils.SwtUtils
 
 class BackendConfigUiImpl(
-  override val backendId:        String,
+  override val resultCfg:        BackendConfigStore,
   override val isEditable:       Boolean,
   override val cfgOption:        Option[BackendConfigStore],
   override val globalCfg:        IGlobalConfigStore,
@@ -29,7 +30,7 @@ class BackendConfigUiImpl(
     tab.setControl(container)
 
     val page = pageDescr.clazz.newInstance()
-    page.setConfigStore(cfg)
+    page.setConfigStore(resultCfg.innerStore)
     page.noDefaultAndApplyButton()
     page.createControl(container)
     page.getControl.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true))

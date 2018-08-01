@@ -34,7 +34,7 @@ class DownloadListSerializerImplSpec
     backendMgr += (new HttpBackend(new SimpleTransferManager, new InMemoryConfigStore with IGlobalConfigStore, eventMgr), 0)
   }
 
-  private val serializer = new DownloadListSerializerImpl()
+  private val serializer = new DownloadListSerializerImpl(backendMgr)
 
   test("stub - simple") {
     assertSingularSerializationWorks(createDE("simple")())

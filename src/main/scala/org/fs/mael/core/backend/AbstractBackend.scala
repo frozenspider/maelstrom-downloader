@@ -21,7 +21,7 @@ abstract class AbstractBackend extends Backend {
 
   /** Initialize default config for a new entry */
   protected def defaultCfg: BackendConfigStore = {
-    new BackendConfigStore(globalCfg, id)
+    BackendConfigStore(globalCfg, settingsAccessChecker)
   }
 
   override def create(
@@ -37,6 +37,7 @@ abstract class AbstractBackend extends Backend {
   }
 
   override def layoutConfig(cfgOption: Option[BackendConfigStore], tabFolder: TabFolder, isEditable: Boolean): BackendConfigUi = {
-    new BackendConfigUiImpl(id, isEditable, cfgOption, globalCfg, tabFolder, pageDescriptors)
+    val resultCfg = BackendConfigStore(settingsAccessChecker)
+    new BackendConfigUiImpl(resultCfg, isEditable, cfgOption, globalCfg, tabFolder, pageDescriptors)
   }
 }

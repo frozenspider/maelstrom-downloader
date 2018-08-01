@@ -23,15 +23,15 @@ import org.fs.mael.core.config.InMemoryConfigStore
  * @author FS
  */
 class DownloadEntry private (
-  override val id:                 UUID,
-  override val dateCreated:        DateTime,
-  val backendId:                   String,
-  var uri:                         URI,
-  var location:                    File,
-  var filenameOption:              Option[String],
-  var checksumOption:              Option[Checksum],
-  var comment:                     String,
-  private val _backendSpecificCfg: InMemoryConfigStore
+  override val id:          UUID,
+  override val dateCreated: DateTime,
+  val backendId:            String,
+  var uri:                  URI,
+  var location:             File,
+  var filenameOption:       Option[String],
+  var checksumOption:       Option[Checksum],
+  var comment:              String,
+  val backendSpecificCfg:   BackendConfigStore
 ) extends DownloadEntryView with DownloadEntryLoggableView {
 
   var status: Status = Status.Stopped
@@ -43,10 +43,6 @@ class DownloadEntry private (
   val sections: mutable.Map[Start, Downloaded] = mutable.Map.empty
 
   var downloadLog: IndexedSeq[LogEntry] = IndexedSeq.empty
-
-  def backendSpecificCfg(accessChecker: SettingsAccessChecker): BackendConfigStore = {
-    new BackendConfigStore(_backendSpecificCfg, accessChecker)
-  }
 
   override def addDownloadLogEntry(entry: LogEntry): Unit = {
     this.downloadLog = this.downloadLog :+ entry
@@ -63,7 +59,7 @@ object DownloadEntry {
     comment:            String,
     backendSpecificCfg: BackendConfigStore
   ) = {
-    new DownloadEntry(UUID.randomUUID(), DateTime.now(), backendId, uri, location, filenameOption, checksumOption, comment, backendSpecificCfg.innerStore)
+    new DownloadEntry(UUID.randomUUID(), DateTime.now(), backendId, uri, location, filenameOption, checksumOption, comment, backendSpecificCfg)
   }
 
   def load(
@@ -77,6 +73,6 @@ object DownloadEntry {
     comment:            String,
     backendSpecificCfg: BackendConfigStore
   ) = {
-    new DownloadEntry(id, dateCreated, backendId, uri, location, filenameOption, checksumOption, comment, backendSpecificCfg.innerStore)
+    new DownloadEntry(id, dateCreated, backendId, uri, location, filenameOption, checksumOption, comment, backendSpecificCfg)
   }
 }

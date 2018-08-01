@@ -7,6 +7,7 @@ import org.eclipse.swt.widgets.TabFolder
 import org.fs.mael.core.backend.ui.BackendConfigUi
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.config.BackendConfigStore
+import org.fs.mael.core.config.SettingsAccessChecker
 import org.fs.mael.core.entry.DownloadEntry
 
 trait Backend {
@@ -28,6 +29,8 @@ trait Backend {
   ): DownloadEntry
 
   def downloader: BackendDownloader
+
+  def settingsAccessChecker: SettingsAccessChecker
 
   def layoutConfig(cfgOption: Option[BackendConfigStore], tabFolder: TabFolder, isEditable: Boolean): BackendConfigUi
 }

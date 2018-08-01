@@ -4,8 +4,6 @@ import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
 import org.scalatest.FunSuite
 
-import junit.framework.AssertionFailedError
-
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class InMemoryConfigStoreSpec
   extends FunSuite
@@ -30,7 +28,7 @@ class InMemoryConfigStoreSpec
     failureOption = None
   }
 
-  test("equality and hash code") {
+  test("access, modification, equality and hash code") {
     val store1 = new InMemoryConfigStore
     val store2 = new InMemoryConfigStore
     assert(store1 === store2)
@@ -56,105 +54,5 @@ class InMemoryConfigStoreSpec
     store2.set(setting11, "my-new11")
     assert(store1 === store2)
     assert(store1.hashCode === store2.hashCode)
-  }
-
-  test("reset (unconditional)") {
-    val store1 = new InMemoryConfigStore
-    val store2 = new InMemoryConfigStore
-    store1.resetTo(store1)
-    assert(store1 === store2)
-
-    store2.set(setting11, "my-new11")
-    store2.set(setting21, Radio.r2)
-    store2.set(setting22, None)
-
-    store1.resetTo(store2)
-    assert(store1 === store2)
-    assert(store1(setting11) === "my-new11")
-    assert(store1(setting12) === setting12.default)
-    assert(store1(setting21) === Radio.r2)
-    assert(store1(setting22) === None)
-  }
-
-  test("reset (unconditional) - listener notification") {
-    val store1 = new InMemoryConfigStore
-    val store2 = new InMemoryConfigStore
-    var (triggered11, triggered12, triggered21, triggered22) = (0, 0, 0, 0)
-    store1.addSettingChangedListener(setting11)(expectPropertyChange(setting11.default, "my-new11", triggered11 != 0, triggered11 += 1))
-    store1.addSettingChangedListener(setting12)(expectPropertyNotChanged)
-    store1.addSettingChangedListener(setting21)(expectPropertyNotChanged)
-    store1.addSettingChangedListener(setting22)(expectPropertyChange(setting22.default, None, triggered22 != 0, triggered22 += 1))
-
-    store2.set(setting11, "my-new11")
-    store2.set(setting22, None)
-
-    store1.resetTo(store2)
-    failureOption foreach (th => fail(th))
-    assert(triggered11 === 1)
-    assert(triggered12 === 0)
-    assert(triggered21 === 0)
-    assert(triggered22 === 1)
-  }
-
-  test("reset (conditional)") {
-    val store1 = new InMemoryConfigStore
-    val store2 = new InMemoryConfigStore
-    store1.resetTo(store1)
-    assert(store1 === store2)
-
-    store2.set(setting11, "my-new11")
-    store2.set(setting12, 100500)
-    store2.set(setting21, Radio.r2)
-
-    store1.resetTo(store2, "group1")
-    assert(store1 !== store2)
-    assert(store1(setting11) === "my-new11")
-    assert(store1(setting12) === 100500)
-    assert(store1(setting21) === setting21.default)
-
-    store1.resetTo(store2, "group2")
-    assert(store1 !== store2)
-    assert(store1(setting11) === setting11.default)
-    assert(store1(setting12) === setting12.default)
-    assert(store1(setting21) === Radio.r2)
-  }
-
-  test("reset (conditional) - listener notification") {
-    val store1 = new InMemoryConfigStore
-    val store2 = new InMemoryConfigStore
-    var (triggered11, triggered12, triggered21, triggered22) = (0, 0, 0, 0)
-    store1.addSettingChangedListener(setting11)(expectPropertyNotChanged)
-    store1.addSettingChangedListener(setting12)(expectPropertyNotChanged)
-    store1.addSettingChangedListener(setting21)(expectPropertyChange(setting21.default, Radio.r2, triggered21 != 0, triggered21 += 1))
-    store1.addSettingChangedListener(setting22)(expectPropertyChange(setting22.default, Some("my-new22"), triggered22 != 0, triggered22 += 1))
-
-    store2.set(setting11, "my-new11")
-    store2.set(setting12, 100500)
-    store2.set(setting21, Radio.r2)
-    store2.set(setting22, Some("my-new22"))
-
-    store1.resetTo(store2, "group2")
-    failureOption foreach (th => fail(th))
-    assert(triggered11 === 0)
-    assert(triggered12 === 0)
-    assert(triggered21 === 1)
-    assert(triggered22 === 1)
-  }
-
-  private def expectPropertyChange[T](from: T, to: T, isTriggered: => Boolean, setTriggered: => Unit) = { (e: ConfigChangedEvent[T]) =>
-    try {
-      assert(!isTriggered)
-      setTriggered
-      assert(e.oldValue === from)
-      assert(e.newValue === to)
-    } catch {
-      case th: Throwable => failureOption = Some(th)
-    }
-    ()
-  }
-
-  private def expectPropertyNotChanged = (e: ConfigChangedEvent[_]) => {
-    failureOption = Some(new AssertionFailedError("This listener should not be notified"))
-    ()
   }
 }

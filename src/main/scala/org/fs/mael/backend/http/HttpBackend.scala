@@ -9,7 +9,9 @@ import scala.collection.immutable.ListMap
 import org.fs.mael.backend.http.config.HttpSettings
 import org.fs.mael.backend.http.utils.HttpUtils
 import org.fs.mael.core.backend.AbstractBackend
+import org.fs.mael.core.config.DefaultSettingsAccessChecker
 import org.fs.mael.core.config.IGlobalConfigStore
+import org.fs.mael.core.config.SettingsAccessChecker
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
@@ -101,10 +103,14 @@ class HttpBackend(
     de.backendSpecificCfg.set(HttpSettings.Cookies, cookies)
     de
   }
+
+  def settingsAccessChecker: SettingsAccessChecker = HttpBackend.SettingsAccessChecker
 }
 
 object HttpBackend {
   val Id = "http"
+
+  val SettingsAccessChecker: SettingsAccessChecker = new DefaultSettingsAccessChecker(Id)
 
   private val RequestPattern = "GET ([^\\s]+) HTTP/[\\d.]+".r
 
