@@ -30,7 +30,7 @@ object HttpSettings {
     new HeadersConfigSetting(prefix + ".headers")
 
   val ConnectionProxy: LocalEntityConfigSetting[Proxy] =
-    new LocalEntityConfigSetting[Proxy](prefix + ".proxy", GlobalSettings.ConnectionProxy, GlobalSettings.ConnectionProxies, Proxy.Classes)
+    new LocalEntityConfigSetting[Proxy](prefix + ".proxy", GlobalSettings.ConnectionProxies, GlobalSettings.ConnectionProxy, Proxy.Classes)
 
   //
   // Page groups

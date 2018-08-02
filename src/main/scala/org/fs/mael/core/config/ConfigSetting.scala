@@ -184,8 +184,8 @@ object ConfigSetting {
    */
   class LocalEntityConfigSetting[T <: WithPersistentId: Manifest](
     id:                 String,
-    val defaultSetting: RefConfigSetting[T],
     val refSetting:     ConfigSetting[Seq[T]],
+    val defaultSetting: RefConfigSetting[T],
     classes:            Seq[Class[_ <: T]]
   ) extends CustomConfigSetting[LocalConfigSettingValue[T], String](id, Default) {
     private implicit val formats = {

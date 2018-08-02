@@ -7,12 +7,18 @@ import org.fs.mael.core.config.ConfigSetting
 import org.fs.mael.core.config.ConfigSetting._
 import org.fs.mael.core.config.proxy.Proxy
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.ui.components.proxy.ProxyGlobalFieldEditor
 
 object GlobalSettings {
 
-  val pageDescriptors: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]] = Seq(
-    MPreferencePageDescriptor("Main", None, classOf[MainPage])
-  )
+  val pageDescriptors: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]] = {
+    val connectionPage = MPreferencePageDescriptor("Connection", None, classOf[ConnectionPage])
+    Seq(
+      MPreferencePageDescriptor("Main", None, classOf[MainPage]),
+      connectionPage,
+      MPreferencePageDescriptor("Proxy", Some(connectionPage.name), classOf[ProxyPage])
+    )
+  }
 
   //
   // Settings
@@ -94,17 +100,31 @@ object GlobalSettings {
         new DirectoryFieldEditor(setting.id, "Download path:", parent)
       }
 
-      row(ConnectionTimeout) { (setting, parent) =>
-        new IntegerFieldEditor(setting.id, "Network timeout (ms, 0 means no timeout):", parent).withCode { field =>
-          field.setValidRange(0, 7 * 24 * 60 * 60 * 1000) // Up to one week
-        }
-      }
-
       radioRow("Action on window close:", OnWindowCloseBehavior)
 
       radioRow("Minimize to tray:", MinimizeToTrayBehavior)
 
       radioRow("Show tray icon:", ShowTrayIconBehavior)
+    }
+  }
+
+  private class ConnectionPage extends MFieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
+    override def createFieldEditors(): Unit = {
+      row(ConnectionTimeout) { (setting, parent) =>
+        new IntegerFieldEditor(setting.id, "Network timeout (ms, 0 means no timeout):", parent).withCode { field =>
+          field.setValidRange(0, 7 * 24 * 60 * 60 * 1000) // Up to one week
+        }
+      }
+    }
+  }
+
+  private class ProxyPage extends MFieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
+    noDefaultAndApplyButton()
+
+    override def createFieldEditors(): Unit = {
+      customRow(ConnectionProxies, ConnectionProxy) { (parent) =>
+        new ProxyGlobalFieldEditor("Configure global proxies list:", ConnectionProxies, ConnectionProxy, parent)
+      }
     }
   }
 }

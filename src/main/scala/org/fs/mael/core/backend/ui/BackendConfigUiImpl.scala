@@ -36,7 +36,7 @@ class BackendConfigUiImpl(
     page.getControl.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true))
     if (!isEditable) {
       page.fieldEditorsWithParents.foreach {
-        case (editor, parent) => SwtUtils.disable(editor, parent)
+        case (editor, parent) => SwtUtils.setEnabled(editor, parent, false)
       }
     }
     page

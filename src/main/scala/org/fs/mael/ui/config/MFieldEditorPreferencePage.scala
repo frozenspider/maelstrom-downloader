@@ -7,6 +7,7 @@ import org.eclipse.jface.preference.RadioGroupFieldEditor
 import org.eclipse.swt.widgets.Composite
 import org.fs.mael.core.config.ConfigSetting
 import org.fs.mael.core.config.IConfigStore
+import org.fs.mael.ui.components.ConfigAware
 
 abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPreferencePage(style) {
   /** Making this method visible */
@@ -33,6 +34,14 @@ abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPrefere
     super.setPreferenceStore(cfg.inner)
   }
 
+  override protected def initialize(): Unit = {
+    _fieldEditorsWithParents.foreach(_._1 match {
+      case e: ConfigAware => e.cfg = _cfg
+      case _              => // NOOP
+    })
+    super.initialize()
+  }
+
   override def setPreferenceStore(store: IPreferenceStore): Unit = {
     throw new UnsupportedOperationException("Use setConfigStore instead")
   }
@@ -56,5 +65,14 @@ abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPrefere
         parent, true
       )
     }
+  }
+
+  def customRow[FE <: FieldEditor](settings: ConfigSetting[_]*)(createEditor: (Composite) => FE): FE = {
+    settings foreach initSetting
+    val parent = getFieldEditorParent
+    val editor = createEditor(parent)
+    addField(editor)
+    _fieldEditorsWithParents = _fieldEditorsWithParents :+ (editor, parent)
+    editor
   }
 }
