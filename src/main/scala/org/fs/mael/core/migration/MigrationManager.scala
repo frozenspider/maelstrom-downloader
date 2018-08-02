@@ -27,7 +27,7 @@ class MigrationManager(globalCfg: IGlobalConfigStore, downloadListFile: File) ex
     }
   }
 
-  def remainingVersions(currVer: Version): Seq[Version] = {
+  private[migration] def remainingVersions(currVer: Version): Seq[Version] = {
     if (currVer != Version.latest) {
       Version.values.dropWhile(_ != currVer).drop(1)
     } else {
@@ -35,15 +35,21 @@ class MigrationManager(globalCfg: IGlobalConfigStore, downloadListFile: File) ex
     }
   }
 
-  def apply(ver: Version): Unit = {
+  private[migration] def apply(ver: Version): Unit = {
     ver match {
       case Version.Undefined => // Initial,NOOP
       case Version.v1 =>
-        if (downloadListFile.exists) {
-          val downloadFileString = Source.fromFile(downloadListFile)(Codec.UTF8).mkString
-          val downloadFileString2 = downloadFileString.replace("\"http-https\",", "\"http\",")
-          Files.write(downloadListFile.toPath, downloadFileString2.getBytes(Codec.UTF8.charSet))
-        }
+        updateDownloadListFile(_.replace("\"http-https\",", "\"http\","))
+      case Version.v2 =>
+        updateDownloadListFile(_.replace("\"backendSpecificCfg\" : \"", "\"backendSpecificCfg\" : \"http|"))
+    }
+  }
+
+  private[migration] def updateDownloadListFile(change: String => String): Unit = {
+    if (downloadListFile.exists) {
+      val s1 = Source.fromFile(downloadListFile)(Codec.UTF8).mkString
+      val s2 = change(s1)
+      Files.write(downloadListFile.toPath, s2.getBytes(Codec.UTF8.charSet))
     }
   }
 }
@@ -56,8 +62,9 @@ object MigrationManager {
   object Version {
     object Undefined extends Version(0)
     object v1 extends Version(1)
+    object v2 extends Version(2)
 
-    val values = IndexedSeq(Undefined, v1)
+    val values = IndexedSeq(Undefined, v1, v2)
     val latest = values.last
   }
 }

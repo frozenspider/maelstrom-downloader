@@ -96,6 +96,10 @@ object DownloadListSerializerImpl {
   class BackendConfigSerializer(backendMgr: BackendManager)
     extends CustomSerializer[BackendConfigStore](format => (
       {
+        case JString(s) if s matches "[a-zA-Z-]\\|" =>
+          val backendId = s.dropRight(1)
+          val accessChecker = backendMgr(backendId).settingsAccessChecker
+          BackendConfigStore(accessChecker)
         case JString(s) =>
           val (backendId, serialString) = {
             val split = s.split("\\|", 2)
