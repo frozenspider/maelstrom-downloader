@@ -11,9 +11,6 @@ import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.config.BackendConfigStore
 
 import com.github.nscala_time.time.Imports._
-import org.fs.mael.core.config.SettingsAccessChecker
-import org.fs.mael.core.config.BackendConfigStore
-import org.fs.mael.core.config.InMemoryConfigStore
 
 /**
  * Entry for a specific download processor, implementation details may vary.

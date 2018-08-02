@@ -41,6 +41,8 @@ class HttpBackend(
 
   override def pageDescriptors = HttpSettings.Local.pageDescriptors
 
+  override def settingsAccessChecker = HttpBackend.SettingsAccessChecker
+
   /**
    * Parse a textual HTTP request, yielding a downloa1dable entry
    */
@@ -103,8 +105,6 @@ class HttpBackend(
     de.backendSpecificCfg.set(HttpSettings.Cookies, cookies)
     de
   }
-
-  def settingsAccessChecker: SettingsAccessChecker = HttpBackend.SettingsAccessChecker
 }
 
 object HttpBackend {
