@@ -30,7 +30,7 @@ class BackendConfigUiImpl(
     tab.setControl(container)
 
     val page = pageDescr.clazz.newInstance()
-    page.setConfigStore(resultCfg.innerStore)
+    page.setConfigStore(resultCfg)
     page.noDefaultAndApplyButton()
     page.createControl(container)
     page.getControl.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true))

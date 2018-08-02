@@ -6,7 +6,7 @@ import org.eclipse.jface.preference.IPreferenceStore
 import org.eclipse.jface.preference.RadioGroupFieldEditor
 import org.eclipse.swt.widgets.Composite
 import org.fs.mael.core.config.ConfigSetting
-import org.fs.mael.core.config.ConfigStore
+import org.fs.mael.core.config.IConfigStore
 
 abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPreferencePage(style) {
   /** Making this method visible */
@@ -17,7 +17,7 @@ abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPrefere
    * Please use this if an element is added manually rather than through helpers defined here
    */
   protected var _fieldEditorsWithParents: IndexedSeq[(FieldEditor, Composite)] = IndexedSeq.empty
-  protected var _cfg: ConfigStore = _
+  protected var _cfg: IConfigStore = _
 
   /**
    * Initialize a default value for the given config setting.
@@ -28,7 +28,7 @@ abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPrefere
     _cfg.initDefault(setting)
   }
 
-  def setConfigStore(cfg: ConfigStore): Unit = {
+  def setConfigStore(cfg: IConfigStore): Unit = {
     _cfg = cfg
     super.setPreferenceStore(cfg.inner)
   }

@@ -12,7 +12,7 @@ import org.slf4s.Logging
  * Serves as a "guarding proxy" for {@code InMemoryConfigStore}
  */
 case class BackendConfigStore protected (
-  val innerStore: InMemoryConfigStore,
+  protected val innerStore: InMemoryConfigStore,
   accessChecker:  SettingsAccessChecker
 ) extends IConfigStore with Logging {
 
