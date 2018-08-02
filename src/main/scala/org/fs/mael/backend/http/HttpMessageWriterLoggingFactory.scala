@@ -7,7 +7,7 @@ import org.apache.http.io.SessionOutputBuffer
 import org.apache.http.message.BasicLineFormatter
 import org.apache.http.util.CharArrayBuffer
 
-class HttpMessageWriterProxyFactory(
+class HttpMessageWriterLoggingFactory(
   delegate:   HttpMessageWriterFactory[HttpRequest],
   logRequest: String => Unit
 ) extends HttpMessageWriterFactory[HttpRequest] {

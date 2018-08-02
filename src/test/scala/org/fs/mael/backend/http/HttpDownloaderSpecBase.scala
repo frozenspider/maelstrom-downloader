@@ -35,7 +35,7 @@ trait HttpDownloaderSpecBase
   private var tmpFilenames = Seq.empty[String]
 
   @volatile private var succeeded: Boolean = false
-  @volatile private var failureOption: Option[Exception] = None
+  @volatile var failureOption: Option[Throwable] = None
 
   private val port = 52345
   val server: SimpleHttpServer = new SimpleHttpServer(port)
@@ -43,7 +43,8 @@ trait HttpDownloaderSpecBase
   /** Change for debugging to set breakpoints */
   private val waitTimeoutMs = 1000 //* 9999
 
-  before {
+  /** Needs to be called manually from `before {}` block */
+  def beforeMethod(): Unit = {
     eventMgr.reset()
     transferMgr.reset()
     failureOption = None
@@ -51,7 +52,8 @@ trait HttpDownloaderSpecBase
     tmpFilenames = Seq.empty
   }
 
-  after {
+  /** Needs to be called manually from `after {}` block */
+  def afterMethod(): Unit = {
     tmpFilenames.foreach {
       new File(tmpDir, _).delete()
     }

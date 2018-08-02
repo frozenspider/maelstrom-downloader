@@ -7,7 +7,7 @@ import org.fs.mael.backend.http.ui._
 import org.fs.mael.core.config.BackendConfigStore
 import org.fs.mael.core.config.ConfigSetting.LocalEntityConfigSetting
 import org.fs.mael.core.config.IGlobalConfigStore
-import org.fs.mael.core.config.proxy.Proxy
+import org.fs.mael.core.proxy.Proxy
 import org.fs.mael.ui.components.proxy.ProxyLocalFieldEditor
 import org.fs.mael.ui.config.EmptyPreferencePage
 import org.fs.mael.ui.config.GlobalSettings

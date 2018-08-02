@@ -26,6 +26,14 @@ class HttpDownloaderSpec
   with BeforeAndAfter
   with BeforeAndAfterAll {
 
+  before {
+    super.beforeMethod()
+  }
+
+  after {
+    super.afterMethod()
+  }
+
   override protected def afterAll() = {
     super.afterAll()
   }

@@ -7,8 +7,8 @@ import org.eclipse.jface.preference._
 import org.eclipse.swt.SWT
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
-import org.fs.mael.core.config.proxy.Proxy
-import org.fs.mael.core.config.proxy.Proxy.NoProxy
+import org.fs.mael.core.proxy.Proxy
+import org.fs.mael.core.proxy.Proxy.NoProxy
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components.MUiComponent
 import org.fs.mael.ui.utils.SwtUtils

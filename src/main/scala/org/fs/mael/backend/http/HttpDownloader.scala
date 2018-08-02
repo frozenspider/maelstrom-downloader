@@ -33,6 +33,7 @@ import org.apache.http.impl.conn.DefaultHttpResponseParserFactory
 import org.apache.http.impl.conn.ManagedHttpClientConnectionFactory
 import org.apache.http.impl.cookie.BasicClientCookie
 import org.apache.http.impl.io.DefaultHttpRequestWriterFactory
+import org.fs.mael.backend.http.config.HttpSettings
 import org.fs.mael.backend.http.utils.HttpUtils
 import org.fs.mael.core.Status
 import org.fs.mael.core.UserFriendlyException
@@ -108,7 +109,7 @@ class HttpDownloader(
   }
 
   private class DownloadingThread(val de: DownloadEntry, timeoutMs: Int)
-      extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
+    extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
 
     this.setDaemon(true)
 
@@ -244,20 +245,19 @@ class HttpDownloader(
     }
 
     private def addCustomHeaders(rb: RequestBuilder, cookieStore: CookieStore): Unit = {
-      import org.fs.mael.backend.http.config.HttpSettings._
       val localCfg = de.backendSpecificCfg
-      val userAgentOption = localCfg(UserAgent)
+      val userAgentOption = localCfg(HttpSettings.UserAgent)
       userAgentOption foreach { userAgent =>
         rb.setHeader(HttpHeaders.USER_AGENT, userAgent)
       }
-      val cookies = localCfg(Cookies)
+      val cookies = localCfg(HttpSettings.Cookies)
       cookies foreach {
         case (k, v) =>
           val cookie = new BasicClientCookie(k, v)
           cookie.setDomain(rb.getUri.getHost)
           cookieStore.addCookie(cookie)
       }
-      val customHeaders = localCfg(Headers)
+      val customHeaders = localCfg(HttpSettings.Headers)
       customHeaders foreach {
         case (k, v) => rb.addHeader(k, v)
       }
@@ -348,11 +348,11 @@ class HttpDownloader(
     private def createConnManager(connTimeoutMs: Int): HttpClientConnectionManager = {
       val connFactory: HttpConnectionFactory[HttpRoute, ManagedHttpClientConnection] =
         new ManagedHttpClientConnectionFactory(
-          new HttpMessageWriterProxyFactory(
+          new HttpMessageWriterLoggingFactory(
             DefaultHttpRequestWriterFactory.INSTANCE,
             msg => doChecked(addLogAndFire(de, LogEntry.request(msg)))
           ),
-          new HttpMessageParserProxyFactory(
+          new HttpMessageParserLoggingFactory(
             DefaultHttpResponseParserFactory.INSTANCE,
             msg => doChecked(addLogAndFire(de, LogEntry.response(msg)))
           )
