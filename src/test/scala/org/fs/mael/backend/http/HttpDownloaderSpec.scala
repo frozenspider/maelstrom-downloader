@@ -15,7 +15,7 @@ import org.apache.http.entity._
 import org.fs.mael.core.Status
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.checksum.ChecksumType
-import org.fs.mael.core.config.InMemoryConfigStore
+import org.fs.mael.core.config.BackendConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.Events
 import org.fs.mael.core.event.PriorityEvent
@@ -466,7 +466,7 @@ class HttpDownloaderSpec
       filenameOption     = Some(filename),
       checksumOption     = None,
       comment            = "my comment",
-      backendSpecificCfg = new InMemoryConfigStore
+      backendSpecificCfg = BackendConfigStore(HttpBackend.SettingsAccessChecker)
     )
   }
 

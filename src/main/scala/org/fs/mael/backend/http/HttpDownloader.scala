@@ -244,7 +244,7 @@ class HttpDownloader(
     }
 
     private def addCustomHeaders(rb: RequestBuilder, cookieStore: CookieStore): Unit = {
-      import config.HttpSettings._
+      import org.fs.mael.backend.http.config.HttpSettings._
       val localCfg = de.backendSpecificCfg
       val userAgentOption = localCfg(UserAgent)
       userAgentOption foreach { userAgent =>

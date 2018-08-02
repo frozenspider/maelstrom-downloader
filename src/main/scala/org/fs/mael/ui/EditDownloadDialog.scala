@@ -14,7 +14,6 @@ import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.backend.http.HttpBackend
-import org.fs.mael.backend.http.utils.HttpUtils
 import org.fs.mael.core.Status
 import org.fs.mael.core.backend.Backend
 import org.fs.mael.core.backend.BackendManager
@@ -22,8 +21,8 @@ import org.fs.mael.core.backend.ui.BackendConfigUi
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.checksum.ChecksumType
 import org.fs.mael.core.checksum.Checksums
-import org.fs.mael.core.config.ConfigStore
-import org.fs.mael.core.config.InMemoryConfigStore
+import org.fs.mael.core.config.BackendConfigStore
+import org.fs.mael.core.config.IGlobalConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.list.DownloadListManager
@@ -37,7 +36,7 @@ class EditDownloadDialog(
   _deOption:       Option[DownloadEntry],
   parent:          Shell,
   resources:       Resources,
-  globalCfg:       ConfigStore,
+  globalCfg:       IGlobalConfigStore,
   backendMgr:      BackendManager,
   downloadListMgr: DownloadListManager,
   eventMgr:        EventManager
@@ -341,7 +340,7 @@ class EditDownloadDialog(
     filenameOption: Option[String],
     checksumOption: Option[Checksum],
     comment:        String
-  )(deCfgOption: Option[InMemoryConfigStore]): Unit = {
+  )(deCfgOption: Option[BackendConfigStore]): Unit = {
     val de = backend.create(uri, location, filenameOption, checksumOption, comment, deCfgOption)
     downloadListMgr.add(de)
     processAutostart(backend, de)
@@ -355,7 +354,7 @@ class EditDownloadDialog(
     filenameOption: Option[String],
     checksumOption: Option[Checksum],
     comment:        String
-  )(deCfgOption: Option[InMemoryConfigStore]): Unit = {
+  )(deCfgOption: Option[BackendConfigStore]): Unit = {
     val newFilenameOption = filenameOption orElse de.filenameOption
     if (location != de.location || filenameOption != de.filenameOption) {
       if (de.downloadedSize > 0) {

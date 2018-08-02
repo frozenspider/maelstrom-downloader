@@ -1,12 +1,11 @@
 package org.fs.mael.core.list
 
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.io.File
 
 import org.fs.mael.core.Status
+import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.checksum.ChecksumType
-import org.fs.mael.core.config.InMemoryConfigStore
+import org.fs.mael.core.config.BackendConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.json4s._
@@ -15,7 +14,7 @@ import org.json4s.jackson.Serialization
 
 import com.github.nscala_time.time.Imports._
 
-class DownloadListSerializerImpl extends DownloadListSerializer {
+class DownloadListSerializerImpl(backendMgr: BackendManager) extends DownloadListSerializer {
 
   private implicit val formats = {
     val deSerializer = {
@@ -37,7 +36,7 @@ class DownloadListSerializerImpl extends DownloadListSerializer {
       FileSerializer,
       StatusSerializer,
       LogTypeSerializer,
-      InMemoryConfigSerializer,
+      new BackendConfigSerializer(backendMgr),
       new EnumSerializer[ChecksumType]
     )
     Serialization.formats(NoTypeHints) + deSerializer ++ serializers + SectionsKeySerializer ++ JavaTypesSerializers.all
@@ -94,16 +93,23 @@ object DownloadListSerializerImpl {
     }
   ))
 
-  object InMemoryConfigSerializer
-    extends CustomSerializer[InMemoryConfigStore](format => (
+  class BackendConfigSerializer(backendMgr: BackendManager)
+    extends CustomSerializer[BackendConfigStore](format => (
       {
-        case x: JString =>
-          new InMemoryConfigStore(x.s)
-        case JNothing =>
-          new InMemoryConfigStore()
+        case JString(s) if s matches "[a-zA-Z-]\\|" =>
+          val backendId = s.dropRight(1)
+          val accessChecker = backendMgr(backendId).settingsAccessChecker
+          BackendConfigStore(accessChecker)
+        case JString(s) =>
+          val (backendId, serialString) = {
+            val split = s.split("\\|", 2)
+            (split(0), split(1))
+          }
+          val accessChecker = backendMgr(backendId).settingsAccessChecker
+          BackendConfigStore(serialString, accessChecker)
       }, {
-        case cfg: InMemoryConfigStore =>
-          JString(cfg.toSerialString)
+        case cfg: BackendConfigStore =>
+          JString(cfg.toSerialForm.productIterator.mkString("|"))
       }
     ))
 

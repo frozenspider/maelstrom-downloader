@@ -8,7 +8,7 @@ import org.eclipse.swt.widgets.Listener
 import org.eclipse.swt.widgets.Table
 import org.eclipse.swt.widgets.TableColumn
 import org.eclipse.swt.widgets.TableItem
-import org.fs.mael.core.config.ConfigStore
+import org.fs.mael.core.config.IGlobalConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.speed.SpeedTracker
 import org.fs.mael.core.utils.CoreUtils._
@@ -22,7 +22,7 @@ import com.github.nscala_time.time.Imports._
 class DownloadsTable(
   parent:    Composite,
   resources: Resources,
-  globalCfg: ConfigStore
+  globalCfg: IGlobalConfigStore
 ) extends MUiComponent[Table](parent) {
 
   // TODO: Save/restore column widths

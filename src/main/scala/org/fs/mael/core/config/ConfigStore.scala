@@ -8,13 +8,11 @@ import org.eclipse.jface.preference.IPreferenceStore
 import org.eclipse.jface.preference.PreferenceStore
 import org.eclipse.jface.util.PropertyChangeEvent
 
-trait ConfigStore {
-  protected[config] var settings: Set[ConfigSetting[_]] = Set.empty
+trait ConfigStore extends IConfigStore {
+  var settings: Set[ConfigSetting[_]] = Set.empty
   protected[config] var listerensEnabled: Boolean = true
 
-  val inner: PreferenceStore
-
-  def save(): Unit
+  override val inner: PreferenceStore
 
   /**
    * Initialize default values for the given config setting.
@@ -48,20 +46,6 @@ trait ConfigStore {
       val e2 = ConfigChangedEvent[T](setting.fromRepr(e.getOldValue.asInstanceOf[setting.Repr]), setting.fromRepr(e.getNewValue.asInstanceOf[setting.Repr]))
       f(e2)
     }
-  }
-
-  private def toByteArrayOutputStream: ByteArrayOutputStream = {
-    val baos = new ByteArrayOutputStream
-    inner.save(baos, null)
-    baos
-  }
-
-  /**
-   * Serializes the store content of this manager into byte array.
-   * Note that due to presence of comment with current date/time, its content will differ between invocations!
-   */
-  protected[config] def toByteArray: Array[Byte] = {
-    toByteArrayOutputStream.toByteArray()
   }
 
   def toSerialString: String = {

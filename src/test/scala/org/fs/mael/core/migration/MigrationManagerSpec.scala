@@ -6,6 +6,7 @@ import java.nio.file.Files
 import scala.io.Codec
 import scala.io.Source
 
+import org.fs.mael.core.config.IGlobalConfigStore
 import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.test.TestUtils._
 import org.junit.runner.RunWith
@@ -19,13 +20,13 @@ class MigrationManagerSpec
 
   import MigrationManager._
 
-  val cfg = new InMemoryConfigStore
+  var cfg = new InMemoryConfigStore with IGlobalConfigStore
   val file = File.createTempFile("temp", ".tmp")
 
   val mgr = new MigrationManager(cfg, file)
 
   after {
-    cfg.reset()
+    cfg = new InMemoryConfigStore with IGlobalConfigStore
     Files.write(file.toPath(), Array.emptyByteArray)
   }
 

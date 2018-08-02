@@ -6,8 +6,7 @@ import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.core.backend.BackendManager
-import org.fs.mael.core.config.ConfigStore
-import org.fs.mael.core.config.FileBackedConfigStore
+import org.fs.mael.core.config.GlobalConfigStore
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.event.EventManagerImpl
 import org.fs.mael.core.list.DownloadListManager
@@ -41,7 +40,7 @@ object MaelstromDownloaderMain extends App with Logging {
     val shell: Shell = StopWatch.measureAndCall {
       preloadClasses()
       // TODO: Show minimal splash screen
-      val globalCfg = new FileBackedConfigStore(globalCfgFile)
+      val globalCfg = new GlobalConfigStore(globalCfgFile)
       val migrationMgr = new MigrationManager(globalCfg, downloadListFile)
       migrationMgr.apply()
       val display = new Display()
@@ -53,7 +52,7 @@ object MaelstromDownloaderMain extends App with Logging {
       val transferMgr = new SimpleTransferManager
       initBackends(backendMgr, transferMgr, globalCfg, eventMgr)
       val downloadListMgr = {
-        val serializer = new DownloadListSerializerImpl
+        val serializer = new DownloadListSerializerImpl(backendMgr)
         new DownloadListManager(serializer, downloadListFile, eventMgr)
       }
       downloadListMgr.load()
@@ -85,7 +84,7 @@ object MaelstromDownloaderMain extends App with Logging {
   def initBackends(
     backendMgr:  BackendManager,
     transferMgr: TransferManager,
-    globalCfg:   ConfigStore,
+    globalCfg:   GlobalConfigStore,
     eventMgr:    EventManager
   ): Unit = {
     backendMgr += (new HttpBackend(transferMgr, globalCfg, eventMgr), 0)
@@ -94,7 +93,7 @@ object MaelstromDownloaderMain extends App with Logging {
   def initUi(
     display:         Display,
     resources:       Resources,
-    globalCfg:       ConfigStore,
+    globalCfg:       GlobalConfigStore,
     backendMgr:      BackendManager,
     downloadListMgr: DownloadListManager,
     eventMgr:        EventManager
