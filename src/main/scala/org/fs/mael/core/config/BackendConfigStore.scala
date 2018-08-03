@@ -13,7 +13,8 @@ import org.slf4s.Logging
  */
 case class BackendConfigStore protected (
   protected val innerStore: InMemoryConfigStore,
-  accessChecker:  SettingsAccessChecker
+  private val globalStore:  IGlobalConfigStore,
+  accessChecker:            SettingsAccessChecker
 ) extends IConfigStore with Logging {
 
   protected var allowedSettingsOption: Option[Seq[ConfigSetting[_]]] = None
@@ -34,6 +35,21 @@ case class BackendConfigStore protected (
   override def apply[T](setting: ConfigSetting[T]): T = {
     ensureSettingAccess(setting)
     innerStore(setting)
+  }
+
+  override def resolve[T <: ConfigSettingLocalValue.WithPersistentId](setting: ConfigSetting.RefConfigSetting[T]): T = {
+    ensureSettingAccess(setting)
+    innerStore.resolve(setting)
+  }
+
+  def resolve[T <: ConfigSettingLocalValue.WithPersistentId](setting: ConfigSetting.ConfigSettingLocalEntity[T]): T = {
+    ensureSettingAccess(setting)
+    val default = globalStore(setting.defaultSetting)
+    innerStore(setting) match {
+      case ConfigSettingLocalValue.Default     => default
+      case ConfigSettingLocalValue.Ref(uuid)   => globalStore(setting.refSetting).find(_.uuid == uuid) getOrElse default
+      case ConfigSettingLocalValue.Embedded(v) => v
+    }
   }
 
   override def set[T](setting: ConfigSetting[T], value: T): Unit = {
@@ -103,22 +119,25 @@ case class BackendConfigStore protected (
 
 object BackendConfigStore extends Logging {
   def apply(
+    globalStore:   IGlobalConfigStore,
     accessChecker: SettingsAccessChecker
   ): BackendConfigStore = {
-    new BackendConfigStore(new InMemoryConfigStore, accessChecker)
+    new BackendConfigStore(new InMemoryConfigStore, globalStore, accessChecker)
   }
 
   def apply(
     baseStore:     IConfigStore,
+    globalStore:   IGlobalConfigStore,
     accessChecker: SettingsAccessChecker
   ): BackendConfigStore = {
-    val result = this(accessChecker)
+    val result = this(globalStore, accessChecker)
     result.resetTo(baseStore)
     result
   }
 
   def apply(
     serialString:  String,
+    globalStore:   IGlobalConfigStore,
     accessChecker: SettingsAccessChecker
   ): BackendConfigStore = {
     val baseStore = new InMemoryConfigStore
@@ -131,6 +150,6 @@ object BackendConfigStore extends Logging {
       if (lookup.isEmpty) log.warn("No config setting for property key " + key)
       lookup
     }.yieldDefined.toSet
-    this(baseStore, accessChecker)
+    this(baseStore, globalStore, accessChecker)
   }
 }

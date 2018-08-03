@@ -20,6 +20,7 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.Events
 import org.fs.mael.core.event.PriorityEvent
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.test.TestUtils
 import org.fs.mael.test.stub.ControlledTransferManager
 import org.fs.mael.test.stub.StoringEventManager
 import org.junit.runner.RunWith
@@ -466,7 +467,7 @@ class HttpDownloaderSpec
       filenameOption     = Some(filename),
       checksumOption     = None,
       comment            = "my comment",
-      backendSpecificCfg = BackendConfigStore(HttpBackend.SettingsAccessChecker)
+      backendSpecificCfg = BackendConfigStore(TestUtils.EmptyGlobalCfg, HttpBackend.SettingsAccessChecker)
     )
   }
 

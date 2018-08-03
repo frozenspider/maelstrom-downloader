@@ -13,6 +13,23 @@ object HttpSettings {
 
   private val prefix = HttpBackend.Id
 
+  //
+  // Settings
+  //
+
+  val UserAgent: ConfigSetting[Option[String]] =
+    ConfigSetting(prefix + ".userAgent", None)
+
+  val Cookies: ConfigSetting[Map[String, String]] =
+    new CookiesConfigSetting(prefix + ".cookies")
+
+  val Headers: ConfigSetting[Map[String, String]] =
+    new HeadersConfigSetting(prefix + ".headers")
+
+  //
+  // Page groups
+  //
+
   /** Setting pages to include in global settings */
   object Global {
     private val rootPageDescriptor =
@@ -30,19 +47,6 @@ object HttpSettings {
       MPreferencePageDescriptor("Headers", None, classOf[LocalHeadersPage])
     )
   }
-
-  //
-  // Settings
-  //
-
-  val UserAgent: ConfigSetting[Option[String]] =
-    ConfigSetting(prefix + ".userAgent", None)
-
-  val Cookies: ConfigSetting[Map[String, String]] =
-    new CookiesConfigSetting(prefix + ".cookies")
-
-  val Headers: ConfigSetting[Map[String, String]] =
-    new HeadersConfigSetting(prefix + ".headers")
 
   //
   // Pages

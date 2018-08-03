@@ -1,10 +1,12 @@
 package org.fs.mael.core.config
 
-import scala.reflect.runtime.universe._
+import java.util.UUID
 
 import org.eclipse.jface.preference.IPreferenceStore
 
+/** Configuration setting definition. Instances should be created once per application. */
 sealed trait ConfigSetting[T] {
+  require(!ConfigSetting.Registry.contains(id), s"Setting '${id}' defined twice")
 
   // As part of init, every setting is put to a global registry
   ConfigSetting.Registry.put(id, this)
@@ -48,6 +50,7 @@ object ConfigSetting {
       case default: Long    => LongConfigSetting(id, default)
       case default: Double  => DoubleConfigSetting(id, default)
       case default: String  => StringConfigSetting(id, default)
+      case _                => throw new IllegalArgumentException(s"Not a primitive-like type: ${default.getClass.getSimpleName}")
     }).asInstanceOf[ConfigSetting[T]]
   }
 
@@ -67,6 +70,7 @@ object ConfigSetting {
   // Internal stuff, should not be used directly
   //
 
+  /** Manages store/access of some type T within {@link IPreferenceStore} */
   protected[config] class PreferenceStoreDao[T](
     protected[config] val getT:        (IPreferenceStore, String) => T,
     protected[config] val setT:        (IPreferenceStore, String, T) => Unit,
@@ -94,7 +98,10 @@ object ConfigSetting {
   private case class StringConfigSetting(id: String, default: String) extends SimpleConfigSetting[String]
 
   /** Custom configuration setting, which maps to a simple value via two-way transform */
-  abstract class CustomConfigSetting[T, Repr2](val id: String, val default: T)(implicit reprDao: PreferenceStoreDao[Repr2]) extends ConfigSetting[T] { self =>
+  abstract class CustomConfigSetting[T, Repr2](
+    val id:      String,
+    val default: T
+  )(implicit reprDao: PreferenceStoreDao[Repr2]) extends ConfigSetting[T] { self =>
     override type Repr = Repr2
     override def toRepr(v: T): Repr
     override def fromRepr(v: Repr): T
@@ -105,7 +112,10 @@ object ConfigSetting {
     )
   }
 
-  private class OptionalStringConfigSetting(id: String, default: Option[String]) extends CustomConfigSetting[Option[String], String](id, default) {
+  private class OptionalStringConfigSetting(
+    id:      String,
+    default: Option[String]
+  ) extends CustomConfigSetting[Option[String], String](id, default) {
     override def toRepr(v: Option[String]): String = v getOrElse ""
     override def fromRepr(v: String): Option[String] = v match {
       case "" => None
@@ -114,17 +124,83 @@ object ConfigSetting {
   }
 
   /** Custom configuration setting needed for choose-one radio groups */
-  class RadioConfigSetting[T <: RadioValue](id: String, default: T, val values: Seq[T]) extends CustomConfigSetting[T, String](id, default) {
-    def toRepr(v: T): String = v.id
-    def fromRepr(v: String): T = values.find(_.id == v).get
+  class RadioConfigSetting[T <: RadioValue](
+    id:         String,
+    default:    T,
+    val values: Seq[T]
+  ) extends CustomConfigSetting[T, String](id, default) {
+    override def toRepr(v: T): String = v.id
+    override def fromRepr(v: String): T = values.find(_.id == v).get
   }
 
   /** Custom configuration setting needed for storing four-integers rectangle (x,y,w,h) */
-  class RectangleConfigSetting(id: String, default: (Int, Int, Int, Int)) extends CustomConfigSetting[(Int, Int, Int, Int), String](id, default) {
-    def toRepr(v: (Int, Int, Int, Int)): String = v.toString
-    def fromRepr(v: String): (Int, Int, Int, Int) = {
+  class RectangleConfigSetting(
+    id:      String,
+    default: (Int, Int, Int, Int)
+  ) extends CustomConfigSetting[(Int, Int, Int, Int), String](id, default) {
+    override def toRepr(v: (Int, Int, Int, Int)): String = v.toString
+    override def fromRepr(v: String): (Int, Int, Int, Int) = {
       val ints = v.replaceAll("[()]", "").split(",").map(_.toInt)
       (ints(0), ints(1), ints(2), ints(3))
+    }
+  }
+
+  import org.json4s._
+  import org.json4s.ext.JavaTypesSerializers
+  import org.json4s.jackson.Serialization
+
+  /** Setting defining sequence of primitives, case classes or case objects. */
+  class SeqConfigSetting[T: Manifest](id: String, classes: Seq[Class[_ <: T]]) extends CustomConfigSetting[Seq[T], String](id, Nil) {
+    private implicit val formats = {
+      Serialization.formats(ShortTypeHints(classes.toList)) ++ JavaTypesSerializers.all
+    }
+
+    override def fromRepr(s: String): Seq[T] =
+      Serialization.read[Seq[T]](s)
+
+    override def toRepr(vs: Seq[T]): String =
+      Serialization.write[Seq[T]](vs)
+  }
+
+  import ConfigSettingLocalValue._
+
+  /** Setting referencing entity from a collection stored in other setting */
+  class RefConfigSetting[T <: WithPersistentId](
+    id:               String,
+    val defaultValue: T,
+    val refSetting:   ConfigSetting[Seq[T]]
+  ) extends CustomConfigSetting[UUID, String](id, defaultValue.uuid) {
+    override def fromRepr(s: String): UUID = UUID.fromString(s)
+    override def toRepr(v: UUID): String = v.toString
+  }
+
+  /**
+   * Setting defining entity on a backend level, which takes its values from global config.
+   * Should be case class or case object.
+   */
+  class ConfigSettingLocalEntity[T <: WithPersistentId: Manifest](
+    id:                 String,
+    val defaultSetting: ConfigSetting[T],
+    val refSetting:     ConfigSetting[Seq[T]],
+    classes:            Seq[Class[_ <: T]]
+  ) extends CustomConfigSetting[ConfigSettingLocalValue[T], String](id, Default) {
+    private implicit val formats = {
+      Serialization.formats(ShortTypeHints(classes.toList)) ++ JavaTypesSerializers.all
+    }
+
+    private val RefR = "Ref\\(([0-9a-z-]+)\\)".r
+    private val EmbeddedR = "Embedded\\((.+)\\)".r
+
+    override def fromRepr(s: String): ConfigSettingLocalValue[T] = s match {
+      case "Default"         => Default
+      case RefR(uuidString)  => Ref(UUID.fromString(uuidString))
+      case EmbeddedR(string) => Embedded(Serialization.read[T](string))
+    }
+
+    override def toRepr(v: ConfigSettingLocalValue[T]): String = v match {
+      case Default     => "Default"
+      case Ref(uuid)   => s"Ref($uuid)"
+      case Embedded(v) => s"Embedded(${Serialization.write(v)})"
     }
   }
 }

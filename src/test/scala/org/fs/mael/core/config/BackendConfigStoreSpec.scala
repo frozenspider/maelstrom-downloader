@@ -32,8 +32,8 @@ class BackendConfigStoreSpec
   }
 
   test("access, modification, equality and hash code") {
-    val store1 = BackendConfigStore(TestUtils.DummySettingsAccessChecker)
-    val store2 = BackendConfigStore(TestUtils.DummySettingsAccessChecker)
+    val store1 = BackendConfigStore(TestUtils.EmptyGlobalCfg, TestUtils.DummySettingsAccessChecker)
+    val store2 = BackendConfigStore(TestUtils.EmptyGlobalCfg, TestUtils.DummySettingsAccessChecker)
     assert(store1 === store2)
     assert(store1.hashCode === store2.hashCode)
 
@@ -60,8 +60,8 @@ class BackendConfigStoreSpec
   }
 
   test("access restrictions") {
-    val store1 = BackendConfigStore(new DefaultSettingsAccessChecker("group1"))
-    val store2 = BackendConfigStore(new DefaultSettingsAccessChecker("group1"))
+    val store1 = BackendConfigStore(TestUtils.EmptyGlobalCfg, new DefaultSettingsAccessChecker("group1"))
+    val store2 = BackendConfigStore(TestUtils.EmptyGlobalCfg, new DefaultSettingsAccessChecker("group1"))
     assert(store1 === store2)
 
     // Modifying allowed settings
@@ -87,8 +87,8 @@ class BackendConfigStoreSpec
   }
 
   test("reset (unconditional)") {
-    val store1 = BackendConfigStore(TestUtils.DummySettingsAccessChecker)
-    val store2 = BackendConfigStore(TestUtils.DummySettingsAccessChecker)
+    val store1 = BackendConfigStore(TestUtils.EmptyGlobalCfg, TestUtils.DummySettingsAccessChecker)
+    val store2 = BackendConfigStore(TestUtils.EmptyGlobalCfg, TestUtils.DummySettingsAccessChecker)
     store1.resetTo(store1)
     assert(store1 === store2)
 
@@ -105,8 +105,8 @@ class BackendConfigStoreSpec
   }
 
   test("reset (unconditional) - listener notification") {
-    val store1 = BackendConfigStore(TestUtils.DummySettingsAccessChecker)
-    val store2 = BackendConfigStore(TestUtils.DummySettingsAccessChecker)
+    val store1 = BackendConfigStore(TestUtils.EmptyGlobalCfg, TestUtils.DummySettingsAccessChecker)
+    val store2 = BackendConfigStore(TestUtils.EmptyGlobalCfg, TestUtils.DummySettingsAccessChecker)
     var (triggered11, triggered12, triggered21, triggered22) = (0, 0, 0, 0)
     store1.addSettingChangedListener(setting11)(expectPropertyChange(setting11.default, "my-new11", triggered11 != 0, triggered11 += 1))
     store1.addSettingChangedListener(setting12)(expectPropertyNotChanged)
@@ -125,8 +125,8 @@ class BackendConfigStoreSpec
   }
 
   test("reset (conditional)") {
-    val store11 = BackendConfigStore(new DefaultSettingsAccessChecker("group1"))
-    val store2 = BackendConfigStore(TestUtils.DummySettingsAccessChecker)
+    val store11 = BackendConfigStore(TestUtils.EmptyGlobalCfg, new DefaultSettingsAccessChecker("group1"))
+    val store2 = BackendConfigStore(TestUtils.EmptyGlobalCfg, TestUtils.DummySettingsAccessChecker)
     assert(store11 !== store2)
 
     store2.set(setting11, "my-new11")
@@ -137,14 +137,14 @@ class BackendConfigStoreSpec
     assert(store11(setting11) === "my-new11")
     assert(store11(setting12) === 100500)
 
-    val store12 = BackendConfigStore(new DefaultSettingsAccessChecker("group2"))
+    val store12 = BackendConfigStore(TestUtils.EmptyGlobalCfg, new DefaultSettingsAccessChecker("group2"))
     store12.resetTo(store2)
     assert(store12(setting21) === Radio.r2)
   }
 
   test("reset (conditional) - listener notification") {
-    val store1 = BackendConfigStore(new DefaultSettingsAccessChecker("group2"))
-    val store2 = BackendConfigStore(TestUtils.DummySettingsAccessChecker)
+    val store1 = BackendConfigStore(TestUtils.EmptyGlobalCfg, new DefaultSettingsAccessChecker("group2"))
+    val store2 = BackendConfigStore(TestUtils.EmptyGlobalCfg, TestUtils.DummySettingsAccessChecker)
     var (triggered21, triggered22) = (0, 0)
     store1.addSettingChangedListener(setting21)(expectPropertyChange(setting21.default, Radio.r2, triggered21 != 0, triggered21 += 1))
     store1.addSettingChangedListener(setting22)(expectPropertyChange(setting22.default, Some("my-new22"), triggered22 != 0, triggered22 += 1))
