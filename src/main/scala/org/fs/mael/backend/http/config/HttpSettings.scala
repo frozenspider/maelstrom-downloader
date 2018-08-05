@@ -7,6 +7,9 @@ import org.fs.mael.backend.http.ui._
 import org.fs.mael.ui.config.EmptyPreferencePage
 import org.fs.mael.ui.config.MFieldEditorPreferencePage
 import org.fs.mael.ui.config.MPreferencePageDescriptor
+import org.fs.mael.core.config.ConfigSetting.ConfigSettingLocalEntity
+import org.fs.mael.ui.config.GlobalSettings
+import org.fs.mael.core.config.proxy.Proxy
 
 object HttpSettings {
   import org.fs.mael.core.config.ConfigSetting
@@ -25,6 +28,9 @@ object HttpSettings {
 
   val Headers: ConfigSetting[Map[String, String]] =
     new HeadersConfigSetting(prefix + ".headers")
+
+  val ConnectionProxy: ConfigSettingLocalEntity[Proxy] =
+    new ConfigSettingLocalEntity[Proxy](prefix + ".proxy", GlobalSettings.ConnectionProxy, GlobalSettings.ConnectionProxies, Proxy.Classes)
 
   //
   // Page groups

@@ -5,6 +5,7 @@ import org.eclipse.jface.preference.FieldEditorPreferencePage
 import org.eclipse.jface.preference.IntegerFieldEditor
 import org.fs.mael.core.config.ConfigSetting
 import org.fs.mael.core.config.ConfigSetting._
+import org.fs.mael.core.config.proxy.Proxy
 import org.fs.mael.core.utils.CoreUtils._
 
 object GlobalSettings {
@@ -27,6 +28,12 @@ object GlobalSettings {
 
   val ConnectionTimeout: ConfigSetting[Int] =
     ConfigSetting("main.connection.timeoutMs", 0)
+
+  val ConnectionProxies: ConfigSetting[Seq[Proxy]] =
+    new SeqConfigSetting[Proxy]("main.connection.proxies", Proxy.Classes)
+
+  val ConnectionProxy: RefConfigSetting[Proxy] =
+    new RefConfigSetting("main.connection.proxy", Proxy.NoProxy, ConnectionProxies)
 
   val OnWindowCloseBehavior: RadioConfigSetting[OnWindowClose] =
     ConfigSetting("main.onWindowClose", OnWindowClose.Undefined, OnWindowClose.values)

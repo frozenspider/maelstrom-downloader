@@ -180,7 +180,7 @@ object ConfigSetting {
    */
   class ConfigSettingLocalEntity[T <: WithPersistentId: Manifest](
     id:                 String,
-    val defaultSetting: ConfigSetting[T],
+    val defaultSetting: RefConfigSetting[T],
     val refSetting:     ConfigSetting[Seq[T]],
     classes:            Seq[Class[_ <: T]]
   ) extends CustomConfigSetting[ConfigSettingLocalValue[T], String](id, Default) {

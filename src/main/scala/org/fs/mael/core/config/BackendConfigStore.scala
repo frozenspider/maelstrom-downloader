@@ -44,7 +44,7 @@ case class BackendConfigStore protected (
 
   def resolve[T <: ConfigSettingLocalValue.WithPersistentId](setting: ConfigSetting.ConfigSettingLocalEntity[T]): T = {
     ensureSettingAccess(setting)
-    val default = globalStore(setting.defaultSetting)
+    val default = globalStore.resolve(setting.defaultSetting)
     innerStore(setting) match {
       case ConfigSettingLocalValue.Default     => default
       case ConfigSettingLocalValue.Ref(uuid)   => globalStore(setting.refSetting).find(_.uuid == uuid) getOrElse default
