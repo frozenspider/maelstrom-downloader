@@ -1,9 +1,12 @@
 package org.fs.mael.test
 
+import java.util.UUID
+
 import org.fs.mael.core.config.BackendConfigStore
 import org.fs.mael.core.config.ConfigSetting
 import org.fs.mael.core.config.IGlobalConfigStore
 import org.fs.mael.core.config.InMemoryConfigStore
+import org.fs.mael.core.config.LocalConfigSettingValue
 import org.fs.mael.core.config.SettingsAccessChecker
 import org.fs.mael.core.entry.DownloadEntry
 import org.scalatest.Assertions
@@ -28,7 +31,7 @@ object TestUtils extends Assertions {
     assert(de1.backendSpecificCfg === de2.backendSpecificCfg)
   }
 
-  val EmptyGlobalCfg = new InMemoryConfigStore with IGlobalConfigStore
+  def emptyGlobalCfg() = new InMemoryConfigStore with IGlobalConfigStore
 
   val DummySettingsAccessChecker = new SettingsAccessChecker {
     override val backendId = "<none!>"
@@ -52,5 +55,17 @@ object TestUtils extends Assertions {
       cfg.set(setting, value)
       cfg
     }
+  }
+
+  object ConfigValueClasses {
+    sealed trait ABC extends LocalConfigSettingValue.WithPersistentId {
+      override val name = toString()
+    }
+    case object A extends ABC {
+      override val uuid = UUID.randomUUID()
+    }
+    case class B(uuid: UUID) extends ABC
+    case class C(uuid: UUID, v1: String, b2: Int) extends ABC
+    val AbcClassses: Seq[Class[_ <: ABC]] = Seq(A.getClass, classOf[B], classOf[C])
   }
 }

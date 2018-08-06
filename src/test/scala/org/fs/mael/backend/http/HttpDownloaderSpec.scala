@@ -467,7 +467,7 @@ class HttpDownloaderSpec
       filenameOption     = Some(filename),
       checksumOption     = None,
       comment            = "my comment",
-      backendSpecificCfg = BackendConfigStore(TestUtils.EmptyGlobalCfg, HttpBackend.SettingsAccessChecker)
+      backendSpecificCfg = BackendConfigStore(TestUtils.emptyGlobalCfg(), HttpBackend.SettingsAccessChecker)
     )
   }
 

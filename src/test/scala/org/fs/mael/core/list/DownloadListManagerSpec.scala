@@ -122,7 +122,7 @@ class DownloadListManagerSpec
   }
 
   private def defaultCfg: BackendConfigStore = {
-    val cfg = BackendConfigStore(TestUtils.EmptyGlobalCfg, StubBackend.SettingsAccessChecker)
+    val cfg = BackendConfigStore(TestUtils.emptyGlobalCfg(), StubBackend.SettingsAccessChecker)
     cfg.initDefault(StubBackend.StubSetting)
     cfg
   }

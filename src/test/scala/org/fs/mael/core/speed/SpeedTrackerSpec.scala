@@ -158,7 +158,7 @@ class SpeedTrackerSpec
   }
 
   private def getEmptyDownloadEntry(): DownloadEntry =
-    DownloadEntry("", new URI(""), new File(""), None, None, "", BackendConfigStore(TestUtils.EmptyGlobalCfg, StubBackend.SettingsAccessChecker))
+    DownloadEntry("", new URI(""), new File(""), None, None, "", BackendConfigStore(TestUtils.emptyGlobalCfg(), StubBackend.SettingsAccessChecker))
 
   private def getNow() = System.currentTimeMillis
 

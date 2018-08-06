@@ -16,6 +16,13 @@ object LocalConfigSettingValue {
   trait WithPersistentId {
     def uuid: UUID
     def name: String
+
+    override def equals(that: Any) = that match {
+      case that: WithPersistentId => this.uuid == that.uuid
+      case _                      => false
+    }
+
+    override def hashCode(): Int = this.uuid.hashCode()
   }
 
   case object Default extends LocalConfigSettingValue[Nothing]
