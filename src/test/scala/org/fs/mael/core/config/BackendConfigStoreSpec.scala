@@ -12,11 +12,15 @@ class BackendConfigStoreSpec
   extends FunSuite
   with BeforeAndAfter {
 
-  ConfigSetting.test_clearRegistry()
-  private val setting11 = ConfigSetting("group1.1", "my-default11")
-  private val setting12 = ConfigSetting("group1.2", -1)
-  private val setting21 = ConfigSetting("group2.1", Radio.r1, Radio.values)
-  private val setting22 = ConfigSetting("group2.2", Some("my-default22"))
+  private val (setting11, setting12, setting21, setting22) = {
+    ConfigSetting.test_clearRegistry()
+    (
+      ConfigSetting("group1.1", "my-default11"),
+      ConfigSetting("group1.2", -1),
+      ConfigSetting("group2.1", Radio.r1, Radio.values),
+      ConfigSetting("group2.2", Some("my-default22"))
+    )
+  }
 
   sealed abstract class Radio(idx: Int) extends ConfigSetting.RadioValue(idx.toString, idx + "-pretty")
   object Radio {
