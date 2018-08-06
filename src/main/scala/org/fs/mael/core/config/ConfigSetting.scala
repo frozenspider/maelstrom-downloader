@@ -39,6 +39,10 @@ object ConfigSetting {
   def lookup(key: String): Option[ConfigSetting[_]] =
     Registry.get(key)
 
+  private[config] def test_clearRegistry(): Unit = {
+    Registry.clear()
+  }
+
   //
   // Factory methods for external use
   //
@@ -162,7 +166,7 @@ object ConfigSetting {
       Serialization.write[Seq[T]](vs)
   }
 
-  import ConfigSettingLocalValue._
+  import LocalConfigSettingValue._
 
   /** Setting referencing entity from a collection stored in other setting */
   class RefConfigSetting[T <: WithPersistentId](
@@ -178,12 +182,12 @@ object ConfigSetting {
    * Setting defining entity on a backend level, which takes its values from global config.
    * Should be case class or case object.
    */
-  class ConfigSettingLocalEntity[T <: WithPersistentId: Manifest](
+  class LocalEntityConfigSetting[T <: WithPersistentId: Manifest](
     id:                 String,
     val defaultSetting: RefConfigSetting[T],
     val refSetting:     ConfigSetting[Seq[T]],
     classes:            Seq[Class[_ <: T]]
-  ) extends CustomConfigSetting[ConfigSettingLocalValue[T], String](id, Default) {
+  ) extends CustomConfigSetting[LocalConfigSettingValue[T], String](id, Default) {
     private implicit val formats = {
       Serialization.formats(ShortTypeHints(classes.toList)) ++ JavaTypesSerializers.all
     }
@@ -191,13 +195,13 @@ object ConfigSetting {
     private val RefR = "Ref\\(([0-9a-z-]+)\\)".r
     private val EmbeddedR = "Embedded\\((.+)\\)".r
 
-    override def fromRepr(s: String): ConfigSettingLocalValue[T] = s match {
+    override def fromRepr(s: String): LocalConfigSettingValue[T] = s match {
       case "Default"         => Default
       case RefR(uuidString)  => Ref(UUID.fromString(uuidString))
       case EmbeddedR(string) => Embedded(Serialization.read[T](string))
     }
 
-    override def toRepr(v: ConfigSettingLocalValue[T]): String = v match {
+    override def toRepr(v: LocalConfigSettingValue[T]): String = v match {
       case Default     => "Default"
       case Ref(uuid)   => s"Ref($uuid)"
       case Embedded(v) => s"Embedded(${Serialization.write(v)})"

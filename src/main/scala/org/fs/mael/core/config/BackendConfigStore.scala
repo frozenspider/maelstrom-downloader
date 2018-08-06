@@ -37,18 +37,18 @@ case class BackendConfigStore protected (
     innerStore(setting)
   }
 
-  override def resolve[T <: ConfigSettingLocalValue.WithPersistentId](setting: ConfigSetting.RefConfigSetting[T]): T = {
+  override def resolve[T <: LocalConfigSettingValue.WithPersistentId](setting: ConfigSetting.RefConfigSetting[T]): T = {
     ensureSettingAccess(setting)
     innerStore.resolve(setting)
   }
 
-  def resolve[T <: ConfigSettingLocalValue.WithPersistentId](setting: ConfigSetting.ConfigSettingLocalEntity[T]): T = {
+  def resolve[T <: LocalConfigSettingValue.WithPersistentId](setting: ConfigSetting.LocalEntityConfigSetting[T]): T = {
     ensureSettingAccess(setting)
     val default = globalStore.resolve(setting.defaultSetting)
     innerStore(setting) match {
-      case ConfigSettingLocalValue.Default     => default
-      case ConfigSettingLocalValue.Ref(uuid)   => globalStore(setting.refSetting).find(_.uuid == uuid) getOrElse default
-      case ConfigSettingLocalValue.Embedded(v) => v
+      case LocalConfigSettingValue.Default     => default
+      case LocalConfigSettingValue.Ref(uuid)   => globalStore(setting.refSetting).find(_.uuid == uuid) getOrElse default
+      case LocalConfigSettingValue.Embedded(v) => v
     }
   }
 

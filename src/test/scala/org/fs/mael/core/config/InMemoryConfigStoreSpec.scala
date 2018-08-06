@@ -9,6 +9,7 @@ class InMemoryConfigStoreSpec
   extends FunSuite
   with BeforeAndAfter {
 
+  ConfigSetting.test_clearRegistry()
   private val setting11 = ConfigSetting("group1.1", "my-default11")
   private val setting12 = ConfigSetting("group1.2", -1)
   private val setting21 = ConfigSetting("group2.1", Radio.r1, Radio.values)

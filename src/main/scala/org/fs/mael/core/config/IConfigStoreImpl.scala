@@ -28,7 +28,7 @@ trait IConfigStoreImpl extends IConfigStore {
     setting.get(inner) ensuring (_ != null)
   }
 
-  def resolve[T <: ConfigSettingLocalValue.WithPersistentId](setting: ConfigSetting.RefConfigSetting[T]): T = {
+  def resolve[T <: LocalConfigSettingValue.WithPersistentId](setting: ConfigSetting.RefConfigSetting[T]): T = {
     val uuid = this(setting)
     this(setting.refSetting) find (_.uuid == uuid) getOrElse setting.defaultValue
   }

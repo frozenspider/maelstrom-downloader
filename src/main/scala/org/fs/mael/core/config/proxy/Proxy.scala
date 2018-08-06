@@ -2,9 +2,9 @@ package org.fs.mael.core.config.proxy
 
 import java.util.UUID
 
-import org.fs.mael.core.config.ConfigSettingLocalValue
+import org.fs.mael.core.config.LocalConfigSettingValue
 
-sealed trait Proxy extends ConfigSettingLocalValue.WithPersistentId
+sealed trait Proxy extends LocalConfigSettingValue.WithPersistentId
 
 sealed abstract class PredefinedProxy(override val uuid: UUID, override val name: String) extends Proxy
 sealed abstract class CustomProxy extends Proxy

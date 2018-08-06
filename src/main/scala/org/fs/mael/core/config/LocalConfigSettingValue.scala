@@ -10,17 +10,17 @@ import java.util.UUID
  * - Define a new local instance in-place
  * }}}
  */
-sealed trait ConfigSettingLocalValue[+T]
+sealed trait LocalConfigSettingValue[+T]
 
-object ConfigSettingLocalValue {
+object LocalConfigSettingValue {
   trait WithPersistentId {
     def uuid: UUID
     def name: String
   }
 
-  case object Default extends ConfigSettingLocalValue[Nothing]
+  case object Default extends LocalConfigSettingValue[Nothing]
 
-  case class Ref[T <: WithPersistentId](uuid: UUID) extends ConfigSettingLocalValue[T]
+  case class Ref[T <: WithPersistentId](uuid: UUID) extends LocalConfigSettingValue[T]
 
-  case class Embedded[T](value: T) extends ConfigSettingLocalValue[T]
+  case class Embedded[T](value: T) extends LocalConfigSettingValue[T]
 }

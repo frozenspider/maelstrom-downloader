@@ -5,7 +5,7 @@ trait IGlobalConfigStore extends IConfigStoreImpl {
   override def initDefault(setting: ConfigSetting[_]): Unit = {
     super.initDefault(setting)
     setting match {
-      case setting: ConfigSetting.ConfigSettingLocalEntity[_] =>
+      case setting: ConfigSetting.LocalEntityConfigSetting[_] =>
         throw new IllegalArgumentException(s"Can't define local setting '${setting.id}' on global config")
       case _ => // NOOP
     }
