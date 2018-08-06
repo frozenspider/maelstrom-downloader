@@ -52,7 +52,7 @@ object MaelstromDownloaderMain extends App with Logging {
       val transferMgr = new SimpleTransferManager
       initBackends(backendMgr, transferMgr, globalCfg, eventMgr)
       val downloadListMgr = {
-        val serializer = new DownloadListSerializerImpl(backendMgr)
+        val serializer = new DownloadListSerializerImpl(globalCfg, backendMgr)
         new DownloadListManager(serializer, downloadListFile, eventMgr)
       }
       downloadListMgr.load()
@@ -63,7 +63,8 @@ object MaelstromDownloaderMain extends App with Logging {
     uiLoop(shell)
   } catch {
     case th: Throwable =>
-      JOptionPane.showMessageDialog(null, th.getMessage, "Error", JOptionPane.ERROR_MESSAGE)
+      def sourceTh(th: Throwable): Throwable = if (th.getCause == null || th.getCause == th) th else sourceTh(th.getCause)
+      JOptionPane.showMessageDialog(null, sourceTh(th).getMessage, "Error", JOptionPane.ERROR_MESSAGE)
       log.error("Uncaught error!", th)
   }
 

@@ -80,6 +80,6 @@ class ConfigStoreSpec
     }
   }
 
-  private def set[T](store: ConfigStore, setting: ConfigSetting[T], newVal: Any): Unit =
+  private def set[T](store: IConfigStoreImpl, setting: ConfigSetting[T], newVal: Any): Unit =
     store.set(setting, newVal.asInstanceOf[T])
 }

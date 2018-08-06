@@ -190,7 +190,7 @@ class MainFrame(
         mainTable.selectedEntries map { de =>
           tryShowingError(peer, log) {
             val backend = backendMgr(de.backendId)
-            backend.downloader.start(de, globalCfg(GlobalSettings.NetworkTimeout))
+            backend.downloader.start(de, globalCfg(GlobalSettings.ConnectionTimeout))
           }
         }
       })
@@ -291,7 +291,7 @@ class MainFrame(
         val selected = mainTable.selectedEntries filter (_.status != Status.Running)
         selected foreach { de =>
           val backend = backendMgr(de.backendId)
-          backend.downloader.restart(de, globalCfg(GlobalSettings.NetworkTimeout))
+          backend.downloader.restart(de, globalCfg(GlobalSettings.ConnectionTimeout))
         }
       }
     }

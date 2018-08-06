@@ -14,6 +14,8 @@ trait IConfigStore {
 
   def apply[T](setting: ConfigSetting[T]): T
 
+  def resolve[T <: LocalConfigSettingValue.WithPersistentId](setting: ConfigSetting.RefConfigSetting[T]): T
+
   def set[T](setting: ConfigSetting[T], value: T): Unit
 
   def addSettingChangedListener[T](setting: ConfigSetting[T])(f: ConfigChangedEvent[T] => Unit): Unit

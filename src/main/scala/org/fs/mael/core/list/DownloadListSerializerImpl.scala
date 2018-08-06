@@ -6,6 +6,7 @@ import org.fs.mael.core.Status
 import org.fs.mael.core.backend.BackendManager
 import org.fs.mael.core.checksum.ChecksumType
 import org.fs.mael.core.config.BackendConfigStore
+import org.fs.mael.core.config.IGlobalConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.json4s._
@@ -14,7 +15,10 @@ import org.json4s.jackson.Serialization
 
 import com.github.nscala_time.time.Imports._
 
-class DownloadListSerializerImpl(backendMgr: BackendManager) extends DownloadListSerializer {
+class DownloadListSerializerImpl(
+  globalCfg:  IGlobalConfigStore,
+  backendMgr: BackendManager
+) extends DownloadListSerializer {
 
   private implicit val formats = {
     val deSerializer = {
@@ -36,7 +40,7 @@ class DownloadListSerializerImpl(backendMgr: BackendManager) extends DownloadLis
       FileSerializer,
       StatusSerializer,
       LogTypeSerializer,
-      new BackendConfigSerializer(backendMgr),
+      new BackendConfigSerializer(globalCfg, backendMgr),
       new EnumSerializer[ChecksumType]
     )
     Serialization.formats(NoTypeHints) + deSerializer ++ serializers + SectionsKeySerializer ++ JavaTypesSerializers.all
@@ -93,20 +97,20 @@ object DownloadListSerializerImpl {
     }
   ))
 
-  class BackendConfigSerializer(backendMgr: BackendManager)
+  class BackendConfigSerializer(globalCfg: IGlobalConfigStore, backendMgr: BackendManager)
     extends CustomSerializer[BackendConfigStore](format => (
       {
         case JString(s) if s matches "[a-zA-Z-]\\|" =>
           val backendId = s.dropRight(1)
           val accessChecker = backendMgr(backendId).settingsAccessChecker
-          BackendConfigStore(accessChecker)
+          BackendConfigStore(globalCfg, accessChecker)
         case JString(s) =>
           val (backendId, serialString) = {
             val split = s.split("\\|", 2)
             (split(0), split(1))
           }
           val accessChecker = backendMgr(backendId).settingsAccessChecker
-          BackendConfigStore(serialString, accessChecker)
+          BackendConfigStore(serialString, globalCfg, accessChecker)
       }, {
         case cfg: BackendConfigStore =>
           JString(cfg.toSerialForm.productIterator.mkString("|"))

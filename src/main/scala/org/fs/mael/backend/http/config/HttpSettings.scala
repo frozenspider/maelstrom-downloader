@@ -7,11 +7,34 @@ import org.fs.mael.backend.http.ui._
 import org.fs.mael.ui.config.EmptyPreferencePage
 import org.fs.mael.ui.config.MFieldEditorPreferencePage
 import org.fs.mael.ui.config.MPreferencePageDescriptor
+import org.fs.mael.core.config.ConfigSetting.LocalEntityConfigSetting
+import org.fs.mael.ui.config.GlobalSettings
+import org.fs.mael.core.config.proxy.Proxy
 
 object HttpSettings {
   import org.fs.mael.core.config.ConfigSetting
 
   private val prefix = HttpBackend.Id
+
+  //
+  // Settings
+  //
+
+  val UserAgent: ConfigSetting[Option[String]] =
+    ConfigSetting(prefix + ".userAgent", None)
+
+  val Cookies: ConfigSetting[Map[String, String]] =
+    new CookiesConfigSetting(prefix + ".cookies")
+
+  val Headers: ConfigSetting[Map[String, String]] =
+    new HeadersConfigSetting(prefix + ".headers")
+
+  val ConnectionProxy: LocalEntityConfigSetting[Proxy] =
+    new LocalEntityConfigSetting[Proxy](prefix + ".proxy", GlobalSettings.ConnectionProxy, GlobalSettings.ConnectionProxies, Proxy.Classes)
+
+  //
+  // Page groups
+  //
 
   /** Setting pages to include in global settings */
   object Global {
@@ -30,19 +53,6 @@ object HttpSettings {
       MPreferencePageDescriptor("Headers", None, classOf[LocalHeadersPage])
     )
   }
-
-  //
-  // Settings
-  //
-
-  val UserAgent: ConfigSetting[Option[String]] =
-    ConfigSetting(prefix + ".userAgent", None)
-
-  val Cookies: ConfigSetting[Map[String, String]] =
-    new CookiesConfigSetting(prefix + ".cookies")
-
-  val Headers: ConfigSetting[Map[String, String]] =
-    new HeadersConfigSetting(prefix + ".headers")
 
   //
   // Pages

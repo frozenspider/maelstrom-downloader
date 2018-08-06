@@ -10,6 +10,7 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.EventSubscriber
 import org.fs.mael.core.event.Events
 import org.fs.mael.core.event.Events._
+import org.fs.mael.test.TestUtils
 import org.fs.mael.test.stub.StoringEventManager
 import org.fs.mael.test.stub.StubBackend
 import org.joda.time.DateTimeUtils
@@ -157,7 +158,7 @@ class SpeedTrackerSpec
   }
 
   private def getEmptyDownloadEntry(): DownloadEntry =
-    DownloadEntry("", new URI(""), new File(""), None, None, "", BackendConfigStore(StubBackend.SettingsAccessChecker))
+    DownloadEntry("", new URI(""), new File(""), None, None, "", BackendConfigStore(TestUtils.EmptyGlobalCfg, StubBackend.SettingsAccessChecker))
 
   private def getNow() = System.currentTimeMillis
 

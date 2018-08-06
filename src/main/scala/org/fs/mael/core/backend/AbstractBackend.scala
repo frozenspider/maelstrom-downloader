@@ -37,7 +37,7 @@ abstract class AbstractBackend extends Backend {
   }
 
   override def layoutConfig(cfgOption: Option[BackendConfigStore], tabFolder: TabFolder, isEditable: Boolean): BackendConfigUi = {
-    val resultCfg = BackendConfigStore(settingsAccessChecker)
+    val resultCfg = BackendConfigStore(globalCfg, settingsAccessChecker)
     new BackendConfigUiImpl(resultCfg, isEditable, cfgOption, globalCfg, tabFolder, pageDescriptors)
   }
 }

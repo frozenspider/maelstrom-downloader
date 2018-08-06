@@ -5,6 +5,7 @@ import org.eclipse.jface.preference.FieldEditorPreferencePage
 import org.eclipse.jface.preference.IntegerFieldEditor
 import org.fs.mael.core.config.ConfigSetting
 import org.fs.mael.core.config.ConfigSetting._
+import org.fs.mael.core.config.proxy.Proxy
 import org.fs.mael.core.utils.CoreUtils._
 
 object GlobalSettings {
@@ -25,8 +26,14 @@ object GlobalSettings {
       }
     })
 
-  val NetworkTimeout: ConfigSetting[Int] =
-    ConfigSetting("main.networkTimeoutMs", 0)
+  val ConnectionTimeout: ConfigSetting[Int] =
+    ConfigSetting("main.connection.timeoutMs", 0)
+
+  val ConnectionProxies: ConfigSetting[Seq[Proxy]] =
+    new SeqConfigSetting[Proxy]("main.connection.proxies", Proxy.Classes)
+
+  val ConnectionProxy: RefConfigSetting[Proxy] =
+    new RefConfigSetting("main.connection.proxy", Proxy.NoProxy, ConnectionProxies)
 
   val OnWindowCloseBehavior: RadioConfigSetting[OnWindowClose] =
     ConfigSetting("main.onWindowClose", OnWindowClose.Undefined, OnWindowClose.values)
@@ -87,7 +94,7 @@ object GlobalSettings {
         new DirectoryFieldEditor(setting.id, "Download path:", parent)
       }
 
-      row(NetworkTimeout) { (setting, parent) =>
+      row(ConnectionTimeout) { (setting, parent) =>
         new IntegerFieldEditor(setting.id, "Network timeout (ms, 0 means no timeout):", parent).withCode { field =>
           field.setValidRange(0, 7 * 24 * 60 * 60 * 1000) // Up to one week
         }

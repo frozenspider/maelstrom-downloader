@@ -2,6 +2,7 @@ package org.fs.mael.test
 
 import org.fs.mael.core.config.BackendConfigStore
 import org.fs.mael.core.config.ConfigSetting
+import org.fs.mael.core.config.IGlobalConfigStore
 import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.core.config.SettingsAccessChecker
 import org.fs.mael.core.entry.DownloadEntry
@@ -26,6 +27,8 @@ object TestUtils extends Assertions {
     // Have to use plain old equals here
     assert(de1.backendSpecificCfg === de2.backendSpecificCfg)
   }
+
+  val EmptyGlobalCfg = new InMemoryConfigStore with IGlobalConfigStore
 
   val DummySettingsAccessChecker = new SettingsAccessChecker {
     override val backendId = "<none!>"
