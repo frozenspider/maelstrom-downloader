@@ -3,9 +3,10 @@
 * Added ability to restart download from the beginning
 * Added tray icon and minimize to tray setting
 * Added download speed and remaining time columns, implemented related tracking and calculations
+* Added support for proxy servers (SOCKS5)
 * Added ability to set custom cookies
 * Added ability to set custom headers
-* Persist main window size, position and maximized state
+* Remember main window size, position and maximized state
 * When creating new download, attempt is made to parse a plaintext HTTP/curl request from clipboard
 * (Internal) Implemented backend-specific settings framework
   * (Internal) Implemented global defaults serving as template for local per-download settings
