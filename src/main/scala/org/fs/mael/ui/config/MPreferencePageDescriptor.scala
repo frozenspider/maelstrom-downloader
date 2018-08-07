@@ -8,11 +8,11 @@ package org.fs.mael.ui.config
  *
  * @author FS
  */
-case class MPreferencePageDescriptor[T <: MFieldEditorPreferencePage](
+case class MPreferencePageDescriptor[Page <: MFieldEditorPreferencePage[_]](
   /** Name of this page, will be used as header, label AND as path element */
   name: String,
   /** Dot-separated path to the node in preference tree, {@code None} for root */
   pathOption: Option[String],
   /** Page class with zero-argument constructor available */
-  clazz: Class[T]
+  clazz: Class[Page]
 )

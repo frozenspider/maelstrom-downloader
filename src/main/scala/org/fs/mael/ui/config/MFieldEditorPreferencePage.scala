@@ -9,7 +9,7 @@ import org.fs.mael.core.config.ConfigSetting
 import org.fs.mael.core.config.IConfigStore
 import org.fs.mael.ui.components.ConfigAware
 
-abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPreferencePage(style) {
+abstract class MFieldEditorPreferencePage[C <: IConfigStore](style: Int) extends FieldEditorPreferencePage(style) {
   /** Making this method visible */
   override def noDefaultAndApplyButton(): Unit = super.noDefaultAndApplyButton()
 
@@ -18,7 +18,7 @@ abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPrefere
    * Please use this if an element is added manually rather than through helpers defined here
    */
   protected var _fieldEditorsWithParents: IndexedSeq[(FieldEditor, Composite)] = IndexedSeq.empty
-  protected var _cfg: IConfigStore = _
+  protected var _cfg: C = _
 
   /**
    * Initialize a default value for the given config setting.
@@ -29,15 +29,15 @@ abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPrefere
     _cfg.initDefault(setting)
   }
 
-  def setConfigStore(cfg: IConfigStore): Unit = {
+  def setConfigStore(cfg: C): Unit = {
     _cfg = cfg
     super.setPreferenceStore(cfg.inner)
   }
 
   override protected def initialize(): Unit = {
     _fieldEditorsWithParents.foreach(_._1 match {
-      case e: ConfigAware => e.cfg = _cfg
-      case _              => // NOOP
+      case e: ConfigAware[C] => e.cfg = _cfg
+      case _                 => // NOOP
     })
     super.initialize()
   }

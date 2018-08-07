@@ -12,8 +12,8 @@ import org.fs.mael.core.utils.CoreUtils._
 class GlobalSettingsController(val globalCfg: IGlobalConfigStore) {
 
   val mgr = new PreferenceManager().withCode { mgr =>
-    def addPage(pageDescr: MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]): Unit = {
-      val page = new MPreferenceNode(pageDescr, null)
+    def addPage[Page <: MFieldEditorPreferencePage[IGlobalConfigStore]](pageDescr: MPreferencePageDescriptor[Page]): Unit = {
+      val page = new MPreferenceNode[Page](pageDescr, null)
       pageDescr.pathOption match {
         case None    => mgr.addToRoot(page)
         case Some(s) => mgr.addTo(s, page)
@@ -40,8 +40,8 @@ class GlobalSettingsController(val globalCfg: IGlobalConfigStore) {
     prefNodes foreach { pn =>
       if (pn.getPage == null) pn.createPage()
       pn.getPage match {
-        case page: MFieldEditorPreferencePage => page.setConfigStore(globalCfg)
-        case _                                => // NOOP
+        case page: (MFieldEditorPreferencePage[IGlobalConfigStore] @unchecked) => page.setConfigStore(globalCfg)
+        case _ => // NOOP
       }
     }
   }

@@ -16,12 +16,12 @@ abstract class AbstractBackendConfigUi extends BackendConfigUi {
 
   def tabFolder: TabFolder
 
-  def pageDescriptions: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]]
+  def pageDescriptions: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage[BackendConfigStore]]]
 
   /** Resulting config, should initially be empty */
   def resultCfg: BackendConfigStore
 
-  val pages: Seq[MFieldEditorPreferencePage] = {
+  val pages: Seq[MFieldEditorPreferencePage[BackendConfigStore]] = {
     cfgOption match {
       case Some(cfg) => resultCfg.resetTo(cfg) // Ignore default preferences
       case None      => resultCfg.resetTo(globalCfg)
@@ -38,5 +38,8 @@ abstract class AbstractBackendConfigUi extends BackendConfigUi {
     resultCfg
   }
 
-  protected def createPage[T <: MFieldEditorPreferencePage](pageDescr: MPreferencePageDescriptor[T], tabFolder: TabFolder): T
+  protected def createPage[T <: MFieldEditorPreferencePage[BackendConfigStore]](
+    pageDescr: MPreferencePageDescriptor[T],
+    tabFolder: TabFolder
+  ): T
 }

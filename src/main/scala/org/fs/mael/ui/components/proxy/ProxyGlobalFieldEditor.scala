@@ -12,6 +12,7 @@ import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
 import org.fs.mael.core.config.ConfigSetting
 import org.fs.mael.core.config.ConfigSetting._
+import org.fs.mael.core.config.IConfigStore
 import org.fs.mael.core.config.proxy.Proxy
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components.ConfigAware
@@ -20,10 +21,10 @@ import org.fs.mael.ui.utils.SwtUtils._
 /** Field editor for global proxy settings */
 class ProxyGlobalFieldEditor(
   labelText:              String,
-  proxySetting:           ConfigSetting[Seq[Proxy]],
+  proxiesSetting:         ConfigSetting[Seq[Proxy]],
   defaultProxyRefSetting: RefConfigSetting[Proxy],
   _parent:                Composite
-) extends FieldEditor with ConfigAware {
+) extends FieldEditor with ConfigAware[IConfigStore] {
   setLabelText(labelText)
   createControl(_parent)
 
@@ -40,7 +41,7 @@ class ProxyGlobalFieldEditor(
   private var editor: ProxyEditorComponent = _
 
   override def doLoad(): Unit = {
-    val proxies = cfg(proxySetting)
+    val proxies = cfg(proxiesSetting)
     if (proxies.isEmpty || !proxies.contains(Proxy.NoProxy)) {
       this.proxies = Proxy.NoProxy +: proxies
     } else {
@@ -56,7 +57,7 @@ class ProxyGlobalFieldEditor(
   }
 
   override def doStore(): Unit = {
-    cfg.set(proxySetting, proxies)
+    cfg.set(proxiesSetting, proxies)
     cfg.set(defaultProxyRefSetting, defaultProxy.uuid)
   }
 
