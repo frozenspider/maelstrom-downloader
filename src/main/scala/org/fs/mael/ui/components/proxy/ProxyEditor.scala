@@ -11,6 +11,7 @@ import org.fs.mael.core.config.proxy.Proxy.NoProxy
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components.MUiComponent
 import org.fs.mael.ui.utils.SwtUtils
+import org.apache.http.conn.util.InetAddressUtils
 
 class ProxyEditor(
   parent:     Composite,
@@ -88,7 +89,7 @@ class ProxyEditor(
     typeButtons.foreach(_.setSelection(false))
     typeButtons(0).setSelection(true)
     nameEditor.setStringValue(name)
-    hostEditor.setStringValue("")
+    hostEditor.setStringValue("localhost")
     portEditor.setStringValue("")
     usernameEditor.setStringValue("")
     passwordEditor.setStringValue("")
@@ -131,6 +132,8 @@ class ProxyEditor(
   }
 
   private class ProxyFieldEditorPreferencePage extends FieldEditorPreferencePage {
+    val ValidHostnameRegex = """^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$"""
+
     this.setContainer(new IPreferencePageContainer {
       def getPreferenceStore(): IPreferenceStore = null
       def updateButtons(): Unit = {}
@@ -156,7 +159,19 @@ class ProxyEditor(
       typeEditor = reg(new RadioGroupFieldEditor("", "Proxy type:", 1, proxyNamesAndTypes.map(nt => Array(nt._1, "")).toArray[Array[String]], typeParent))
       typeComposite = typeEditor.getRadioBoxControl(typeParent)
 
-      hostEditor = reg(new StringFieldEditor("", "Host:", getFieldEditorParent()))
+      hostEditor = reg(new StringFieldEditor("", "Host:", getFieldEditorParent()) {
+        override def doCheckState(): Boolean = {
+          val s = getStringValue()
+          if (!InetAddressUtils.isIPv4Address(s)
+            && !InetAddressUtils.isIPv6Address(s)
+            && !s.matches(ValidHostnameRegex)) {
+            setErrorMessage("Host is not a valid domain name or IP address")
+          } else {
+            setErrorMessage(null)
+          }
+          Option(getErrorMessage).isEmpty
+        }
+      })
       hostEditor.setEmptyStringAllowed(false)
 
       portEditor = reg(new IntegerFieldEditor("", "Port:", getFieldEditorParent()))
