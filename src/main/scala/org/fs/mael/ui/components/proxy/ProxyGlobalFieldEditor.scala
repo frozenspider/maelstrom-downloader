@@ -17,6 +17,7 @@ import org.fs.mael.core.config.proxy.Proxy
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components.ConfigAware
 import org.fs.mael.ui.utils.SwtUtils._
+import org.eclipse.jface.dialogs.MessageDialog
 
 /** Field editor for global proxy settings */
 class ProxyGlobalFieldEditor(
@@ -146,11 +147,16 @@ class ProxyGlobalFieldEditor(
 
   private def onDeleteClicked(e: SelectionEvent): Unit =
     if (selectedProxy != Proxy.NoProxy) {
-      proxies = proxies.filter(_ != selectedProxy)
-      if (defaultProxy == selectedProxy) {
-        defaultProxy = Proxy.NoProxy
+      val confirmed = MessageDialog.openConfirm(top.getShell, "Confirmation",
+        s"Are you sure you want to delete proxy '${selectedProxy.name}'?")
+      // TODO: Notify if it's used
+      if (confirmed) {
+        proxies = proxies.filter(_ != selectedProxy)
+        if (defaultProxy == selectedProxy) {
+          defaultProxy = Proxy.NoProxy
+        }
+        selectNoProxy()
       }
-      selectNoProxy()
     }
 
   private def onMarkAsDefaultClicked(e: SelectionEvent): Unit = {
