@@ -24,7 +24,10 @@ class ProxyEditorComponent(
     ("SOCKS5", classOf[Proxy.SOCKS5])
   )
   private var uuid: UUID = _
-  private var editable: Boolean = _
+  /** Whether edit is allowed for this editor */
+  private var editAllowed: Boolean = true
+  /** Whether currently rendered proxy can technically be edited */
+  private var editPossible: Boolean = _
 
   private var nameEditor: StringFieldEditor = _
   private var typeEditor: RadioGroupFieldEditor = _
@@ -51,20 +54,27 @@ class ProxyEditorComponent(
     peer
   }
 
+  private def editable = this.editAllowed && this.editPossible
+
   private def typeButtons: IndexedSeq[Button] = {
     typeComposite.getChildren.collect {
       case btn: Button => btn
     }
   }
 
+  def setEditAllowed(editAllowed: Boolean): Unit = {
+    this.editAllowed = editAllowed
+    SwtUtils.setEnabled(peer, parent, editable)
+  }
+
   /**
    * Render a proxy in this editor, optionally specify explicitly whether it can be edited.
    * Note that predefined proxies won't be editable anyway.
    */
-  def render(proxy: Proxy, editable: Boolean = true): Unit = {
+  def render(proxy: Proxy): Unit = {
     this.uuid = proxy.uuid
-    this.editable = editable && proxy.isInstanceOf[Proxy.CustomProxy]
-    SwtUtils.setEnabled(peer, parent, this.editable)
+    this.editPossible = proxy.isInstanceOf[Proxy.CustomProxy]
+    SwtUtils.setEnabled(peer, parent, editable)
     nameEditor.setStringValue(proxy.name)
     val typeIdx = proxyNamesAndTypes.indexWhere(_._2 == proxy.getClass)
     proxy match {
@@ -92,8 +102,8 @@ class ProxyEditorComponent(
   /** Render a new non-existent proxy entry in this editor */
   def renderNew(uuid: UUID, name: String): Unit = {
     this.uuid = uuid
-    this.editable = true
-    SwtUtils.setEnabled(peer, parent, true)
+    this.editPossible = true
+    SwtUtils.setEnabled(peer, parent, editable)
     typeButtons.foreach(_.setSelection(false))
     typeButtons(0).setSelection(true)
     nameEditor.setStringValue(name)
