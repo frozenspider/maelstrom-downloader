@@ -13,7 +13,7 @@ import org.fs.mael.ui.components.MUiComponent
 import org.fs.mael.ui.utils.SwtUtils
 import org.apache.http.conn.util.InetAddressUtils
 
-class ProxyEditor(
+class ProxyEditorComponent(
   parent:     Composite,
   layoutData: Any,
   saveProxy:  Proxy => Unit
@@ -56,8 +56,12 @@ class ProxyEditor(
   }
 
   def render(proxy: Proxy): Unit = {
-    this.uuid = proxy.uuid
     val editable = proxy.isInstanceOf[Proxy.CustomProxy]
+    render(proxy, editable)
+  }
+
+  def render(proxy: Proxy, editable: Boolean): Unit = {
+    this.uuid = proxy.uuid
     SwtUtils.setEnabled(peer, parent, editable)
     nameEditor.setStringValue(proxy.name)
     val typeIdx = proxyNamesAndTypes.indexWhere(_._2 == proxy.getClass)

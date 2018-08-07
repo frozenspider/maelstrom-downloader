@@ -36,7 +36,7 @@ class ProxyGlobalFieldEditor(
   private var btnNew: Button = _
   private var btnMarkAsDefault: Button = _
   private var btnDelete: Button = _
-  private var editor: ProxyEditor = _
+  private var editor: ProxyEditorComponent = _
 
   override def doLoad(): Unit = {
     val proxies = cfg(proxySetting)
@@ -107,7 +107,7 @@ class ProxyGlobalFieldEditor(
     }
     btnDelete.addSelectionListener(toSelectionListener(onDeleteClicked))
 
-    editor = new ProxyEditor(top, new GridData(SWT.FILL, SWT.FILL, true, true).withCode { gd =>
+    editor = new ProxyEditorComponent(top, new GridData(SWT.FILL, SWT.FILL, true, true).withCode { gd =>
       gd.minimumWidth = 200
     }, saveProxy)
   }
