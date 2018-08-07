@@ -26,7 +26,7 @@ class BackendConfigStoreSpec
     )
   }
 
-  private val settingAbcs = new SeqConfigSetting[ABC]("group1.abcs", AbcClassses)
+  private val settingAbcs = new SeqConfigSetting[ABC]("group1.abcs", Nil, AbcClassses)
   private val settingAbc = new RefConfigSetting("group1.abc", A, settingAbcs)
   private val settingAbcLocal = new LocalEntityConfigSetting[ABC]("group1.local.abc", settingAbcs, settingAbc, AbcClassses)
 

@@ -154,7 +154,11 @@ object ConfigSetting {
   import org.json4s.jackson.Serialization
 
   /** Setting defining sequence of primitives, case classes or case objects. */
-  class SeqConfigSetting[T: Manifest](id: String, classes: Seq[Class[_ <: T]]) extends CustomConfigSetting[Seq[T], String](id, Nil) {
+  class SeqConfigSetting[T: Manifest](
+    id:      String,
+    default: Seq[T],
+    classes: Seq[Class[_ <: T]]
+  ) extends CustomConfigSetting[Seq[T], String](id, default) {
     private implicit val formats = {
       Serialization.formats(ShortTypeHints(classes.toList)) ++ JavaTypesSerializers.all
     }
