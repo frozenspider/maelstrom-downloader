@@ -13,6 +13,7 @@ import org.fs.mael.ui.components.MUiComponent
 import org.fs.mael.ui.utils.SwtUtils
 import org.apache.http.conn.util.InetAddressUtils
 
+/** Renders {@code Proxy} details, optionally allowing to edit it */
 class ProxyEditorComponent(
   parent:     Composite,
   layoutData: Any,
@@ -23,6 +24,7 @@ class ProxyEditorComponent(
     ("SOCKS5", classOf[Proxy.SOCKS5])
   )
   private var uuid: UUID = _
+  private var editable: Boolean = _
 
   private var nameEditor: StringFieldEditor = _
   private var typeEditor: RadioGroupFieldEditor = _
@@ -55,14 +57,14 @@ class ProxyEditorComponent(
     }
   }
 
-  def render(proxy: Proxy): Unit = {
-    val editable = proxy.isInstanceOf[Proxy.CustomProxy]
-    render(proxy, editable)
-  }
-
-  def render(proxy: Proxy, editable: Boolean): Unit = {
+  /**
+   * Render a proxy in this editor, optionally specify explicitly whether it can be edited.
+   * Note that predefined proxies won't be editable anyway.
+   */
+  def render(proxy: Proxy, editable: Boolean = true): Unit = {
     this.uuid = proxy.uuid
-    SwtUtils.setEnabled(peer, parent, editable)
+    this.editable = editable && proxy.isInstanceOf[Proxy.CustomProxy]
+    SwtUtils.setEnabled(peer, parent, this.editable)
     nameEditor.setStringValue(proxy.name)
     val typeIdx = proxyNamesAndTypes.indexWhere(_._2 == proxy.getClass)
     proxy match {
@@ -87,8 +89,10 @@ class ProxyEditorComponent(
     peer.setVisible(true)
   }
 
+  /** Render a new non-existent proxy entry in this editor */
   def renderNew(uuid: UUID, name: String): Unit = {
     this.uuid = uuid
+    this.editable = true
     SwtUtils.setEnabled(peer, parent, true)
     typeButtons.foreach(_.setSelection(false))
     typeButtons(0).setSelection(true)
@@ -103,6 +107,8 @@ class ProxyEditorComponent(
     peer.setVisible(true)
   }
 
+  /** Compose a valid {@code Proxy} from this editor, or throw {@code IllegalStateException} */
+  @throws[IllegalStateException]
   def value: Proxy = {
     if (!peer.isVisible) throw new IllegalStateException("Editor is hidden, this shouldn't be called! Its a software bug!")
     if (!revalidate()) throw new IllegalStateException("Invalid editor value(s), this shouldn't be called! Its a software bug!")

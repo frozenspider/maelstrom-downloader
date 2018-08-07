@@ -17,6 +17,7 @@ import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components.ConfigAware
 import org.fs.mael.ui.utils.SwtUtils._
 
+/** Field editor for global proxy settings */
 class ProxyGlobalFieldEditor(
   labelText:              String,
   proxySetting:           ConfigSetting[Seq[Proxy]],
