@@ -33,7 +33,9 @@ abstract class AbstractBackendConfigUi extends BackendConfigUi {
 
   override def get(): BackendConfigStore = {
     if (isEditable) {
-      requireFriendly(pages.forall(_.performOk), "Some settings are invalid")
+      pages.foreach(_.checkState())
+      requireFriendly(pages.forall(_.isValid), "Some settings are invalid")
+      pages.foreach(_.performOk)
     }
     resultCfg
   }

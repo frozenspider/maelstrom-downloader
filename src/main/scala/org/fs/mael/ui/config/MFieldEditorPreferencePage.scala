@@ -13,6 +13,9 @@ abstract class MFieldEditorPreferencePage[C <: IConfigStore](style: Int) extends
   /** Making this method visible */
   override def noDefaultAndApplyButton(): Unit = super.noDefaultAndApplyButton()
 
+  /** Making this method visible */
+  override def checkState(): Unit = super.checkState()
+
   /**
    * Keep track of field editors created on this page as well as their parents.
    * Please use this if an element is added manually rather than through helpers defined here
