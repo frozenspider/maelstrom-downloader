@@ -165,16 +165,14 @@ class ProxyEditorComponent(
     }
 
     this.setContainer(new IPreferencePageContainer {
-      def getPreferenceStore(): IPreferenceStore = null
-      def updateButtons(): Unit = parentPageOption foreach { parentPage =>
-        parentPage.setValid(!editable || isValid)
-      }
-      def updateMessage(): Unit = parentPageOption foreach { parentPage =>
+      override def getPreferenceStore(): IPreferenceStore = null
+      override def updateButtons(): Unit = {}
+      override def updateMessage(): Unit = parentPageOption foreach { parentPage =>
         parentPage.setMessage(getMessage, getMessageType)
         parentPage.setErrorMessage(getErrorMessage)
         Option(parentPage.getContainer).foreach(_.updateMessage())
       }
-      def updateTitle(): Unit = {}
+      override def updateTitle(): Unit = {}
     })
 
     private def reg[FE <: FieldEditor](fe: FE): FE = {
