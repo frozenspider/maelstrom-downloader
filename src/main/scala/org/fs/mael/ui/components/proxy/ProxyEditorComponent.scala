@@ -15,9 +15,9 @@ import org.apache.http.conn.util.InetAddressUtils
 
 /** Renders {@code Proxy} details, optionally allowing to edit it */
 class ProxyEditorComponent(
-  parent:     Composite,
-  layoutData: Any,
-  saveProxy:  Proxy => Unit
+  parent:             Composite,
+  layoutData:         Any,
+  applyClickedOption: Option[Proxy => Unit]
 ) extends MUiComponent[Composite](parent) {
 
   private val proxyNamesAndTypes: Seq[(String, Class[_])] = Seq(
@@ -42,7 +42,7 @@ class ProxyEditorComponent(
 
   var parentPageOption: Option[PreferencePage] = None
 
-  private val page = new ProxyFieldEditorPreferencePage()
+  private val page = new ProxyFieldEditorPreferencePage(applyClickedOption.isDefined)
 
   override val peer: Composite = {
     val peer = new Composite(parent, SWT.NONE)
@@ -94,7 +94,7 @@ class ProxyEditorComponent(
         usernameEditor.setStringValue(proxy.authOption.map(_._1).getOrElse(""))
         passwordEditor.setStringValue(proxy.authOption.map(_._2).getOrElse(""))
         dnsButton.setSelection(proxy.dns)
-        revalidate()
+        validate()
     }
     peer.setVisible(true)
   }
@@ -113,15 +113,16 @@ class ProxyEditorComponent(
     passwordEditor.setStringValue("")
     dnsButton.setSelection(false)
 
-    revalidate()
+    validate()
     peer.setVisible(true)
   }
 
   /** Compose a valid {@code Proxy} from this editor, or throw {@code IllegalStateException} */
   @throws[IllegalStateException]
   def value: Proxy = {
+    if (!editable) throw new IllegalStateException("Proxy cannot be edited, this shouldn't be called! Its a software bug!")
     if (!peer.isVisible) throw new IllegalStateException("Editor is hidden, this shouldn't be called! Its a software bug!")
-    if (!revalidate()) throw new IllegalStateException("Invalid editor value(s), this shouldn't be called! Its a software bug!")
+    if (validate().isDefined) throw new IllegalStateException("Invalid editor value(s), this shouldn't be called! Its a software bug!")
     val res = typeButtons.indexWhere(_.getSelection) match {
       case 0 =>
         new Proxy.SOCKS5(uuid, nameEditor.getStringValue, hostEditor.getStringValue, portEditor.getIntValue, {
@@ -135,32 +136,43 @@ class ProxyEditorComponent(
     res
   }
 
-  private def revalidate(): Boolean = {
-    editors.forall { e =>
-      // Method is protected so we have to use reflection
-      try {
-        val refreshValidState = e.getClass.getDeclaredMethod("refreshValidState")
-        refreshValidState.setAccessible(true)
-        refreshValidState.invoke(e)
-      } catch {
-        case e: NoSuchMethodException => // NOOP
+  /** Perform validation on this component, returning error message is any */
+  def validate(): Option[String] = {
+    if (!editable) {
+      None
+    } else {
+      editors.forall { e =>
+        // Method is protected so we have to use reflection
+        try {
+          val refreshValidState = e.getClass.getDeclaredMethod("refreshValidState")
+          refreshValidState.setAccessible(true)
+          refreshValidState.invoke(e)
+        } catch {
+          case e: NoSuchMethodException => // NOOP
+        }
+        e.isValid()
       }
-      e.isValid()
+      page.updateValidityFlag()
+      if (page.isValid()) None else Some(page.getErrorMessage)
     }
-    page.updateValidityFlag()
-    page.isValid()
   }
 
-  private class ProxyFieldEditorPreferencePage extends FieldEditorPreferencePage {
+  private class ProxyFieldEditorPreferencePage(showApplyReset: Boolean) extends FieldEditorPreferencePage {
     val ValidHostnameRegex = """^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$"""
+
+    if (!showApplyReset) {
+      noDefaultAndApplyButton()
+    }
 
     this.setContainer(new IPreferencePageContainer {
       def getPreferenceStore(): IPreferenceStore = null
-      def updateButtons(): Unit = {}
+      def updateButtons(): Unit = parentPageOption foreach { parentPage =>
+        parentPage.setValid(!editable || isValid)
+      }
       def updateMessage(): Unit = parentPageOption foreach { parentPage =>
         parentPage.setMessage(getMessage, getMessageType)
         parentPage.setErrorMessage(getErrorMessage)
-        parentPage.getContainer.updateMessage()
+        Option(parentPage.getContainer).foreach(_.updateMessage())
       }
       def updateTitle(): Unit = {}
     })
@@ -231,7 +243,7 @@ class ProxyEditorComponent(
 
     override def performApply(): Unit = {
       super.performApply()
-      if (revalidate()) saveProxy(value)
+      if (validate().isEmpty) applyClickedOption.get.apply(value)
     }
 
     def updateValidityFlag(): Unit = {

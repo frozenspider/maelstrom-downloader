@@ -112,7 +112,7 @@ class ProxyGlobalFieldEditor(
 
     editor = new ProxyEditorComponent(top, new GridData(SWT.FILL, SWT.FILL, true, true).withCode { gd =>
       gd.minimumWidth = 200
-    }, saveProxy)
+    }, Some(saveProxy))
   }
 
   override def adjustForNumColumns(numColumns: Int): Unit = {
