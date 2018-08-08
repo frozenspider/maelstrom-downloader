@@ -12,71 +12,71 @@ import org.slf4s.Logging
  * Serves as a "guarding proxy" for {@code InMemoryConfigStore}
  */
 case class BackendConfigStore protected (
-  protected val innerStore: InMemoryConfigStore,
-  private val globalStore:  IGlobalConfigStore,
-  accessChecker:            SettingsAccessChecker
+  protected val innerCfg: InMemoryConfigStore,
+  globalCfg:              IGlobalConfigStore,
+  accessChecker:          SettingsAccessChecker
 ) extends IConfigStore with Logging {
 
   protected var allowedSettingsOption: Option[Seq[ConfigSetting[_]]] = None
 
   val backendId = accessChecker.backendId
 
-  override def settings: Set[ConfigSetting[_]] = innerStore.settings
+  override def settings: Set[ConfigSetting[_]] = innerCfg.settings
 
-  override def inner: PreferenceStore = innerStore.inner
+  override def inner: PreferenceStore = innerCfg.inner
 
-  override def save(): Unit = innerStore.save()
+  override def save(): Unit = innerCfg.save()
 
   override def initDefault(setting: ConfigSetting[_]): Unit = {
     ensureSettingAccess(setting)
-    innerStore.initDefault(setting)
+    innerCfg.initDefault(setting)
   }
 
   override def apply[T](setting: ConfigSetting[T]): T = {
     ensureSettingAccess(setting)
-    innerStore(setting)
+    innerCfg(setting)
   }
 
   override def resolve[T <: LocalConfigSettingValue.WithPersistentId](setting: ConfigSetting.RefConfigSetting[T]): T = {
     ensureSettingAccess(setting)
-    innerStore.resolve(setting)
+    innerCfg.resolve(setting)
   }
 
   def resolve[T <: LocalConfigSettingValue.WithPersistentId](setting: ConfigSetting.LocalEntityConfigSetting[T]): T = {
     ensureSettingAccess(setting)
-    val default = globalStore.resolve(setting.defaultSetting)
-    innerStore(setting) match {
+    val default = globalCfg.resolve(setting.defaultSetting)
+    innerCfg(setting) match {
       case LocalConfigSettingValue.Default     => default
-      case LocalConfigSettingValue.Ref(uuid)   => globalStore(setting.refSetting).find(_.uuid == uuid) getOrElse default
+      case LocalConfigSettingValue.Ref(uuid)   => globalCfg(setting.refSetting).find(_.uuid == uuid) getOrElse default
       case LocalConfigSettingValue.Embedded(v) => v
     }
   }
 
   override def set[T](setting: ConfigSetting[T], value: T): Unit = {
     ensureSettingAccess(setting)
-    innerStore.set(setting, value)
+    innerCfg.set(setting, value)
   }
 
   override def addSettingChangedListener[T](setting: ConfigSetting[T])(f: ConfigChangedEvent[T] => Unit): Unit = {
     ensureSettingAccess(setting)
-    innerStore.addSettingChangedListener(setting)(f)
+    innerCfg.addSettingChangedListener(setting)(f)
   }
 
   def toSerialForm: (String, String) = {
-    (backendId, innerStore.toSerialString)
+    (backendId, innerCfg.toSerialString)
   }
 
   /** Reset to the state of given config, taking only accessible entries */
   def resetTo(that: IConfigStore): Unit = {
     val diff = computeDiff(that)
     resetStoreWithoutEvents(that)
-    this.innerStore.settings = that.settings.filter(accessChecker.isSettingAccessible)
+    this.innerCfg.settings = that.settings.filter(accessChecker.isSettingAccessible)
 
     // Remove excessive keys
     val keys = that.inner.preferenceNames()
-    this.innerStore.listerensEnabled = false
-    keys filterNot (accessChecker.isSettingIdAccessible) foreach (this.innerStore.inner.setToDefault)
-    this.innerStore.listerensEnabled = true
+    this.innerCfg.listerensEnabled = false
+    keys filterNot (accessChecker.isSettingIdAccessible) foreach (this.innerCfg.inner.setToDefault)
+    this.innerCfg.listerensEnabled = true
 
     (diff).foreach {
       case (k, oldV, newV) => inner.firePropertyChangeEvent(k, oldV, newV)
@@ -85,10 +85,10 @@ case class BackendConfigStore protected (
 
   private def resetStoreWithoutEvents(that: IConfigStore): Unit = {
     // Clear existing properties before loading
-    this.innerStore.inner.preferenceNames foreach (this.inner.setToDefault)
+    this.innerCfg.inner.preferenceNames foreach (this.inner.setToDefault)
     val bais = new ByteArrayInputStream(that.toByteArray)
-    this.innerStore.inner.load(bais)
-    this.innerStore.settings = that.settings
+    this.innerCfg.inner.load(bais)
+    this.innerCfg.settings = that.settings
   }
 
   private def computeDiff(that: IConfigStore): Seq[(String, Any, Any)] = {

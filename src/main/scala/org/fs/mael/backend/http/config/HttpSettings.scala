@@ -8,6 +8,7 @@ import org.fs.mael.core.config.BackendConfigStore
 import org.fs.mael.core.config.ConfigSetting.LocalEntityConfigSetting
 import org.fs.mael.core.config.IGlobalConfigStore
 import org.fs.mael.core.config.proxy.Proxy
+import org.fs.mael.ui.components.proxy.ProxyLocalFieldEditor
 import org.fs.mael.ui.config.EmptyPreferencePage
 import org.fs.mael.ui.config.GlobalSettings
 import org.fs.mael.ui.config.MFieldEditorPreferencePage
@@ -52,7 +53,8 @@ object HttpSettings {
   /** Setting pages for single download */
   object Local {
     val pageDescriptors: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage[BackendConfigStore]]] = Seq(
-      MPreferencePageDescriptor("Headers", None, classOf[LocalHeadersPage])
+      MPreferencePageDescriptor("Headers", None, classOf[LocalHeadersPage]),
+      MPreferencePageDescriptor("Proxy", None, classOf[LocalProxyPage])
     )
   }
 
@@ -67,6 +69,14 @@ object HttpSettings {
       }
       row(Headers) { (setting, parent) =>
         new HeadersFieldEditor(setting.id, "Headers:", parent)
+      }
+    }
+  }
+
+  private class LocalProxyPage extends MFieldEditorPreferencePage[BackendConfigStore](FieldEditorPreferencePage.FLAT) {
+    override def createFieldEditors(): Unit = {
+      customRow(ConnectionProxy) { parent =>
+        new ProxyLocalFieldEditor("Proxy:", ConnectionProxy, GlobalSettings.ConnectionProxies, parent)
       }
     }
   }

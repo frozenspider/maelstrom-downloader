@@ -110,7 +110,7 @@ object ConfigSetting {
     override def toRepr(v: T): Repr
     override def fromRepr(v: Repr): T
     override protected def dao: PreferenceStoreDao[T] = new PreferenceStoreDao[T](
-      ((s, id) => fromRepr(reprDao.getT(s, id))),
+      ((s, id) => if (!s.contains(id) || s.isDefault(id)) default else fromRepr(reprDao.getT(s, id))),
       ((s, id, v) => reprDao.setT(s, id, toRepr(v))),
       ((s, id, v) => reprDao.setDefaultT(s, id, toRepr(v)))
     )
