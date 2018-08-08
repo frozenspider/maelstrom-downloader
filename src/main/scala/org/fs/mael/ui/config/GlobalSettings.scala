@@ -5,14 +5,21 @@ import org.eclipse.jface.preference.FieldEditorPreferencePage
 import org.eclipse.jface.preference.IntegerFieldEditor
 import org.fs.mael.core.config.ConfigSetting
 import org.fs.mael.core.config.ConfigSetting._
+import org.fs.mael.core.config.IGlobalConfigStore
 import org.fs.mael.core.config.proxy.Proxy
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.ui.components.proxy.ProxyGlobalFieldEditor
 
 object GlobalSettings {
 
-  val pageDescriptors: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]] = Seq(
-    MPreferencePageDescriptor("Main", None, classOf[MainPage])
-  )
+  val pageDescriptors: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage[IGlobalConfigStore]]] = {
+    val connectionPage = MPreferencePageDescriptor("Connection", None, classOf[ConnectionPage])
+    Seq(
+      MPreferencePageDescriptor("Main", None, classOf[MainPage]),
+      connectionPage,
+      MPreferencePageDescriptor("Proxy", Some(connectionPage.name), classOf[ProxyPage])
+    )
+  }
 
   //
   // Settings
@@ -30,7 +37,7 @@ object GlobalSettings {
     ConfigSetting("main.connection.timeoutMs", 0)
 
   val ConnectionProxies: ConfigSetting[Seq[Proxy]] =
-    new SeqConfigSetting[Proxy]("main.connection.proxies", Proxy.Classes)
+    new SeqConfigSetting[Proxy]("main.connection.proxies", Seq(Proxy.NoProxy), Proxy.Classes)
 
   val ConnectionProxy: RefConfigSetting[Proxy] =
     new RefConfigSetting("main.connection.proxy", Proxy.NoProxy, ConnectionProxies)
@@ -88,16 +95,10 @@ object GlobalSettings {
   // Pages
   //
 
-  private class MainPage extends MFieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
+  private class MainPage extends MFieldEditorPreferencePage[IGlobalConfigStore](FieldEditorPreferencePage.FLAT) {
     override def createFieldEditors(): Unit = {
       row(DownloadPath) { (setting, parent) =>
         new DirectoryFieldEditor(setting.id, "Download path:", parent)
-      }
-
-      row(ConnectionTimeout) { (setting, parent) =>
-        new IntegerFieldEditor(setting.id, "Network timeout (ms, 0 means no timeout):", parent).withCode { field =>
-          field.setValidRange(0, 7 * 24 * 60 * 60 * 1000) // Up to one week
-        }
       }
 
       radioRow("Action on window close:", OnWindowCloseBehavior)
@@ -105,6 +106,26 @@ object GlobalSettings {
       radioRow("Minimize to tray:", MinimizeToTrayBehavior)
 
       radioRow("Show tray icon:", ShowTrayIconBehavior)
+    }
+  }
+
+  private class ConnectionPage extends MFieldEditorPreferencePage[IGlobalConfigStore](FieldEditorPreferencePage.FLAT) {
+    override def createFieldEditors(): Unit = {
+      row(ConnectionTimeout) { (setting, parent) =>
+        new IntegerFieldEditor(setting.id, "Network timeout (ms, 0 means no timeout):", parent).withCode { field =>
+          field.setValidRange(0, 7 * 24 * 60 * 60 * 1000) // Up to one week
+        }
+      }
+    }
+  }
+
+  private class ProxyPage extends MFieldEditorPreferencePage[IGlobalConfigStore](FieldEditorPreferencePage.FLAT) {
+    noDefaultAndApplyButton()
+
+    override def createFieldEditors(): Unit = {
+      customRow(ConnectionProxies, ConnectionProxy) { (parent) =>
+        new ProxyGlobalFieldEditor("Configure global proxies list:", ConnectionProxies, ConnectionProxy, parent)
+      }
     }
   }
 }

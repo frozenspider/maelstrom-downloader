@@ -156,7 +156,7 @@ class DownloadsTable(
   }
 
   private def adjustColumnWidths(): Unit = {
-    peer.getColumns.filter(_.getWidth == 0).map(_.pack())
+    peer.getColumns.filter(_.getWidth == 0).foreach(_.pack())
   }
 
   /** Sort table content by the given column in the given direction */

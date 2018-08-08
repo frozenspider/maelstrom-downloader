@@ -110,7 +110,7 @@ object ConfigSetting {
     override def toRepr(v: T): Repr
     override def fromRepr(v: Repr): T
     override protected def dao: PreferenceStoreDao[T] = new PreferenceStoreDao[T](
-      ((s, id) => fromRepr(reprDao.getT(s, id))),
+      ((s, id) => if (!s.contains(id) || s.isDefault(id)) default else fromRepr(reprDao.getT(s, id))),
       ((s, id, v) => reprDao.setT(s, id, toRepr(v))),
       ((s, id, v) => reprDao.setDefaultT(s, id, toRepr(v)))
     )
@@ -154,7 +154,11 @@ object ConfigSetting {
   import org.json4s.jackson.Serialization
 
   /** Setting defining sequence of primitives, case classes or case objects. */
-  class SeqConfigSetting[T: Manifest](id: String, classes: Seq[Class[_ <: T]]) extends CustomConfigSetting[Seq[T], String](id, Nil) {
+  class SeqConfigSetting[T: Manifest](
+    id:      String,
+    default: Seq[T],
+    classes: Seq[Class[_ <: T]]
+  ) extends CustomConfigSetting[Seq[T], String](id, default) {
     private implicit val formats = {
       Serialization.formats(ShortTypeHints(classes.toList)) ++ JavaTypesSerializers.all
     }
@@ -184,8 +188,8 @@ object ConfigSetting {
    */
   class LocalEntityConfigSetting[T <: WithPersistentId: Manifest](
     id:                 String,
-    val defaultSetting: RefConfigSetting[T],
     val refSetting:     ConfigSetting[Seq[T]],
+    val defaultSetting: RefConfigSetting[T],
     classes:            Seq[Class[_ <: T]]
   ) extends CustomConfigSetting[LocalConfigSettingValue[T], String](id, Default) {
     private implicit val formats = {

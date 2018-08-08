@@ -93,7 +93,7 @@ class EditDownloadDialog(
     locationInput.setStringValue(de.location.getAbsolutePath)
     filenameInput.setText(de.filenameOption getOrElse "")
     if (de.status == Status.Running) {
-      disable(locationInput, locationRow)
+      setEnabled(locationInput, locationRow, false)
       filenameInput.setEditable(false)
     }
 

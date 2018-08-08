@@ -26,9 +26,9 @@ class ConfigStoreSpec
     )
   }
 
-  private val settingAbcs = new SeqConfigSetting[ABC]("group1.abcs", AbcClassses)
+  private val settingAbcs = new SeqConfigSetting[ABC]("group1.abcs", Nil, AbcClassses)
   private val settingAbc = new RefConfigSetting("group1.abc", A, settingAbcs)
-  private val settingAbcLocal = new LocalEntityConfigSetting[ABC]("group1.local.abc", settingAbc, settingAbcs, AbcClassses)
+  private val settingAbcLocal = new LocalEntityConfigSetting[ABC]("group1.local.abc", settingAbcs, settingAbc, AbcClassses)
 
   sealed abstract class Radio(idx: Int) extends ConfigSetting.RadioValue(idx.toString, idx + "-pretty")
   object Radio {

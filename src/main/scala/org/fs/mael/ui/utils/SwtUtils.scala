@@ -6,10 +6,8 @@ import java.awt.datatransfer.StringSelection
 
 import org.eclipse.jface.preference._
 import org.eclipse.swt.SWT
-import org.eclipse.swt.events.KeyEvent
-import org.eclipse.swt.events.TypedEvent
-import org.eclipse.swt.graphics.FontData
-import org.eclipse.swt.graphics.Rectangle
+import org.eclipse.swt.events._
+import org.eclipse.swt.graphics._
 import org.eclipse.swt.widgets._
 import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.ui.utils.Hotkey._
@@ -117,15 +115,43 @@ object SwtUtils {
     }
   }
 
-  /** Disable an editor so that its value can't be changed, but the text can be selected (if applicable) */
-  def disable(editor: FieldEditor, parent: Composite): Unit = editor match {
+  /**
+   * Enable/disable an editor.
+   * Values of disabled editors can't be changed, but the text can be selected (if applicable).
+   */
+  def setEnabled(editor: FieldEditor, parent: Composite, enabled: Boolean): Unit =
+    setEnabledInner(editor, parent, enabled)
+
+  /**
+   * Recursively enable a control and its children.
+   * Values of disabled editors can't be changed, but the text can be selected (if applicable).
+   */
+  def setEnabled(control: Control, parent: Composite, enabled: Boolean): Unit = {
+    setEnabledInner(control, parent, enabled)
+    control match {
+      case control: Composite =>
+        control.getChildren.foreach { child =>
+          setEnabled(child, control, enabled)
+        }
+      case _ => // NOOP
+    }
+  }
+
+  private def setEnabledInner(editor: Any, parent: Composite, enabled: Boolean): Unit = editor match {
     case editor: StringFieldEditor =>
-      editor.setEnabled(false, parent)
+      editor.setEnabled(enabled, parent)
       editor.getLabelControl(parent).setEnabled(true)
       editor.getTextControl(parent).setEnabled(true)
-      editor.getTextControl(parent).setEditable(false)
-    case _ =>
-      editor.setEnabled(false, parent)
+      editor.getTextControl(parent).setEditable(enabled)
+    case editor: FieldEditor =>
+      editor.setEnabled(enabled, parent)
+    case editor: Label =>
+      editor.setEnabled(true)
+    case editor: Text =>
+      editor.setEnabled(true)
+      editor.setEditable(enabled)
+    case editor: Control =>
+      editor.setEnabled(enabled)
   }
 
   val monospacedFontData: FontData = {
@@ -177,8 +203,25 @@ object SwtUtils {
     e
   }
 
+  def toSelectionListener(f: SelectionEvent => Unit): SelectionListener = new SelectionListener {
+    override def widgetSelected(e: SelectionEvent): Unit = f(e)
+    override def widgetDefaultSelected(e: SelectionEvent): Unit = f(e)
+  }
+
   def partialListener(pf: PartialFunction[Event, Unit]): Listener =
     e => pf applyOrElse (e, NoopAny2UnitPF)
 
   val NoopAny2UnitPF: PartialFunction[Any, Unit] = { case _ => }
+
+  implicit class RichFont(font: Font) {
+    def bold: Font = {
+      new Font(font.getDevice, alteredFontData(_.setStyle(SWT.BOLD)));
+    }
+
+    private def alteredFontData(f: FontData => Unit): Array[FontData] = {
+      val fontData = font.getFontData
+      fontData.foreach(f)
+      fontData
+    }
+  }
 }

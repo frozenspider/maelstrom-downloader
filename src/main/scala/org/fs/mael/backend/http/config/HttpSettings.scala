@@ -4,12 +4,15 @@ import org.eclipse.jface.preference.FieldEditorPreferencePage
 import org.eclipse.jface.preference.StringFieldEditor
 import org.fs.mael.backend.http.HttpBackend
 import org.fs.mael.backend.http.ui._
+import org.fs.mael.core.config.BackendConfigStore
+import org.fs.mael.core.config.ConfigSetting.LocalEntityConfigSetting
+import org.fs.mael.core.config.IGlobalConfigStore
+import org.fs.mael.core.config.proxy.Proxy
+import org.fs.mael.ui.components.proxy.ProxyLocalFieldEditor
 import org.fs.mael.ui.config.EmptyPreferencePage
+import org.fs.mael.ui.config.GlobalSettings
 import org.fs.mael.ui.config.MFieldEditorPreferencePage
 import org.fs.mael.ui.config.MPreferencePageDescriptor
-import org.fs.mael.core.config.ConfigSetting.LocalEntityConfigSetting
-import org.fs.mael.ui.config.GlobalSettings
-import org.fs.mael.core.config.proxy.Proxy
 
 object HttpSettings {
   import org.fs.mael.core.config.ConfigSetting
@@ -30,7 +33,7 @@ object HttpSettings {
     new HeadersConfigSetting(prefix + ".headers")
 
   val ConnectionProxy: LocalEntityConfigSetting[Proxy] =
-    new LocalEntityConfigSetting[Proxy](prefix + ".proxy", GlobalSettings.ConnectionProxy, GlobalSettings.ConnectionProxies, Proxy.Classes)
+    new LocalEntityConfigSetting[Proxy](prefix + ".proxy", GlobalSettings.ConnectionProxies, GlobalSettings.ConnectionProxy, Proxy.Classes)
 
   //
   // Page groups
@@ -39,9 +42,9 @@ object HttpSettings {
   /** Setting pages to include in global settings */
   object Global {
     private val rootPageDescriptor =
-      MPreferencePageDescriptor("HTTP", None, classOf[EmptyPreferencePage])
+      MPreferencePageDescriptor("HTTP", None, classOf[EmptyPreferencePage[IGlobalConfigStore]])
 
-    val pageDescriptors: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]] = Seq(
+    val pageDescriptors: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage[IGlobalConfigStore]]] = Seq(
       rootPageDescriptor,
       MPreferencePageDescriptor("Headers", Some(rootPageDescriptor.name), classOf[GlobalHeadersPage])
     )
@@ -49,8 +52,9 @@ object HttpSettings {
 
   /** Setting pages for single download */
   object Local {
-    val pageDescriptors: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]] = Seq(
-      MPreferencePageDescriptor("Headers", None, classOf[LocalHeadersPage])
+    val pageDescriptors: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage[BackendConfigStore]]] = Seq(
+      MPreferencePageDescriptor("Headers", None, classOf[LocalHeadersPage]),
+      MPreferencePageDescriptor("Proxy", None, classOf[LocalProxyPage])
     )
   }
 
@@ -58,7 +62,7 @@ object HttpSettings {
   // Pages
   //
 
-  private class GlobalHeadersPage extends MFieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
+  private class GlobalHeadersPage extends MFieldEditorPreferencePage[IGlobalConfigStore](FieldEditorPreferencePage.FLAT) {
     override def createFieldEditors(): Unit = {
       row(UserAgent) { (setting, parent) =>
         new StringFieldEditor(setting.id, "User-Agent:", parent)
@@ -69,7 +73,7 @@ object HttpSettings {
     }
   }
 
-  private class LocalHeadersPage extends MFieldEditorPreferencePage(FieldEditorPreferencePage.FLAT) {
+  private class LocalHeadersPage extends MFieldEditorPreferencePage[BackendConfigStore](FieldEditorPreferencePage.FLAT) {
     override def createFieldEditors(): Unit = {
       row(UserAgent) { (setting, parent) =>
         // TODO: Add optional dropdown with existing user-agents
@@ -80,6 +84,14 @@ object HttpSettings {
       }
       row(Headers) { (setting, parent) =>
         new HeadersFieldEditor(setting.id, "Headers:", parent)
+      }
+    }
+  }
+
+  private class LocalProxyPage extends MFieldEditorPreferencePage[BackendConfigStore](FieldEditorPreferencePage.FLAT) {
+    override def createFieldEditors(): Unit = {
+      customRow(ConnectionProxy) { parent =>
+        new ProxyLocalFieldEditor("Proxy:", ConnectionProxy, GlobalSettings.ConnectionProxies, parent)
       }
     }
   }

@@ -47,7 +47,7 @@ class LogTable(
       }
     })
 
-    table.getColumns.filter(_.getWidth == 0).map(_.pack())
+    table.getColumns.filter(_.getWidth == 0).foreach(_.pack())
     table
   }
 
