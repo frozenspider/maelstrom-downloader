@@ -2,6 +2,7 @@ package org.fs.mael.ui.components.proxy
 
 import java.util.UUID
 
+import org.apache.http.conn.util.InetAddressUtils
 import org.eclipse.jface.preference._
 import org.eclipse.swt.SWT
 import org.eclipse.swt.layout._
@@ -11,7 +12,6 @@ import org.fs.mael.core.config.proxy.Proxy.NoProxy
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components.MUiComponent
 import org.fs.mael.ui.utils.SwtUtils
-import org.apache.http.conn.util.InetAddressUtils
 
 /** Renders {@code Proxy} details, optionally allowing to edit it */
 class ProxyEditorComponent(
@@ -68,10 +68,7 @@ class ProxyEditorComponent(
     SwtUtils.setEnabled(peer, parent, editable)
   }
 
-  /**
-   * Render a proxy in this editor, optionally specify explicitly whether it can be edited.
-   * Note that predefined proxies won't be editable anyway.
-   */
+  /** Render a proxy in this editor, possibly allowing to edit it. */
   def render(proxy: Proxy): Unit = {
     this.uuid = proxy.uuid
     this.editPossible = proxy.isInstanceOf[Proxy.CustomProxy]

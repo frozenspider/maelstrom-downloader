@@ -2,25 +2,21 @@ package org.fs.mael.ui.components.proxy
 
 import java.util.UUID
 
-import org.eclipse.jface.layout.TableColumnLayout
 import org.eclipse.jface.preference.FieldEditor
-import org.eclipse.jface.preference.PreferencePage
-import org.eclipse.jface.viewers.ColumnWeightData
+import org.eclipse.jface.preference.FieldEditorPreferencePage
 import org.eclipse.swt.SWT
-import org.eclipse.swt.events.SelectionEvent
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
+import org.fs.mael.core.config.BackendConfigStore
 import org.fs.mael.core.config.ConfigSetting
 import org.fs.mael.core.config.ConfigSetting._
+import org.fs.mael.core.config.LocalConfigSettingValue
 import org.fs.mael.core.config.proxy.Proxy
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components.ConfigAware
 import org.fs.mael.ui.utils.SwtUtils._
-import org.fs.mael.core.config.BackendConfigStore
-import org.fs.mael.core.config.LocalConfigSettingValue
-import org.eclipse.jface.preference.FieldEditorPreferencePage
 
-/** Field editor for global proxy settings */
+/** Field editor for local (per-download) proxy settings */
 class ProxyLocalFieldEditor(
   labelText:            String,
   proxyLocalRefSetting: LocalEntityConfigSetting[Proxy],
@@ -88,13 +84,13 @@ class ProxyLocalFieldEditor(
       btn.setText("Application default")
       btn.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false))
     }
-    rbDefault.addSelectionListener(toSelectionListener(e => onDefaultSelected()))
+    rbDefault.addSelectionListener(toSelectionListener(e => onRadioChange()))
 
     rbDefined = new Button(group, SWT.RADIO | SWT.LEFT).withCode { btn =>
       btn.setText("Pre-configured")
       btn.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false))
     }
-    rbDefined.addSelectionListener(toSelectionListener(e => onDefinedSelected()))
+    rbDefined.addSelectionListener(toSelectionListener(e => onRadioChange()))
 
     dropdown = new Combo(group, SWT.DROP_DOWN | SWT.READ_ONLY).withCode { dd =>
       dd.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false).withCode { layout =>
@@ -106,7 +102,7 @@ class ProxyLocalFieldEditor(
       btn.setText("Other")
       btn.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false))
     }
-    rbOther.addSelectionListener(toSelectionListener(e => onOtherSelected()))
+    rbOther.addSelectionListener(toSelectionListener(e => onRadioChange()))
 
     editor = new ProxyEditorComponent(group, new GridData(SWT.FILL, SWT.BEGINNING, true, false).withCode { layout =>
       layout.horizontalIndent = 20
@@ -121,6 +117,10 @@ class ProxyLocalFieldEditor(
     tryUpdateCachedValue()
   }
 
+  /**
+   * Try to update "current" value in this editor based on its state, returning `true` if succeeded
+   * and setting page error message otherwise
+   */
   private def tryUpdateCachedValue(): Boolean = loadComplete && {
     val errorMsgOption: Option[String] = if (rbDefault.getSelection) {
       selectedProxyValue = LocalConfigSettingValue.Default
@@ -141,46 +141,29 @@ class ProxyLocalFieldEditor(
     errorMsgOption.isEmpty
   }
 
-  private def onDefaultSelected(): Unit = {
-    dropdown.setEnabled(false)
-    editor.setEditAllowed(false)
-  }
-
-  private def onDefinedSelected(): Unit = {
-    dropdown.setEnabled(true)
-    editor.setEditAllowed(false)
-  }
-
-  private def onOtherSelected(): Unit = {
-    dropdown.setEnabled(false)
-    editor.setEditAllowed(true)
+  private def onRadioChange(): Unit = {
+    dropdown.setEnabled(rbDefined.getSelection)
+    editor.setEditAllowed(rbOther.getSelection)
   }
 
   private def render(): Unit = {
     rbDefault.setText(s"Application default (${defaultProxy.name})")
     dropdown.setItems((proxies map (_.name)): _*)
     selectedProxyValue match {
-      case LocalConfigSettingValue.Default =>
-        rbDefault.setSelection(true)
-        dropdown.select(0)
+      case LocalConfigSettingValue.Ref(uuid) if proxies.exists(_.uuid == uuid) =>
+        rbDefined.setSelection(true)
+        dropdown.select(proxies.indexWhere(_.uuid == uuid))
         editor.renderNew(UUID.randomUUID(), "Custom")
-        onDefaultSelected()
-      case LocalConfigSettingValue.Ref(uuid) =>
-        val idx = proxies.indexWhere(_.uuid == uuid)
-        if (idx == -1) {
-          selectedProxyValue = LocalConfigSettingValue.Default
-          render()
-        } else {
-          rbDefined.setSelection(true)
-          dropdown.select(idx)
-          editor.renderNew(UUID.randomUUID(), "Custom")
-          onDefinedSelected()
-        }
       case LocalConfigSettingValue.Embedded(proxy) =>
         rbOther.setSelection(true)
         dropdown.select(0)
         editor.render(proxy)
-        onOtherSelected()
+      case _ =>
+        selectedProxyValue = LocalConfigSettingValue.Default
+        rbDefault.setSelection(true)
+        dropdown.select(0)
+        editor.renderNew(UUID.randomUUID(), "Custom")
     }
+    onRadioChange()
   }
 }

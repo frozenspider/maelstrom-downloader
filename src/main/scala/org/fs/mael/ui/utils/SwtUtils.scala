@@ -6,15 +6,12 @@ import java.awt.datatransfer.StringSelection
 
 import org.eclipse.jface.preference._
 import org.eclipse.swt.SWT
-import org.eclipse.swt.events.KeyEvent
-import org.eclipse.swt.events.TypedEvent
+import org.eclipse.swt.events._
 import org.eclipse.swt.graphics._
 import org.eclipse.swt.widgets._
 import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.ui.utils.Hotkey._
 import org.slf4s.Logger
-import org.eclipse.swt.events.SelectionEvent
-import org.eclipse.swt.events.SelectionListener
 
 object SwtUtils {
   def getCurrentMonitor(c: Control): Monitor = {

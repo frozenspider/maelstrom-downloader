@@ -2,6 +2,7 @@ package org.fs.mael.ui.components.proxy
 
 import java.util.UUID
 
+import org.eclipse.jface.dialogs.MessageDialog
 import org.eclipse.jface.layout.TableColumnLayout
 import org.eclipse.jface.preference.FieldEditor
 import org.eclipse.jface.preference.PreferencePage
@@ -17,7 +18,6 @@ import org.fs.mael.core.config.proxy.Proxy
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components.ConfigAware
 import org.fs.mael.ui.utils.SwtUtils._
-import org.eclipse.jface.dialogs.MessageDialog
 
 /** Field editor for global proxy settings */
 class ProxyGlobalFieldEditor(

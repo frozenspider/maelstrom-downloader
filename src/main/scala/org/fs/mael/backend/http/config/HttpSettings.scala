@@ -42,7 +42,7 @@ object HttpSettings {
   /** Setting pages to include in global settings */
   object Global {
     private val rootPageDescriptor =
-      MPreferencePageDescriptor[EmptyPreferencePage[IGlobalConfigStore]]("HTTP", None, classOf[EmptyPreferencePage[IGlobalConfigStore]])
+      MPreferencePageDescriptor("HTTP", None, classOf[EmptyPreferencePage[IGlobalConfigStore]])
 
     val pageDescriptors: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage[IGlobalConfigStore]]] = Seq(
       rootPageDescriptor,
@@ -73,14 +73,6 @@ object HttpSettings {
     }
   }
 
-  private class LocalProxyPage extends MFieldEditorPreferencePage[BackendConfigStore](FieldEditorPreferencePage.FLAT) {
-    override def createFieldEditors(): Unit = {
-      customRow(ConnectionProxy) { parent =>
-        new ProxyLocalFieldEditor("Proxy:", ConnectionProxy, GlobalSettings.ConnectionProxies, parent)
-      }
-    }
-  }
-
   private class LocalHeadersPage extends MFieldEditorPreferencePage[BackendConfigStore](FieldEditorPreferencePage.FLAT) {
     override def createFieldEditors(): Unit = {
       row(UserAgent) { (setting, parent) =>
@@ -92,6 +84,14 @@ object HttpSettings {
       }
       row(Headers) { (setting, parent) =>
         new HeadersFieldEditor(setting.id, "Headers:", parent)
+      }
+    }
+  }
+
+  private class LocalProxyPage extends MFieldEditorPreferencePage[BackendConfigStore](FieldEditorPreferencePage.FLAT) {
+    override def createFieldEditors(): Unit = {
+      customRow(ConnectionProxy) { parent =>
+        new ProxyLocalFieldEditor("Proxy:", ConnectionProxy, GlobalSettings.ConnectionProxies, parent)
       }
     }
   }
