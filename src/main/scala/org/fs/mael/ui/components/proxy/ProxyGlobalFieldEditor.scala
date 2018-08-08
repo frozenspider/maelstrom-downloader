@@ -72,6 +72,7 @@ class ProxyGlobalFieldEditor(
   private def doFillIntoGrid(numColumns: Int): Unit = {
     top.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true).withCode { gridData =>
       gridData.horizontalSpan = numColumns
+      gridData.widthHint = 650
     })
 
     val leftPanel = new Composite(top, SWT.NONE).withCode { panel =>
@@ -83,7 +84,9 @@ class ProxyGlobalFieldEditor(
     // See https://stackoverflow.com/a/25660919/466646
     val tcLayout = new TableColumnLayout
     val tablePanel = new Composite(leftPanel, SWT.NONE).withCode { panel =>
-      panel.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true))
+      panel.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true).withCode { gridData =>
+        gridData.widthHint = 150
+      })
       panel.setLayout(tcLayout)
     }
     listTable = new Table(tablePanel, SWT.SINGLE | SWT.BORDER).withCode { listTable =>
