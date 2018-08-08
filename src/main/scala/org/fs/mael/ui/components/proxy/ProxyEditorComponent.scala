@@ -17,6 +17,7 @@ import org.apache.http.conn.util.InetAddressUtils
 class ProxyEditorComponent(
   parent:             Composite,
   layoutData:         Any,
+  showNameEditor:     Boolean,
   applyClickedOption: Option[Proxy => Unit]
 ) extends MUiComponent[Composite](parent) {
 
@@ -121,7 +122,6 @@ class ProxyEditorComponent(
   @throws[IllegalStateException]
   def value: Proxy = {
     if (!editable) throw new IllegalStateException("Proxy cannot be edited, this shouldn't be called! Its a software bug!")
-    if (!peer.isVisible) throw new IllegalStateException("Editor is hidden, this shouldn't be called! Its a software bug!")
     if (validate().isDefined) throw new IllegalStateException("Invalid editor value(s), this shouldn't be called! Its a software bug!")
     val res = typeButtons.indexWhere(_.getSelection) match {
       case 0 =>
@@ -182,8 +182,13 @@ class ProxyEditorComponent(
     }
 
     override def createFieldEditors(): Unit = {
-      nameEditor = reg(new StringFieldEditor("", "Proxy name:", getFieldEditorParent()))
+      val nameParent = getFieldEditorParent()
+      nameEditor = reg(new StringFieldEditor("", "Proxy name:", nameParent))
       nameEditor.setEmptyStringAllowed(false)
+      if (!showNameEditor) {
+        nameParent.setVisible(false)
+        nameParent.getLayoutData.asInstanceOf[GridData].heightHint = 0
+      }
 
       val typeParent = getFieldEditorParent()
       typeEditor = reg(new RadioGroupFieldEditor("", "Proxy type:", 1, proxyNamesAndTypes.map(nt => Array(nt._1, "")).toArray[Array[String]], typeParent))
