@@ -51,6 +51,7 @@ object SwtUtils {
 
   def createMenuItem(menu: Menu, text: String, parent: Control, hOption: Option[Hotkey])(action: Event => Unit): MenuItem = {
     val mi = new MenuItem(menu, SWT.NONE)
+    // TODO: Convert all to typed listeners
     mi.addListener(SWT.Selection, e => action(e))
     mi.setText(text)
     hOption foreach { h =>
@@ -152,6 +153,23 @@ object SwtUtils {
       editor.setEditable(enabled)
     case editor: Control =>
       editor.setEnabled(enabled)
+  }
+
+  /**
+   * Binds an action to button (radio/checkbox) state to be called every time
+   * its selection state changes (by user or by firing event)
+   */
+  def bindToButtonState(btn: Button, reaction: Boolean => Unit): Unit = {
+    btn.addSelectionListener(toSelectionListener(e => reaction(btn.getSelection)))
+    reaction(btn.getSelection)
+  }
+
+  /** Fire an `SWT.Selection` event for this button */
+  def fireSelectionEvent(btn: Button): Unit = {
+    val e = new Event()
+    e.widget = btn
+    e.display = btn.getDisplay
+    btn.notifyListeners(SWT.Selection, e)
   }
 
   val monospacedFontData: FontData = {
