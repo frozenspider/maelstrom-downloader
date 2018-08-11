@@ -42,7 +42,7 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
-import org.fs.mael.core.utils.CoreUtils
+import org.fs.mael.core.utils.CoreUtils._
 import org.slf4s.Logging
 
 class HttpDownloader(
@@ -127,15 +127,12 @@ class HttpDownloader(
     private def runInner(): Unit = {
       try {
         de.location.mkdirs
-        if (!de.location.exists) {
-          throw new UserFriendlyException(s"Can't create path ${de.location}")
-        }
+        requireFriendly(de.location.exists, s"Can't create path ${de.location}")
         addLogAndFire(de, LogEntry.info("Starting download..."))
 
         if (partial) {
           assert(de.filenameOption.isDefined)
-          if (!de.fileOption.get.exists())
-            throw new UserFriendlyException(s"File is missing")
+          requireFriendly(de.fileOption.get.exists(), "File is missing")
         }
         if (partial && !de.supportsResumingOption.getOrElse(true)) {
           de.sections.clear()
@@ -193,7 +190,7 @@ class HttpDownloader(
         val responseCode = res.getStatusLine.getStatusCode
         val entity = doChecked {
           if ((!partial && responseCode != HttpStatus.SC_OK) || (partial && responseCode != HttpStatus.SC_PARTIAL_CONTENT)) {
-            throw new UserFriendlyException(s"Server responded with an error")
+            failFriendly(s"Server responded with an error")
           }
           res.getEntity
         }
@@ -219,7 +216,7 @@ class HttpDownloader(
                 de.sizeOption = Some(reportedSize)
                 eventMgr.fireDetailsChanged(de)
               case Some(prevSize) if prevSize != reportedSize =>
-                throw new UserFriendlyException("File size on server changed")
+                failFriendly("File size on server changed")
               case _ => // NOOP
             }
           }
@@ -291,7 +288,7 @@ class HttpDownloader(
           case _                 => None
         }
       } map { fn =>
-        CoreUtils.asValidFilename(fn)
+        asValidFilename(fn)
       } getOrElse {
         // When everything else fails - generate a filename from UUID
         "file-" + de.id.toString.toUpperCase
@@ -334,14 +331,12 @@ class HttpDownloader(
     private def instantiateFile(): RandomAccessFile = {
       val f = de.fileOption.get
       (partial, f.exists) match {
-        case (false, true)  => throw new UserFriendlyException(s"File already exists")
+        case (false, true)  => failFriendly(s"File already exists")
         case (true, exists) => assert(exists) // Was checked before
         case _              => // NOOP
       }
       f.createNewFile()
-      if (!f.canWrite) {
-        throw new UserFriendlyException(s"Can't write to file ${f.getAbsolutePath}")
-      }
+      requireFriendly(f.canWrite, s"Can't write to file ${f.getAbsolutePath}")
       new RandomAccessFile(f, "rw")
     }
 
@@ -357,7 +352,7 @@ class HttpDownloader(
             msg => doChecked(addLogAndFire(de, LogEntry.response(msg)))
           )
         )
-      val connMgr = new BasicHttpClientConnectionManager(createSocketFactoryRegistry(), connFactory, null, null)
+      val connMgr = new BasicHttpClientConnectionManager(createSocketFactoryRegistry(), connFactory, null, FakeDnsResolver)
       connMgr.setSocketConfig(
         SocketConfig.custom()
           .setSoTimeout(connTimeoutMs)

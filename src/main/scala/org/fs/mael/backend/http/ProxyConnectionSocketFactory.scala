@@ -28,6 +28,7 @@ class ProxyConnectionSocketFactory(proxy: Proxy) extends PlainConnectionSocketFa
     localAddr:      InetSocketAddress,
     context:        HttpContext
   ) = {
+    assert(fakeRemoteAddr.getAddress.getAddress sameElements FakeDnsResolver.Bytes, "Use FakeDnsResolver!")
     val initialSocket = Option(socketOrNull) getOrElse createSocket(context)
     val remoteAddr = proxy match {
       case proxy: Proxy.SOCKS5 if proxy.dns => InetSocketAddress.createUnresolved(host.getHostName, fakeRemoteAddr.getPort)
@@ -112,9 +113,7 @@ class ProxyConnectionSocketFactory(proxy: Proxy) extends PlainConnectionSocketFa
           val authRes = Array.ofDim[Byte](2)
           in.readFully(authRes)
           requireFriendly(authRes(0) == 0x01, "Malformed proxy response")
-          if (authRes(1) != 0x00) {
-            failFriendly("Wrong username or password for proxy")
-          }
+          requireFriendly(authRes(1) == 0x00, "Wrong username or password for proxy")
         case _ => failFriendly("Proxy requires authentication")
       }
     }
