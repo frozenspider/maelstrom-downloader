@@ -36,14 +36,14 @@ trait IoUtils {
       var buf = Array.ofDim[Byte](1000)
       var bufLen = 0
       val tbuf = Array.ofDim[Byte](1000)
-      while (in.available() > 0) {
+      do {
         val readLen = in.read(tbuf)
         if (buf.size < bufLen + readLen) {
           buf = Arrays.copyOf(buf, bufLen + readLen)
         }
         System.arraycopy(tbuf, 0, buf, bufLen, readLen)
         bufLen += readLen
-      }
+      } while (in.available() > 0)
       (buf, bufLen)
     }
   }

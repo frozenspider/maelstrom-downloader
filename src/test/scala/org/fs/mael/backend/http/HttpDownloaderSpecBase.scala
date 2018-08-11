@@ -37,11 +37,11 @@ trait HttpDownloaderSpecBase
   @volatile private var succeeded: Boolean = false
   @volatile var failureOption: Option[Throwable] = None
 
-  private val port = 52345
-  val server: SimpleHttpServer = new SimpleHttpServer(port)
+  val uriPort = 52345
+  val server: SimpleHttpServer = new SimpleHttpServer(uriPort)
 
   /** Change for debugging to set breakpoints */
-  private val waitTimeoutMs = 1000 //* 9999
+  private val waitTimeoutMs = 1000 * 9999
 
   /** Needs to be called manually from `before {}` block */
   def beforeMethod(): Unit = {
@@ -74,7 +74,7 @@ trait HttpDownloaderSpecBase
   }
 
   protected def createDownloadEntry(): DownloadEntry = {
-    val uri = new URI(s"http://localhost:$port/mySubUrl/qwe?a=b&c=d")
+    val uri = new URI(s"http://localhost:$uriPort/mySubUrl/qwe?a=b&c=d")
     val filename = requestTempFilename()
     DownloadEntry(
       backendId          = HttpBackend.Id,

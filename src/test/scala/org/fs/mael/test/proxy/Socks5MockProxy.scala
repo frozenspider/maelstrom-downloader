@@ -3,21 +3,18 @@ package org.fs.mael.test.proxy
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
-import java.net.Inet4Address
-import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
-import java.nio.ByteBuffer
-import java.util.Arrays
 
 import scala.util.Failure
 import scala.util.Try
 
-import org.fs.mael.test.proxy.Socks5MockProxy._
 import org.fs.mael.core.proxy.Proxy.SOCKS5._
 import org.fs.mael.core.utils.IoUtils._
+import org.fs.mael.test.proxy.Socks5MockProxy._
+import org.slf4s.Logging
 
 /**
  * Simple mock implementation of SOCKS5 protocol.
@@ -43,14 +40,12 @@ class Socks5MockProxy(
   val enforceUserPassAuth: Boolean,
   respondWith:             String => Array[Byte],
   onFailure:               Throwable => Unit
-) {
+) extends Logging {
 
-  private val serverProcess: ServerProcess = new ServerProcess
-  private val serverThread: Thread = new Thread(this.serverProcess)
+  private val serverThread: Thread = new ServerProcess()
   private val serverSocket: ServerSocket = new ServerSocket(this.port)
-  @volatile var authMethod: AuthMethod = _
-  @volatile var req: String = _
-  @volatile var reqCounter = 0
+  /** `Seq[AuthMethod, ConnectMessage, DataRequest]` */
+  var connLog: IndexedSeq[(AuthMethod, Message, String)] = IndexedSeq.empty
 
   def start(): Unit = this.synchronized {
     this.serverThread.start()
@@ -68,13 +63,16 @@ class Socks5MockProxy(
     failures.headOption.map(onFailure)
   }
 
-  private class ServerProcess extends Runnable {
+  private class ServerProcess extends Thread {
+
+    setUncaughtExceptionHandler((thread, th) => {
+      log.error("Uncaught exception in SOCKS5 mock proxy", th)
+    })
 
     override def run(): Unit = {
       while (!serverSocket.isClosed() && !Thread.currentThread().isInterrupted()) {
         try {
           val socket: Socket = serverSocket.accept()
-          reqCounter += 1
           try {
             establishConnection(socket)
           } finally {
@@ -83,7 +81,7 @@ class Socks5MockProxy(
         } catch {
           case ex: SocketException => // NOOP, expected
           case th: Throwable =>
-            th.printStackTrace()
+            log.error("Error processing socket connection", th)
             onFailure(th)
         }
       }
@@ -97,19 +95,22 @@ class Socks5MockProxy(
       val protocolVer = in.read()
       require(protocolVer == 5, s"Only SOCKS5 supported, got ${protocolVer}")
 
-      authMethod = authenticate(in, out)
+      val authMethod = authenticate(in, out)
 
       // Receive CONNECT request
-      val initialReq = readMessage(in)
-      require(initialReq.cmd == 0x01, "Only CONNECT command is supported")
+      val connReq = readMessage(in)
+      require(connReq.cmd == 0x01, "Only CONNECT command is supported")
 
-      val initialRes = Message(0x00, Addr(InetAddress.getLocalHost), port)
-      val initialResBytes = initialRes.raw
-      out.writeAndFlush(initialResBytes)
+      // We're responding exactly like Tor does - with zeroe address/port
+      val connRes = Message(0x00, Addr(InetAddress.getByAddress(Array[Byte](0, 0, 0, 0))), 0)
+      out.writeAndFlush(connRes.raw)
 
-      req = readPlaintext(in)
-      val resBytes = respondWith(req)
-      out.writeAndFlush(resBytes)
+      val dataReq = readPlaintext(in)
+      Socks5MockProxy.this.synchronized {
+        connLog = connLog :+ (authMethod, connReq, dataReq)
+      }
+      val dataResBytes = respondWith(dataReq)
+      out.writeAndFlush(dataResBytes)
     }
 
     private def authenticate(in: DataInputStream, out: DataOutputStream): AuthMethod = {
@@ -149,11 +150,11 @@ class Socks5MockProxy(
         throw new IOException("Authentication method not supported")
       }
     }
+  }
 
-    private def readPlaintext(in: DataInputStream): String = {
-      val (buf, bufLen) = in.readBytes()
-      new String(buf, 0, bufLen, "UTF-8")
-    }
+  private def readPlaintext(in: DataInputStream): String = {
+    val (buf, bufLen) = in.readBytes()
+    new String(buf, 0, bufLen, "UTF-8")
   }
 }
 

@@ -357,7 +357,7 @@ class HttpDownloader(
             msg => doChecked(addLogAndFire(de, LogEntry.response(msg)))
           )
         )
-      val connMgr = new BasicHttpClientConnectionManager(HttpDownloader.SocketFactoryRegistry, connFactory, null, null)
+      val connMgr = new BasicHttpClientConnectionManager(createSocketFactoryRegistry(), connFactory, null, null)
       connMgr.setSocketConfig(
         SocketConfig.custom()
           .setSoTimeout(connTimeoutMs)
@@ -366,17 +366,18 @@ class HttpDownloader(
       connMgr
     }
 
+    private def createSocketFactoryRegistry(): Registry[ConnectionSocketFactory] = {
+      val proxy = de.backendSpecificCfg.resolve(HttpSettings.ConnectionProxy)
+      RegistryBuilder.create[ConnectionSocketFactory]
+        .register("http", new ProxyConnectionSocketFactory(proxy))
+        .register("https", SSLConnectionSocketFactory.getSocketFactory())
+        .build()
+    }
+
     /** Execute an action only if thread isn't interrupted, in which case - throw {@code InterruptedException} */
     private def doChecked[T](action: => T): T = {
       if (this.isInterrupted) throw new InterruptedException
       action
     }
   }
-}
-
-object HttpDownloader {
-  private val SocketFactoryRegistry: Registry[ConnectionSocketFactory] = RegistryBuilder.create[ConnectionSocketFactory]
-    .register("http", PlainConnectionSocketFactory.getSocketFactory())
-    .register("https", SSLConnectionSocketFactory.getSocketFactory())
-    .build()
 }
