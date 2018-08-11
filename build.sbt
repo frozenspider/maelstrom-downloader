@@ -40,6 +40,7 @@ Seq(
   "org.apache.httpcomponents" %  "httpclient"               % "4.5.5",
   // Logging
   "org.slf4s"                 %% "slf4s-api"                % "1.7.25",
+  "org.slf4j"                 %  "jcl-over-slf4j"           % "1.7.25",
   "ch.qos.logback"            %  "logback-classic"          % "1.1.2",
   // Other
   "com.github.frozenspider"   %% "fs-common-utils"          % "0.1.3",
