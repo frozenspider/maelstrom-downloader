@@ -84,29 +84,28 @@ class ProxyLocalFieldEditor(
       btn.setText("Application default")
       btn.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false))
     }
-    rbDefault.addSelectionListener(toSelectionListener(e => onRadioChange()))
 
     rbDefined = new Button(group, SWT.RADIO | SWT.LEFT).withCode { btn =>
       btn.setText("Pre-configured")
       btn.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false))
     }
-    rbDefined.addSelectionListener(toSelectionListener(e => onRadioChange()))
 
     dropdown = new Combo(group, SWT.DROP_DOWN | SWT.READ_ONLY).withCode { dd =>
       dd.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false).withCode { layout =>
         layout.horizontalIndent = 20
       })
     }
+    bindToButtonState(rbDefined, dropdown.setEnabled)
 
     rbOther = new Button(group, SWT.RADIO | SWT.LEFT).withCode { btn =>
       btn.setText("Other")
       btn.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false))
     }
-    rbOther.addSelectionListener(toSelectionListener(e => onRadioChange()))
 
     editor = new ProxyEditorComponent(group, new GridData(SWT.FILL, SWT.BEGINNING, true, false).withCode { layout =>
       layout.horizontalIndent = 20
     }, false, None)
+    bindToButtonState(rbOther, editor.setEditAllowed)
   }
 
   override def adjustForNumColumns(numColumns: Int): Unit = {
@@ -141,11 +140,6 @@ class ProxyLocalFieldEditor(
     errorMsgOption.isEmpty
   }
 
-  private def onRadioChange(): Unit = {
-    dropdown.setEnabled(rbDefined.getSelection)
-    editor.setEditAllowed(rbOther.getSelection)
-  }
-
   private def render(): Unit = {
     rbDefault.setText(s"Application default (${defaultProxy.name})")
     dropdown.setItems((proxies map (_.name)): _*)
@@ -164,6 +158,6 @@ class ProxyLocalFieldEditor(
         dropdown.select(0)
         editor.renderNew(UUID.randomUUID(), "Custom")
     }
-    onRadioChange()
+    Seq(rbDefault, rbDefined, rbOther) foreach (fireSelectionEvent)
   }
 }
