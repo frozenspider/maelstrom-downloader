@@ -6,6 +6,7 @@ import org.fs.mael.core.config.ConfigSetting._
 import org.fs.mael.test.TestUtils
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.FunSuite
 import org.scalatest.prop.TableDrivenPropertyChecks
 
@@ -13,17 +14,19 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 class ConfigStoreSpec
   extends FunSuite
   with BeforeAndAfter
+  with BeforeAndAfterAll
   with TableDrivenPropertyChecks {
   import org.fs.mael.test.TestUtils.ConfigValueClasses._
 
-  private val (setting1, setting2, setting3, setting4) = {
+  private val (setting1, setting2, setting3, setting4) = (
+    ConfigSetting("my.id1", "my-default1"),
+    ConfigSetting("my.id2", -1),
+    ConfigSetting("my.id3", Some("my-default2")),
+    ConfigSetting("my.id4", Radio.r1, Radio.values)
+  )
+
+  override def afterAll() {
     ConfigSetting.test_clearRegistry()
-    (
-      ConfigSetting("my.id1", "my-default1"),
-      ConfigSetting("my.id2", -1),
-      ConfigSetting("my.id3", Some("my-default2")),
-      ConfigSetting("my.id4", Radio.r1, Radio.values)
-    )
   }
 
   private val settingAbcs = new SeqConfigSetting[ABC]("group1.abcs", Nil, AbcClassses)

@@ -6,6 +6,9 @@ scalaVersion   := "2.12.6"
 // Show tests duration and full stacktrace on test errors
 testOptions in Test += Tests.Argument("-oDF")
 
+// Disable concurrent test execution
+Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
+
 sourceManaged            := baseDirectory.value / "src_managed"
 sourceManaged in Compile := baseDirectory.value / "src_managed" / "main" / "scala"
 sourceManaged in Test    := baseDirectory.value / "src_managed" / "test" / "scala"

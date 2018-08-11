@@ -22,10 +22,13 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.TestSuite
 import org.slf4s.Logging
+import java.net.BindException
 
 /** Base trait for specs testing {@link HttpDownloader} */
 trait HttpDownloaderSpecBase
   extends BeforeAndAfter { this: TestSuite with BeforeAndAfterAll =>
+
+  var startServer = true
 
   val eventMgr = new ControlledEventManager
   val transferMgr = new ControlledTransferManager
@@ -41,7 +44,17 @@ trait HttpDownloaderSpecBase
   val server: SimpleHttpServer = new SimpleHttpServer(uriPort)
 
   /** Change for debugging to set breakpoints */
-  private val waitTimeoutMs = 1000 * 9999
+  private val waitTimeoutMs = 1500 // * 9999
+
+  override protected def beforeAll(): Unit = {
+    if (startServer) {
+      server.start()
+    }
+  }
+
+  override protected def afterAll(): Unit = {
+    server.shutdown()
+  }
 
   /** Needs to be called manually from `before {}` block */
   def beforeMethod(): Unit = {
@@ -57,10 +70,6 @@ trait HttpDownloaderSpecBase
     tmpFilenames.foreach {
       new File(tmpDir, _).delete()
     }
-  }
-
-  override protected def afterAll(): Unit = {
-    server.shutdown()
   }
 
   //
@@ -159,6 +168,7 @@ trait HttpDownloaderSpecBase
         (succeeded || failureOption.isDefined) && downloader.test_getThreads.isEmpty
       }
       assert(waitUntilFiredAndStopped)
+      Thread.sleep(50)
       failureOption foreach (ex => fail(ex))
     }
 
@@ -223,7 +233,7 @@ trait HttpDownloaderSpecBase
     import org.apache.http.protocol._
 
     val socketConfig = SocketConfig.custom()
-      // .setSoTimeout(15000)
+      .setSoTimeout(waitTimeoutMs)
       .setTcpNoDelay(true)
       .build()
 
@@ -240,38 +250,38 @@ trait HttpDownloaderSpecBase
 
     @volatile var handle: (HttpRequest, HttpResponse) => Unit = _
 
-    val server: HttpServer = ServerBootstrap.bootstrap()
-      .setListenerPort(port)
-      .setServerInfo("Test/1.1")
-      .setSocketConfig(socketConfig)
-      .setExceptionLogger(exceptionLogger)
-      .registerHandler("*", new HttpRequestHandler {
-        def handle(request: HttpRequest, response: HttpResponse, context: HttpContext): Unit = {
-          val method = request.getRequestLine().getMethod().toUpperCase(Locale.ROOT)
-          if (!method.equals("GET") && !method.equals("HEAD") && !method.equals("POST")) {
-            throw new MethodNotSupportedException(method + " method not supported")
-          }
-          reqCounter += 1
-          self.handle(request, response)
-        }
-      })
-      .create()
+    val server: HttpServer = createServer()
 
-    server.start()
+    def start(): Unit = server.start()
+
+    private def createServer(): HttpServer = {
+      ServerBootstrap.bootstrap()
+        .setListenerPort(port)
+        .setServerInfo("Test/1.1")
+        .setSocketConfig(socketConfig)
+        .setExceptionLogger(exceptionLogger)
+        .registerHandler("*", new HttpRequestHandler {
+          def handle(request: HttpRequest, response: HttpResponse, context: HttpContext): Unit = {
+            val method = request.getRequestLine().getMethod().toUpperCase(Locale.ROOT)
+            if (!method.equals("GET") && !method.equals("HEAD") && !method.equals("POST")) {
+              throw new MethodNotSupportedException(method + " method not supported")
+            }
+            reqCounter += 1
+            self.handle(request, response)
+          }
+        })
+        .create()
+    }
+
+    def shutdown(): Unit = {
+      server.shutdown(0, TimeUnit.MILLISECONDS)
+    }
 
     def respondWith(
       handle: (HttpRequest, HttpResponse) => Unit
     ): Unit = {
       reqCounter = 0
       this.handle = handle
-    }
-
-    def shutdown(): Unit = {
-      Option(server) foreach { server =>
-        server.stop()
-        server.shutdown(0, TimeUnit.SECONDS)
-        server.awaitTermination(1, TimeUnit.SECONDS)
-      }
     }
   }
 }

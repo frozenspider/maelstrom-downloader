@@ -33,6 +33,8 @@ class HttpDownloaderProxySpec
   with BeforeAndAfter
   with BeforeAndAfterAll {
 
+  startServer = false
+
   val proxyResponse = {
     val content = (1 to 5).map(_.toByte).toArray
     val header =
@@ -48,6 +50,14 @@ class HttpDownloaderProxySpec
 
   var socks5Proxy: Socks5MockProxy = _
 
+  override def beforeAll() {
+    super[HttpDownloaderSpecBase].beforeAll()
+  }
+
+  override def afterAll() {
+    super[HttpDownloaderSpecBase].afterAll()
+  }
+
   before {
     super.beforeMethod()
   }
@@ -55,10 +65,6 @@ class HttpDownloaderProxySpec
   after {
     super.afterMethod()
     Option(socks5Proxy).map(_.stop())
-  }
-
-  override protected def afterAll() = {
-    super.afterAll()
   }
 
   test("SOCKS5 - no auth, no DNS") {

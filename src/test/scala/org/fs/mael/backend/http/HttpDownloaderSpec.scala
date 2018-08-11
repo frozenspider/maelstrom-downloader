@@ -34,8 +34,12 @@ class HttpDownloaderSpec
     super.afterMethod()
   }
 
-  override protected def afterAll() = {
-    super.afterAll()
+  override def beforeAll() {
+    super[HttpDownloaderSpecBase].beforeAll()
+  }
+
+  override def afterAll() {
+    super[HttpDownloaderSpecBase].afterAll()
   }
 
   test("regular download of 5 bytes") {
@@ -389,8 +393,6 @@ class HttpDownloaderSpec
     assertLastLogEntry(de, "timed out")
   }
 
-  // WARNING: Unstable test!
-  // server.reqCounter is sometimes 2
   test("failure - server unexpectedly disconnected") {
     val de = createDownloadEntry()
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
@@ -409,7 +411,7 @@ class HttpDownloaderSpec
     downloader.start(de, 999999)
     await.firedAndStopped()
 
-    assert(server.reqCounter === 1)
+    assert(server.reqCounter >= 1) // May be 2+ because of automatic retries
     assert(transferMgr.bytesRead === 2)
     assertLastLogEntry(de, "reset")
   }

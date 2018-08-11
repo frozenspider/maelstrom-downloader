@@ -4,8 +4,10 @@ import java.util.UUID
 
 import org.fs.mael.core.config.ConfigSetting._
 import org.fs.mael.test.TestUtils
+import org.fs.mael.test.TestUtils.ConfigValueClasses._
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.FunSuite
 
 import junit.framework.AssertionFailedError
@@ -13,18 +15,15 @@ import junit.framework.AssertionFailedError
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class BackendConfigStoreSpec
   extends FunSuite
-  with BeforeAndAfter {
-  import org.fs.mael.test.TestUtils.ConfigValueClasses._
+  with BeforeAndAfter
+  with BeforeAndAfterAll {
 
-  private val (setting11, setting12, setting21, setting22) = {
-    ConfigSetting.test_clearRegistry()
-    (
-      ConfigSetting("group1.1", "my-default11"),
-      ConfigSetting("group1.2", -1),
-      ConfigSetting("group2.1", Radio.r1, Radio.values),
-      ConfigSetting("group2.2", Some("my-default22"))
-    )
-  }
+  private val (setting11, setting12, setting21, setting22) = (
+    ConfigSetting("group1.1", "my-default11"),
+    ConfigSetting("group1.2", -1),
+    ConfigSetting("group2.1", Radio.r1, Radio.values),
+    ConfigSetting("group2.2", Some("my-default22"))
+  )
 
   private val settingAbcs = new SeqConfigSetting[ABC]("group1.abcs", Nil, AbcClassses)
   private val settingAbc = new RefConfigSetting("group1.abc", A, settingAbcs)
@@ -39,6 +38,10 @@ class BackendConfigStoreSpec
   }
 
   private var failureOption: Option[Throwable] = None
+
+  override def afterAll() {
+    ConfigSetting.test_clearRegistry()
+  }
 
   before {
     failureOption = None

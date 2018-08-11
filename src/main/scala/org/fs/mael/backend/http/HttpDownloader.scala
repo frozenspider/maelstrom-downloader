@@ -24,7 +24,6 @@ import org.apache.http.conn.HttpConnectionFactory
 import org.apache.http.conn.ManagedHttpClientConnection
 import org.apache.http.conn.routing.HttpRoute
 import org.apache.http.conn.socket.ConnectionSocketFactory
-import org.apache.http.conn.socket.PlainConnectionSocketFactory
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory
 import org.apache.http.impl.client.BasicCookieStore
 import org.apache.http.impl.client.HttpClients
