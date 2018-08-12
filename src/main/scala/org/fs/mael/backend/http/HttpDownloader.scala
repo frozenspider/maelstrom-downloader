@@ -24,6 +24,8 @@ import org.apache.http.conn.HttpConnectionFactory
 import org.apache.http.conn.ManagedHttpClientConnection
 import org.apache.http.conn.routing.HttpRoute
 import org.apache.http.conn.socket.ConnectionSocketFactory
+import org.apache.http.conn.socket.PlainConnectionSocketFactory
+import org.apache.http.conn.ssl.NoopHostnameVerifier
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory
 import org.apache.http.impl.client.BasicCookieStore
 import org.apache.http.impl.client.HttpClients
@@ -32,6 +34,7 @@ import org.apache.http.impl.conn.DefaultHttpResponseParserFactory
 import org.apache.http.impl.conn.ManagedHttpClientConnectionFactory
 import org.apache.http.impl.cookie.BasicClientCookie
 import org.apache.http.impl.io.DefaultHttpRequestWriterFactory
+import org.apache.http.ssl.SSLContextBuilder
 import org.fs.mael.backend.http.config.HttpSettings
 import org.fs.mael.backend.http.utils.HttpUtils
 import org.fs.mael.core.Status
@@ -43,6 +46,8 @@ import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
 import org.fs.mael.core.utils.CoreUtils._
 import org.slf4s.Logging
+
+import javax.net.ssl.SSLHandshakeException
 
 class HttpDownloader(
   override val eventMgr:    EventManager,
@@ -156,6 +161,8 @@ class HttpDownloader(
           errorLogAndFire(de, ex.getMessage)
         case ex: SocketTimeoutException =>
           errorLogAndFire(de, "Request timed out")
+        case ex: SSLHandshakeException =>
+          errorLogAndFire(de, "SSL handshake failed: " + ex.getMessage)
         case ex: InterruptedException =>
           log.debug(s"Thread interrupted: ${this.getName}")
         case ex: Exception =>
@@ -364,9 +371,20 @@ class HttpDownloader(
       val proxy = de.backendSpecificCfg.resolve(HttpSettings.ConnectionProxy)
       def logUpdate(msg: String) = addLogAndFire(de, LogEntry.info(msg))
       RegistryBuilder.create[ConnectionSocketFactory]
-        .register("http", new ProxyConnectionSocketFactory(proxy, logUpdate))
-        .register("https", SSLConnectionSocketFactory.getSocketFactory())
+        .register("http", new ProxyConnectionSocketFactory(proxy, logUpdate, PlainConnectionSocketFactory.getSocketFactory()))
+        .register("https", new ProxyLayeredConnectionSocketFactory(proxy, logUpdate, createSslConnSocketFactory()))
         .build()
+    }
+
+    private def createSslConnSocketFactory(): SSLConnectionSocketFactory = {
+      if (de.backendSpecificCfg(HttpSettings.DisableCertificatesValidation)) {
+        val builder = new SSLContextBuilder();
+        builder.loadTrustMaterial(null, (chain, authType) => true);
+        // TODO: Disable rest of the checks?
+        new SSLConnectionSocketFactory(builder.build(), NoopHostnameVerifier.INSTANCE)
+      } else {
+        SSLConnectionSocketFactory.getSocketFactory()
+      }
     }
 
     /** Execute an action only if thread isn't interrupted, in which case - throw {@code InterruptedException} */

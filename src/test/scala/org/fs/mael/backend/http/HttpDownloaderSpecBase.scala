@@ -1,7 +1,6 @@
 package org.fs.mael.backend.http
 
 import java.io.File
-import java.net.SocketException
 import java.net.URI
 import java.nio.file.Files
 
@@ -15,20 +14,16 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.Events
 import org.fs.mael.core.event.PriorityEvent
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.test.SimpleHttpServer
 import org.fs.mael.test.TestUtils
 import org.fs.mael.test.stub.ControlledTransferManager
 import org.fs.mael.test.stub.StoringEventManager
 import org.scalatest.BeforeAndAfter
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.TestSuite
-import org.slf4s.Logging
-import java.net.BindException
 
 /** Base trait for specs testing {@link HttpDownloader} */
 trait HttpDownloaderSpecBase
-  extends BeforeAndAfter { this: TestSuite with BeforeAndAfterAll =>
-
-  var startServer = true
+  extends BeforeAndAfter { this: TestSuite =>
 
   val eventMgr = new ControlledEventManager
   val transferMgr = new ControlledTransferManager
@@ -40,21 +35,13 @@ trait HttpDownloaderSpecBase
   @volatile private var succeeded: Boolean = false
   @volatile var failureOption: Option[Throwable] = None
 
-  val uriPort = 52345
-  val server: SimpleHttpServer = new SimpleHttpServer(uriPort)
+  val httpPort = 52345
+  val httpsPort = 52346
+  private var _server: SimpleHttpServer = _
+  def server: SimpleHttpServer = Option(_server) getOrElse fail("Server not started!")
 
   /** Change for debugging to set breakpoints */
   private val waitTimeoutMs = 1500 // * 9999
-
-  override protected def beforeAll(): Unit = {
-    if (startServer) {
-      server.start()
-    }
-  }
-
-  override protected def afterAll(): Unit = {
-    server.shutdown()
-  }
 
   /** Needs to be called manually from `before {}` block */
   def beforeMethod(): Unit = {
@@ -67,6 +54,7 @@ trait HttpDownloaderSpecBase
 
   /** Needs to be called manually from `after {}` block */
   def afterMethod(): Unit = {
+    Option(_server).map(_.shutdown())
     tmpFilenames.foreach {
       new File(tmpDir, _).delete()
     }
@@ -76,14 +64,24 @@ trait HttpDownloaderSpecBase
   // Helper methods
   //
 
+  protected def startHttpServer(): Unit = {
+    _server = new SimpleHttpServer(httpPort, waitTimeoutMs, null, ex => failureOption = Some(ex))
+    _server.start()
+  }
+
+  protected def startHttpsServer(): Unit = {
+    _server = new SimpleHttpServer(httpsPort, waitTimeoutMs, SimpleHttpServer.SelfSignedServerSslContext, ex => failureOption = Some(ex))
+    _server.start()
+  }
+
   protected def requestTempFilename(): String = {
     val filename = Random.alphanumeric.take(10).mkString + ".tmp"
     tmpFilenames = filename +: tmpFilenames
     filename
   }
 
-  protected def createDownloadEntry(): DownloadEntry = {
-    val uri = new URI(s"http://localhost:$uriPort/mySubUrl/qwe?a=b&c=d")
+  protected def createDownloadEntry(https: Boolean = false): DownloadEntry = {
+    val uri = new URI(s"http${if (https) "s" else ""}://localhost:${if (https) httpsPort else httpPort}/mySubUrl/qwe?a=b&c=d")
     val filename = requestTempFilename()
     DownloadEntry(
       backendId          = HttpBackend.Id,
@@ -108,7 +106,7 @@ trait HttpDownloaderSpecBase
       case Events.StatusChanged(`de`, _) if de.status == status2 && firstStatusAdopted =>
         succeeded = true
       case Events.StatusChanged(`de`, _) =>
-        failureOption = Some(new IllegalStateException(s"Unexpected status ${de.status}, log: ${de.downloadLog.mkString("\n", "\n", "")}"))
+        failureOption = Some(new IllegalStateException(s"Expected status '${status2}', got '${de.status}'; log: ${de.downloadLog.mkString("\n", "\n", "")}"))
     }
   }
 
@@ -222,66 +220,6 @@ trait HttpDownloaderSpecBase
     override def reset(): Unit = {
       eventInterceptors = Seq.empty
       super.reset()
-    }
-  }
-
-  protected class SimpleHttpServer(port: Int) extends Logging { self =>
-    import java.util.Locale
-    import java.util.concurrent.TimeUnit
-    import org.apache.http.config.SocketConfig
-    import org.apache.http.impl.bootstrap._
-    import org.apache.http.protocol._
-
-    val socketConfig = SocketConfig.custom()
-      .setSoTimeout(waitTimeoutMs)
-      .setTcpNoDelay(true)
-      .build()
-
-    val exceptionLogger = new ExceptionLogger {
-      override def log(ex: Exception): Unit =
-        ex match {
-          case _: ConnectionClosedException => // NOOP
-          case _: SocketException           => // NOOP
-          case _                            => failureOption = Some(ex)
-        }
-    }
-
-    @volatile var reqCounter = 0
-
-    @volatile var handle: (HttpRequest, HttpResponse) => Unit = _
-
-    val server: HttpServer = createServer()
-
-    def start(): Unit = server.start()
-
-    private def createServer(): HttpServer = {
-      ServerBootstrap.bootstrap()
-        .setListenerPort(port)
-        .setServerInfo("Test/1.1")
-        .setSocketConfig(socketConfig)
-        .setExceptionLogger(exceptionLogger)
-        .registerHandler("*", new HttpRequestHandler {
-          def handle(request: HttpRequest, response: HttpResponse, context: HttpContext): Unit = {
-            val method = request.getRequestLine().getMethod().toUpperCase(Locale.ROOT)
-            if (!method.equals("GET") && !method.equals("HEAD") && !method.equals("POST")) {
-              throw new MethodNotSupportedException(method + " method not supported")
-            }
-            reqCounter += 1
-            self.handle(request, response)
-          }
-        })
-        .create()
-    }
-
-    def shutdown(): Unit = {
-      server.shutdown(0, TimeUnit.MILLISECONDS)
-    }
-
-    def respondWith(
-      handle: (HttpRequest, HttpResponse) => Unit
-    ): Unit = {
-      reqCounter = 0
-      this.handle = handle
     }
   }
 }

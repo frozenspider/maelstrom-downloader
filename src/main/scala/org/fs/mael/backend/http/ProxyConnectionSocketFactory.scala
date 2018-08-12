@@ -9,7 +9,7 @@ import scala.io.Codec
 import scala.util.Try
 
 import org.apache.http.HttpHost
-import org.apache.http.conn.socket.PlainConnectionSocketFactory
+import org.apache.http.conn.socket.ConnectionSocketFactory
 import org.apache.http.protocol.HttpContext
 import org.fs.mael.core.proxy.Proxy
 import org.fs.mael.core.utils.CoreUtils._
@@ -18,10 +18,13 @@ import org.fs.utility.Imports._
 
 class ProxyConnectionSocketFactory(
   proxy:     Proxy,
-  logUpdate: String => Unit
-) extends PlainConnectionSocketFactory {
+  logUpdate: String => Unit,
+  wrapped:   ConnectionSocketFactory
+) extends ConnectionSocketFactory {
 
-  // FIXME: SSL (HTTPS)
+  override def createSocket(context: HttpContext): Socket = {
+    wrapped.createSocket(context)
+  }
 
   override def connectSocket(
     connTimeoutMs:  Int,
@@ -39,7 +42,7 @@ class ProxyConnectionSocketFactory(
     }
     val targetSocket = proxy match {
       case Proxy.NoProxy =>
-        super.connectSocket(connTimeoutMs, initialSocket, host, remoteAddr, localAddr, context)
+        wrapped.connectSocket(connTimeoutMs, initialSocket, host, remoteAddr, localAddr, context)
       case proxy: Proxy.SOCKS5 =>
         Socks5.connectSocket(proxy, connTimeoutMs, initialSocket, host, remoteAddr, Option(localAddr), context)
     }

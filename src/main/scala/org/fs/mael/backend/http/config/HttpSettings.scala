@@ -1,5 +1,6 @@
 package org.fs.mael.backend.http.config
 
+import org.eclipse.jface.preference.BooleanFieldEditor
 import org.eclipse.jface.preference.FieldEditorPreferencePage
 import org.eclipse.jface.preference.StringFieldEditor
 import org.fs.mael.backend.http.HttpBackend
@@ -32,6 +33,9 @@ object HttpSettings {
   val Headers: ConfigSetting[Map[String, String]] =
     new HeadersConfigSetting(prefix + ".headers")
 
+  val DisableCertificatesValidation: ConfigSetting[Boolean] =
+    ConfigSetting(prefix + ".https.disableCertificatesValidation", false)
+
   val ConnectionProxy: LocalEntityConfigSetting[Proxy] =
     new LocalEntityConfigSetting[Proxy](prefix + ".proxy", GlobalSettings.ConnectionProxies, GlobalSettings.ConnectionProxy, Proxy.Classes)
 
@@ -54,6 +58,7 @@ object HttpSettings {
   object Local {
     val pageDescriptors: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage[BackendConfigStore]]] = Seq(
       MPreferencePageDescriptor("Headers", None, classOf[LocalHeadersPage]),
+      MPreferencePageDescriptor("Connection", None, classOf[LocalConnectionPage]),
       MPreferencePageDescriptor("Proxy", None, classOf[LocalProxyPage])
     )
   }
@@ -84,6 +89,14 @@ object HttpSettings {
       }
       row(Headers) { (setting, parent) =>
         new HeadersFieldEditor(setting.id, "Headers:", parent)
+      }
+    }
+  }
+
+  private class LocalConnectionPage extends MFieldEditorPreferencePage[BackendConfigStore](FieldEditorPreferencePage.FLAT) {
+    override def createFieldEditors(): Unit = {
+      row(DisableCertificatesValidation) { (setting, parent) =>
+        new BooleanFieldEditor(setting.id, "Disable HTTPS certificate validation", parent)
       }
     }
   }

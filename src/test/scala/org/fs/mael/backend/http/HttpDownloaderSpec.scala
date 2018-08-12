@@ -11,20 +11,19 @@ import scala.util.Random
 
 import org.apache.http._
 import org.apache.http.entity._
+import org.fs.mael.backend.http.config.HttpSettings
 import org.fs.mael.core.Status
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.checksum.ChecksumType
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.FunSuite
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class HttpDownloaderSpec
   extends FunSuite
   with HttpDownloaderSpecBase
-  with BeforeAndAfter
-  with BeforeAndAfterAll {
+  with BeforeAndAfter {
 
   before {
     super.beforeMethod()
@@ -34,18 +33,30 @@ class HttpDownloaderSpec
     super.afterMethod()
   }
 
-  override def beforeAll() {
-    super[HttpDownloaderSpecBase].beforeAll()
-  }
-
-  override def afterAll() {
-    super[HttpDownloaderSpecBase].afterAll()
-  }
-
   test("regular download of 5 bytes") {
     val de = createDownloadEntry()
     de.checksumOption = Some(Checksum(ChecksumType.MD5, "7cfdd07889b3295d6a550914ab35e068"))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+
+    startHttpServer()
+    server.respondWith(serveContentNormally(expectedBytes))
+
+    expectStatusChangeEvents(de, Status.Running, Status.Complete)
+    downloader.start(de, 999999)
+    await.firedAndStopped()
+
+    assert(readLocalFile(de) === expectedBytes)
+    assert(server.reqCounter === 1)
+    assert(transferMgr.bytesRead === 5)
+  }
+
+  test("regular download of 5 bytes (HTTPS)") {
+    val de = createDownloadEntry(https = true)
+    de.backendSpecificCfg.set(HttpSettings.DisableCertificatesValidation, true)
+    de.checksumOption = Some(Checksum(ChecksumType.MD5, "7cfdd07889b3295d6a550914ab35e068"))
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+
+    startHttpsServer()
     server.respondWith(serveContentNormally(expectedBytes))
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
@@ -61,6 +72,8 @@ class HttpDownloaderSpec
     val de = createDownloadEntry()
     de.checksumOption = Some(Checksum(ChecksumType.MD5, "70903e79b7575e3f4e7ffa15c2608ac7"))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+    startHttpServer()
     server.respondWith { (req, res) =>
       serveContentNormally(expectedBytes)(req, res)
       res.addHeader(HttpHeaders.ACCEPT_RANGES, "bytes")
@@ -95,6 +108,8 @@ class HttpDownloaderSpec
     val de = createDownloadEntry()
     de.checksumOption = Some(Checksum(ChecksumType.MD5, "70903e79b7575e3f4e7ffa15c2608ac7"))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+    startHttpServer()
     server.respondWith(serveContentNormally(expectedBytes))
 
     expectStatusChangeEvents(de, Status.Running, Status.Stopped)
@@ -126,6 +141,8 @@ class HttpDownloaderSpec
     val filename = de.filenameOption.get
     de.filenameOption = None
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+
+    startHttpServer()
     server.respondWith { (req, res) =>
       serveContentNormally(expectedBytes)(req, res)
       res.setHeader("Content-Disposition", s"Attachment; filename=/?${filename}?/")
@@ -146,6 +163,8 @@ class HttpDownloaderSpec
     val filename = "Они не прилетят - сборник рассказов читает А. Дунин.zip"
     de.filenameOption = None
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+
+    startHttpServer()
     server.respondWith { (req, res) =>
       serveContentNormally(expectedBytes)(req, res)
       res.setHeader("Content-Disposition", """attachment;filename="___ __ ________ - _______ _________ ______ _. _____.zip";filename*=UTF-8''%D0%9E%D0%BD%D0%B8%20%D0%BD%D0%B5%20%D0%BF%D1%80%D0%B8%D0%BB%D0%B5%D1%82%D1%8F%D1%82%20-%20%D1%81%D0%B1%D0%BE%D1%80%D0%BD%D0%B8%D0%BA%20%D1%80%D0%B0%D1%81%D1%81%D0%BA%D0%B0%D0%B7%D0%BE%D0%B2%20%D1%87%D0%B8%D1%82%D0%B0%D0%B5%D1%82%20%D0%90.%20%D0%94%D1%83%D0%BD%D0%B8%D0%BD.zip""")
@@ -169,6 +188,8 @@ class HttpDownloaderSpec
     val de = createDownloadEntry()
     de.filenameOption = None
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+
+    startHttpServer()
     server.respondWith { (req, res) =>
       serveContentNormally(expectedBytes)(req, res)
       res.setHeader("Content-Disposition", """attachment;filename*=somerandomgibberish""")
@@ -197,6 +218,8 @@ class HttpDownloaderSpec
     de.filenameOption = None
     de.uri = new URI(de.uri.toString replaceAllLiterally (de.uri.getPath, s"/$encodedFilename"))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+
+    startHttpServer()
     server.respondWith(serveContentNormally(expectedBytes))
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
@@ -214,6 +237,8 @@ class HttpDownloaderSpec
     de.filenameOption = None
     de.uri = new URI(de.uri.toString replaceAllLiterally (de.uri.getPath, ""))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+
+    startHttpServer()
     server.respondWith(serveContentNormally(expectedBytes))
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
@@ -230,6 +255,8 @@ class HttpDownloaderSpec
   test("file size - pre-allocate if known") {
     val de = createDownloadEntry()
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+
+    startHttpServer()
     server.respondWith(serveContentNormally(expectedBytes))
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
@@ -248,6 +275,8 @@ class HttpDownloaderSpec
   test("file size - expand dynamically if unknown") {
     val de = createDownloadEntry()
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+    startHttpServer()
     server.respondWith { (req, res) =>
       res.setStatusCode(HttpStatus.SC_OK)
       res.setEntity(new ByteArrayEntity(expectedBytes, ContentType.APPLICATION_OCTET_STREAM) {
@@ -275,9 +304,12 @@ class HttpDownloaderSpec
 
   test("failure - server responds with an error") {
     val de = createDownloadEntry()
+
+    startHttpServer()
     server.respondWith { (req, res) =>
       res.setStatusCode(HttpStatus.SC_FORBIDDEN)
     }
+
     expectStatusChangeEvents(de, Status.Running, Status.Error)
     downloader.start(de, 999999)
     await.firedAndStopped()
@@ -288,11 +320,31 @@ class HttpDownloaderSpec
     assertLastLogEntry(de, "responded")
   }
 
+  test("failure - SSL cert validation failed") {
+    val de = createDownloadEntry(https = true)
+    // We're not disabling HTTPS cert validation and our self-signed cert fails it 
+    de.checksumOption = Some(Checksum(ChecksumType.MD5, "7cfdd07889b3295d6a550914ab35e068"))
+
+    startHttpsServer()
+    server.respondWith(serveContentNormally(Array[Byte](1, 2, 3, 4, 5)))
+
+    expectStatusChangeEvents(de, Status.Running, Status.Error)
+    downloader.start(de, 999999)
+    await.firedAndStopped()
+
+    assert(getLocalFileOption(de) map (f => !f.exists) getOrElse true)
+    assert(server.reqCounter === 0)
+    assert(transferMgr.bytesRead === 0)
+    assertLastLogEntry(de, "ssl")
+  }
+
   // WARNING: Unstable test!
   // No idea why though
   test("failure - file size changed") {
     val de = createDownloadEntry()
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+    startHttpServer()
     server.respondWith { (req, res) =>
       res.setStatusCode(if (req.getHeaders(HttpHeaders.RANGE).isEmpty) HttpStatus.SC_OK else HttpStatus.SC_PARTIAL_CONTENT)
       res.setEntity(new ByteArrayEntity(expectedBytes, ContentType.APPLICATION_OCTET_STREAM) {
@@ -321,6 +373,8 @@ class HttpDownloaderSpec
   test("failure - local file disappeared") {
     val de = createDownloadEntry()
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+    startHttpServer()
     server.respondWith(serveContentNormally(expectedBytes))
 
     expectStatusChangeEvents(de, Status.Running, Status.Stopped)
@@ -348,6 +402,8 @@ class HttpDownloaderSpec
   test("failure - path is not accessible") {
     val de = createDownloadEntry()
     de.location = new File("?*|\u0000><'\"%:")
+
+    startHttpServer()
     server.respondWith(serveContentNormally(Array.empty[Byte]))
 
     expectStatusChangeEvents(de, Status.Running, Status.Error)
@@ -362,6 +418,8 @@ class HttpDownloaderSpec
     val de = createDownloadEntry()
     de.checksumOption = Some(Checksum(ChecksumType.MD5, "7cfdd07889b3295d6a550914ab35e067"))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+
+    startHttpServer()
     server.respondWith(serveContentNormally(expectedBytes))
 
     expectStatusChangeEvents(de, Status.Running, Status.Error)
@@ -379,6 +437,8 @@ class HttpDownloaderSpec
   test("failure - request timeout") {
     val de = createDownloadEntry()
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+
+    startHttpServer()
     server.respondWith { (req, res) =>
       Thread.sleep(200)
       serveContentNormally(expectedBytes)(req, res)
@@ -396,6 +456,8 @@ class HttpDownloaderSpec
   test("failure - server unexpectedly disconnected") {
     val de = createDownloadEntry()
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+
+    startHttpServer()
     server.respondWith { (req, res) =>
       res.setStatusCode(HttpStatus.SC_OK)
       res.setEntity(new ByteArrayEntity(expectedBytes, ContentType.APPLICATION_OCTET_STREAM) {
