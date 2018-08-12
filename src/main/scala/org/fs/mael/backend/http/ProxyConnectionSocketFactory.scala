@@ -16,7 +16,10 @@ import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.core.utils.IoUtils._
 import org.fs.utility.Imports._
 
-class ProxyConnectionSocketFactory(proxy: Proxy) extends PlainConnectionSocketFactory {
+class ProxyConnectionSocketFactory(
+  proxy:     Proxy,
+  logUpdate: String => Unit
+) extends PlainConnectionSocketFactory {
 
   // FIXME: SSL (HTTPS)
 
@@ -62,6 +65,7 @@ class ProxyConnectionSocketFactory(proxy: Proxy) extends PlainConnectionSocketFa
       localAddrOption: Option[InetSocketAddress],
       context:         HttpContext
     ): Socket = try {
+      logUpdate(s"Connecting to SOCKS5 proxy at ${proxy.host}:${proxy.port}")
       localAddrOption map proxySocket.bind
       val proxySocketAddr = new InetSocketAddress(proxy.host, proxy.port)
       proxySocket.connect(proxySocketAddr, connTimeoutMs)
@@ -79,6 +83,7 @@ class ProxyConnectionSocketFactory(proxy: Proxy) extends PlainConnectionSocketFa
       val res = Proxy.SOCKS5.readMessage(in)
       requireFriendly(res.cmd == 0x00, "Proxy responded with an error")
 
+      logUpdate(s"Proxy connection established")
       proxySocket
     } catch {
       case ex: Exception =>
