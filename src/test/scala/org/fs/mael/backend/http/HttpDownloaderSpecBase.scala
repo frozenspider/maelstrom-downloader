@@ -41,7 +41,7 @@ trait HttpDownloaderSpecBase
   def server: SimpleHttpServer = Option(_server) getOrElse fail("Server not started!")
 
   /** Change for debugging to set breakpoints */
-  private val waitTimeoutMs = 1500 // * 9999
+  private val waitTimeoutMs = 3000 // * 9999
 
   /** Needs to be called manually from `before {}` block */
   def beforeMethod(): Unit = {
