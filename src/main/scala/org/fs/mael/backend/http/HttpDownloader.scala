@@ -183,6 +183,7 @@ class HttpDownloader(
 
       val req = {
         val rb = RequestBuilder.get(de.uri)
+        rb.addHeader(HttpHeaders.CONNECTION, "close")
         if (partial) {
           // Note that range upper-bound is inclusive
           rb.addHeader(HttpHeaders.RANGE, "bytes=" + de.downloadedSize + "-")
@@ -244,6 +245,7 @@ class HttpDownloader(
         downloadEntity(req, entity)
       } finally {
         res.close()
+        connManager.shutdown()
       }
     }
 
