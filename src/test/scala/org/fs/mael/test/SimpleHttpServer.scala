@@ -1,11 +1,14 @@
 package org.fs.mael.test
 
 import java.net.InetAddress
+import java.net.ServerSocket
 import java.net.SocketException
 import java.security.KeyStore
 import java.security.SecureRandom
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+
+import scala.util.Try
 
 import org.apache.http.ConnectionClosedException
 import org.apache.http.ExceptionLogger
@@ -23,18 +26,20 @@ import org.apache.http.protocol.HttpRequestHandler
 import org.apache.http.ssl.SSLContexts
 import org.slf4s.Logging
 
+import javax.net.ServerSocketFactory
 import javax.net.ssl.KeyManager
 import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLHandshakeException
 import javax.net.ssl.TrustManager
 import javax.net.ssl.TrustManagerFactory
+import javax.net.ssl.SSLException
 
 class SimpleHttpServer(
-  port:          Int,
-  waitTimeoutMs: Int,
-  sslContext:    SSLContext,
-  onFail:        Exception => Unit
+  port:             Int,
+  waitTimeoutMs:    Int,
+  sslContextOption: Option[SSLContext],
+  onFail:           Exception => Unit
 ) extends Logging { self =>
 
   @volatile var reqCounter = 0
@@ -42,6 +47,8 @@ class SimpleHttpServer(
   @volatile private var handle: (HttpRequest, HttpResponse) => Unit = _
 
   val server: HttpServer = createServer()
+
+  private var sockets: Seq[ServerSocket] = Seq.empty
 
   private def createServer(): HttpServer = {
     val socketConfig = SocketConfig.custom()
@@ -53,17 +60,19 @@ class SimpleHttpServer(
         ex match {
           case _: ConnectionClosedException => // NOOP
           case _: SocketException           => // NOOP
-          case _: SSLHandshakeException     => // NOOP, should be logged and checked by client
+          case _: SSLException              => // NOOP, should be logged and checked by client
           case _                            => onFail(ex)
         }
     }
+    val ssfInner = sslContextOption map (_.getServerSocketFactory) getOrElse ServerSocketFactory.getDefault
     ServerBootstrap.bootstrap()
       .setLocalAddress(InetAddress.getByName("localhost"))
       .setListenerPort(port)
-      .setServerInfo("Test/1.1")
+      .setServerInfo("SimpleHttpServer/1.1")
+      .setServerSocketFactory(new ServerSocketFactoryWrapper(ssfInner))
       .setSocketConfig(socketConfig)
       .setExceptionLogger(exceptionLogger)
-      .setSslContext(sslContext)
+      .setSslContext(sslContextOption getOrElse null)
       .registerHandler("*", new HttpRequestHandler {
         def handle(request: HttpRequest, response: HttpResponse, context: HttpContext): Unit = {
           val method = request.getRequestLine().getMethod().toUpperCase(Locale.ROOT)
@@ -81,7 +90,10 @@ class SimpleHttpServer(
     server.start()
 
   def shutdown(): Unit = {
-    server.shutdown(0, TimeUnit.MILLISECONDS)
+    server.shutdown(50, TimeUnit.MILLISECONDS)
+    SimpleHttpServer.this.synchronized {
+      sockets foreach (s => Try(s.close()))
+    }
   }
 
   def respondWith(
@@ -89,6 +101,32 @@ class SimpleHttpServer(
   ): Unit = {
     reqCounter = 0
     this.handle = handle
+  }
+
+  private class ServerSocketFactoryWrapper(ssf: ServerSocketFactory) extends ServerSocketFactory {
+    override def createServerSocket(): ServerSocket = {
+      val socket = ssf.createServerSocket()
+      SimpleHttpServer.this.synchronized(sockets = sockets :+ socket)
+      socket
+    }
+
+    override def createServerSocket(port: Int): ServerSocket = {
+      val socket = ssf.createServerSocket(port)
+      SimpleHttpServer.this.synchronized(sockets = sockets :+ socket)
+      socket
+    }
+
+    override def createServerSocket(port: Int, backlog: Int): ServerSocket = {
+      val socket = ssf.createServerSocket(port, backlog)
+      SimpleHttpServer.this.synchronized(sockets = sockets :+ socket)
+      socket
+    }
+
+    override def createServerSocket(port: Int, backlog: Int, ifAddress: InetAddress): ServerSocket = {
+      val socket = ssf.createServerSocket(port, backlog, ifAddress)
+      SimpleHttpServer.this.synchronized(sockets = sockets :+ socket)
+      socket
+    }
   }
 }
 
@@ -127,8 +165,8 @@ object SimpleHttpServer {
   }
 
   def main(args: Array[String]): Unit = {
-    val http = new SimpleHttpServer(80, 0, null, throw _)
-    val https = new SimpleHttpServer(443, 0, SelfSignedServerSslContext, throw _)
+    val http = new SimpleHttpServer(80, 0, None, throw _)
+    val https = new SimpleHttpServer(443, 0, Some(SelfSignedServerSslContext), throw _)
     val servers = Seq(http, https)
     val content = <html><head><title>SimpleHttpServer</title></head><body>Server works!</body></html>.toString
     servers.map(_.respondWith((req, res) => {

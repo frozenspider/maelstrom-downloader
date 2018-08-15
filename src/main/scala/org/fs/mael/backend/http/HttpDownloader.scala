@@ -47,7 +47,7 @@ import org.fs.mael.core.transfer.TransferManager
 import org.fs.mael.core.utils.CoreUtils._
 import org.slf4s.Logging
 
-import javax.net.ssl.SSLHandshakeException
+import javax.net.ssl.SSLException
 
 class HttpDownloader(
   override val eventMgr:    EventManager,
@@ -161,8 +161,8 @@ class HttpDownloader(
           errorLogAndFire(de, ex.getMessage)
         case ex: SocketTimeoutException =>
           errorLogAndFire(de, "Request timed out")
-        case ex: SSLHandshakeException =>
-          errorLogAndFire(de, "SSL handshake failed: " + ex.getMessage)
+        case ex: SSLException =>
+          errorLogAndFire(de, "SSL error: " + ex.getMessage)
         case ex: InterruptedException =>
           log.debug(s"Thread interrupted: ${this.getName}")
         case ex: Exception =>

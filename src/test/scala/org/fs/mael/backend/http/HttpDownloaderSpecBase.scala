@@ -65,12 +65,12 @@ trait HttpDownloaderSpecBase
   //
 
   protected def startHttpServer(): Unit = {
-    _server = new SimpleHttpServer(httpPort, waitTimeoutMs, null, ex => failureOption = Some(ex))
+    _server = new SimpleHttpServer(httpPort, waitTimeoutMs, None, ex => failureOption = Some(ex))
     _server.start()
   }
 
   protected def startHttpsServer(): Unit = {
-    _server = new SimpleHttpServer(httpsPort, waitTimeoutMs, SimpleHttpServer.SelfSignedServerSslContext, ex => failureOption = Some(ex))
+    _server = new SimpleHttpServer(httpsPort, waitTimeoutMs, Some(SimpleHttpServer.SelfSignedServerSslContext), ex => failureOption = Some(ex))
     _server.start()
   }
 
