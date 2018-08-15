@@ -11,7 +11,7 @@ class InMemoryConfigStoreSpec
   with BeforeAndAfter
   with BeforeAndAfterAll {
 
-  private val (setting11, setting12, setting21, setting22) = (
+  private lazy val (setting11, setting12, setting21, setting22) = (
     ConfigSetting("group1.1", "my-default11"),
     ConfigSetting("group1.2", -1),
     ConfigSetting("group2.1", Radio.r1, Radio.values),

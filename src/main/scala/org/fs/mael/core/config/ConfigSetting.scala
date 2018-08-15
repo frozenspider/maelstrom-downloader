@@ -39,9 +39,8 @@ object ConfigSetting {
   def lookup(key: String): Option[ConfigSetting[_]] =
     Registry.get(key)
 
-  private[config] def test_clearRegistry(): Unit = {
+  private[config] def test_clearRegistry(): Unit =
     Registry.clear()
-  }
 
   //
   // Factory methods for external use
