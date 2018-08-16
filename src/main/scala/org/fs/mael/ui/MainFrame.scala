@@ -250,10 +250,12 @@ class MainFrame(
 
       val openProps = createMenuItem(menu, "Properties", parent, None) { e =>
         tryShowingError(peer, log) {
-          val deOption = mainTable.selectedEntryOption
-          require(deOption.isDefined)
-          val dialog = new EditDownloadDialog(deOption, shell, resources, globalCfg, backendMgr, downloadListMgr, eventMgr)
-          dialog.shell.open()
+          mainTable.selectedEntryOption match {
+            case Some(de) =>
+              val dialog = new EditDownloadDialog(Some(de), shell, resources, globalCfg, backendMgr, downloadListMgr, eventMgr)
+              dialog.shell.open()
+            case None => // NOOP
+          }
         }
       }.forSingleDownloads()
       mainTable.peer.addListener(SWT.MouseDoubleClick, e => openProps.notifyListeners(SWT.Selection, e))
