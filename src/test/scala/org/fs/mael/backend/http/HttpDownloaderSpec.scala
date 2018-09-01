@@ -52,7 +52,7 @@ class HttpDownloaderSpec
 
   test("regular download of 5 bytes (HTTPS)") {
     val de = createDownloadEntry(https = true)
-    de.backendSpecificCfg.set(HttpSettings.DisableCertificatesValidation, true)
+    de.backendSpecificCfg.set(HttpSettings.DisableSslValidation, true)
     de.checksumOption = Some(Checksum(ChecksumType.MD5, "7cfdd07889b3295d6a550914ab35e068"))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
 

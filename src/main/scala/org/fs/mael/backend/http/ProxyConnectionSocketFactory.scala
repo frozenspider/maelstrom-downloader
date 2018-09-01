@@ -16,6 +16,13 @@ import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.core.utils.IoUtils._
 import org.fs.utility.Imports._
 
+/**
+ * `ConnectionSocketFactory` wrapper that supports using proxy for connection.
+ *
+ * Performs DNS resolution on its own, possibly delegating it to a proxy.
+ *
+ * @author FS
+ */
 class ProxyConnectionSocketFactory(
   proxy:     Proxy,
   logUpdate: String => Unit,

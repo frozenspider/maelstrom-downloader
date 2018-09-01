@@ -33,8 +33,8 @@ object HttpSettings {
   val Headers: ConfigSetting[Map[String, String]] =
     new HeadersConfigSetting(prefix + ".headers")
 
-  val DisableCertificatesValidation: ConfigSetting[Boolean] =
-    ConfigSetting(prefix + ".https.disableCertificatesValidation", false)
+  val DisableSslValidation: ConfigSetting[Boolean] =
+    ConfigSetting(prefix + ".https.disableSslValidation", false)
 
   val ConnectionProxy: LocalEntityConfigSetting[Proxy] =
     new LocalEntityConfigSetting[Proxy](prefix + ".proxy", GlobalSettings.ConnectionProxies, GlobalSettings.ConnectionProxy, Proxy.Classes)
@@ -95,8 +95,8 @@ object HttpSettings {
 
   private class LocalConnectionPage extends MFieldEditorPreferencePage[BackendConfigStore](FieldEditorPreferencePage.FLAT) {
     override def createFieldEditors(): Unit = {
-      row(DisableCertificatesValidation) { (setting, parent) =>
-        new BooleanFieldEditor(setting.id, "Disable HTTPS certificate validation", parent)
+      row(DisableSslValidation) { (setting, parent) =>
+        new BooleanFieldEditor(setting.id, "Disable SSL (HTTPS) certificate validation", parent)
       }
     }
   }

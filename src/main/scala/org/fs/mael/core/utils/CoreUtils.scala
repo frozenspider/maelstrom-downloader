@@ -60,14 +60,15 @@ trait CoreUtils {
     }
   }
 
-  /** Get a private field chain using reflection */
-  def getNestedPrivateField(obj: AnyRef, path: List[String]): AnyRef = path match {
+  /** Get a nested field (with any access modifier) by path using reflection */
+  @throws[NoSuchFieldException]
+  def getNestedField(obj: AnyRef, path: List[String]): AnyRef = path match {
     case Nil =>
       obj
     case fieldName :: path =>
       val field = FieldUtils.getField(obj.getClass, fieldName, true)
       val innerObj = field.get(obj)
-      getNestedPrivateField(innerObj, path)
+      getNestedField(innerObj, path)
   }
 
   /**

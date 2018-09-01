@@ -369,6 +369,11 @@ class HttpDownloader(
       connMgr
     }
 
+    /**
+     * Creates registry of `ConnectionSocketFactory` to be used in connection manager.
+     *
+     * Note that factories should perform DNS resolution on their own.
+     */
     private def createSocketFactoryRegistry(): Registry[ConnectionSocketFactory] = {
       val proxy = de.backendSpecificCfg.resolve(HttpSettings.ConnectionProxy)
       def logUpdate(msg: String) = addLogAndFire(de, LogEntry.info(msg))
@@ -379,7 +384,7 @@ class HttpDownloader(
     }
 
     private def createSslConnSocketFactory(): SSLConnectionSocketFactory = {
-      if (de.backendSpecificCfg(HttpSettings.DisableCertificatesValidation)) {
+      if (de.backendSpecificCfg(HttpSettings.DisableSslValidation)) {
         HttpDownloader.NonValidatingSslConnSocketFactory
       } else {
         val sf = SSLConnectionSocketFactory.getSocketFactory()

@@ -8,6 +8,8 @@ import java.net.InetAddress
  * which shouldn't be used.
  *
  * This way, we may do an actual DNS resolution later on, possibly delegating it to a proxy.
+ *
+ * @author FS
  */
 object FakeDnsResolver extends DnsResolver {
   val Bytes = Array[Byte](1, 1, 1, 1)

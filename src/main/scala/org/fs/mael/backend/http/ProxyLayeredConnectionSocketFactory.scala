@@ -8,6 +8,11 @@ import org.apache.http.conn.socket.LayeredConnectionSocketFactory
 import org.apache.http.protocol.HttpContext
 import org.fs.mael.core.proxy.Proxy
 
+/**
+ * A variant of `ProxyConnectionSocketFactory` for `LayeredConnectionSocketFactory`.
+ *
+ * @author FS
+ */
 class ProxyLayeredConnectionSocketFactory(
   proxy:     Proxy,
   logUpdate: String => Unit,

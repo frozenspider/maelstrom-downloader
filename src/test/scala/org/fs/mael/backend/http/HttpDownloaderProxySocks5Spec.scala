@@ -163,7 +163,7 @@ class HttpDownloaderProxySocks5Spec
     socks5FwProxy.start()
 
     val de = createDownloadEntry(https = true)
-    de.backendSpecificCfg.set(HttpSettings.DisableCertificatesValidation, true)
+    de.backendSpecificCfg.set(HttpSettings.DisableSslValidation, true)
     de.backendSpecificCfg.set(HttpSettings.ConnectionProxy, LocalConfigSettingValue.Embedded(
       socks5(None, false)
     ))
