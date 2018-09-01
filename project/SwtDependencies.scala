@@ -6,6 +6,9 @@ object SwtDependencies {
   lazy val SwtConfig = config("swt-config")
 
   val swtVer = "3.106.2"
+  val jfaceVer = "3.13.2"
+  val equinoxCommonVer = "3.10.0"
+  val eclipseCommandsVer = "3.9.100"
 
   //
   // Artifact definitions
@@ -13,6 +16,8 @@ object SwtDependencies {
 
   val swtOrganization = "org.eclipse.platform"
   val swtBaseArtifact = "org.eclipse.swt"
+  val equinoxCommonArtifact = "org.eclipse.equinox.common"
+  val eclipseCommandsArtifact = "org.eclipse.core.commands"
 
   val swtOsArtifacts = Map(
     "win32" -> "win32.win32.x86",
@@ -42,9 +47,20 @@ object SwtDependencies {
     swtOrganization % swtCurrOsArtifact % swtVer % Provided exclude (swtOrganization, swtBaseArtifact)
 
   val jfaceDep =
-    swtOrganization % "org.eclipse.jface" % "3.13.2" exclude (swtOrganization, swtBaseArtifact)
+    (swtOrganization % "org.eclipse.jface" % jfaceVer)
+      .exclude(swtOrganization, swtBaseArtifact)
+      .exclude(swtOrganization, equinoxCommonArtifact)
+      .exclude(swtOrganization, eclipseCommandsArtifact)
+
+  val equinoxCommonDep =
+    swtOrganization % equinoxCommonArtifact % equinoxCommonVer
+
+  val eclipseCommandsDep =
+    swtOrganization % eclipseCommandsArtifact % eclipseCommandsVer exclude (swtOrganization, equinoxCommonArtifact)
 
   /** Return all OS-specific SWT libs as modules for specifig configuration */
   def getSwtOsDeps(config: Configuration): Seq[ModuleID] = swtOsArtifacts.values.map(artifact =>
     swtOrganization % artifact % swtVer % config exclude (swtOrganization, swtBaseArtifact)).toSeq
+
+  val swtDeps = Seq(swtBaseDep, swtCurrOsDep, jfaceDep, equinoxCommonDep, eclipseCommandsDep) ++ getSwtOsDeps(SwtConfig)
 }
