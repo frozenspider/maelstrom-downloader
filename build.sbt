@@ -31,11 +31,11 @@ lazy val root = (project in file("."))
 
 resolvers += "jitpack"  at "https://jitpack.io"
 
-libraryDependencies ++=
 // Intricate SWT dependencies
-Seq(swtBaseDep, swtCurrOsDep, jfaceDep) ++ getSwtOsDeps(SwtConfig) ++ 
+libraryDependencies ++= swtDeps
+
 // Regular dependencies
-Seq(
+libraryDependencies ++= Seq(
   // Network
   "org.apache.httpcomponents" %  "httpclient"               % "4.5.5",
   // Logging

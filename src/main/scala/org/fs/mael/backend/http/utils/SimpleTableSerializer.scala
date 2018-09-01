@@ -20,9 +20,9 @@ object SimpleTableSerializer {
     if (tableSerialString.isEmpty) {
       ListMap.empty
     } else {
-      val pairs = tableSerialString.split(";").toIndexedSeq.map(_.split("=")).map { split =>
-        requireFriendly(split.size == 2, "Malformed content")
-        dec(split(0)) -> dec(split(1))
+      val pairs = tableSerialString.split(";").toIndexedSeq.map(_.split("=")).map {
+        case Array(k, v) => dec(k) -> dec(v)
+        case _           => failFriendly("Malformed content")
       }
       ListMap.empty[String, String] ++ pairs
     }

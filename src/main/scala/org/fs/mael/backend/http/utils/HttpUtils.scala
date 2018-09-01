@@ -17,8 +17,7 @@ object HttpUtils {
    * (As per {@link https://tools.ietf.org/html/rfc5987})
    */
   def decodeRfc5987ExtValue(s: String): String = {
-    val split = s.split("'", 3)
-    val (charset, lang, encoded) = (split(0), split(1), split(2))
+    val Array(charset, lang, encoded) = s.split("'", 3)
     charset.toUpperCase match {
       case "UTF-8"      => // NOOP
       case "ISO-8859-1" => // NOOP
