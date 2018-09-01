@@ -1,8 +1,9 @@
 package org.fs.mael.core.utils
 
-import java.io.DataOutputStream
 import java.io.DataInputStream
-import java.util.Arrays
+import java.io.DataOutputStream
+
+import org.apache.http.util.ByteArrayBuffer
 
 trait IoUtils {
 
@@ -32,19 +33,14 @@ trait IoUtils {
   }
 
   implicit class RichDataInputStream(in: DataInputStream) {
-    def readBytes(): (Array[Byte], Int) = {
-      var buf = Array.ofDim[Byte](1000)
-      var bufLen = 0
+    def readAvailable(): (Array[Byte], Int) = {
+      val buf = new ByteArrayBuffer(1000)
       val tbuf = Array.ofDim[Byte](1000)
       do {
         val readLen = in.read(tbuf)
-        if (buf.size < bufLen + readLen) {
-          buf = Arrays.copyOf(buf, bufLen + readLen)
-        }
-        System.arraycopy(tbuf, 0, buf, bufLen, readLen)
-        bufLen += readLen
+        buf.append(tbuf, 0, readLen)
       } while (in.available() > 0)
-      (buf, bufLen)
+      (buf.buffer, buf.length)
     }
   }
 }

@@ -48,7 +48,7 @@ class Socks5MockProxy(
   }
 
   private def readPlaintext(in: DataInputStream): String = {
-    val (buf, bufLen) = in.readBytes()
+    val (buf, bufLen) = in.readAvailable()
     new String(buf, 0, bufLen, "UTF-8")
   }
 }
