@@ -26,6 +26,7 @@ class ProxyLocalFieldEditor(
   setLabelText(labelText)
   createControl(_parent)
 
+  @volatile private var enabled: Boolean = true
   private var loadComplete: Boolean = false
   private var proxies: Seq[Proxy] = _
   private var selectedProxyValue: LocalConfigSettingValue[Proxy] = _
@@ -95,7 +96,7 @@ class ProxyLocalFieldEditor(
         layout.horizontalIndent = 20
       })
     }
-    bindToButtonState(rbDefined, dropdown.setEnabled)
+    bindToButtonState(rbDefined, v => dropdown.setEnabled(v && enabled))
 
     rbOther = new Button(group, SWT.RADIO | SWT.LEFT).withCode { btn =>
       btn.setText("Other")
@@ -105,7 +106,7 @@ class ProxyLocalFieldEditor(
     editor = new ProxyEditorComponent(group, new GridData(SWT.FILL, SWT.BEGINNING, true, false).withCode { layout =>
       layout.horizontalIndent = 20
     }, false, None)
-    bindToButtonState(rbOther, editor.setEditAllowed)
+    bindToButtonState(rbOther, v => editor.setEditAllowed(v && enabled))
   }
 
   override def adjustForNumColumns(numColumns: Int): Unit = {
@@ -114,6 +115,18 @@ class ProxyLocalFieldEditor(
 
   override def isValid(): Boolean = {
     tryUpdateCachedValue()
+  }
+
+  override def getLabelControl(parent: Composite): Label = {
+    throw new UnsupportedOperationException("There is no label control for this editor")
+  }
+
+  override def setEnabled(enabled: Boolean, parent: Composite): Unit = {
+    this.enabled = enabled
+    rbDefault.setEnabled(enabled)
+    rbDefined.setEnabled(enabled)
+    rbOther.setEnabled(enabled)
+    render()
   }
 
   /**
