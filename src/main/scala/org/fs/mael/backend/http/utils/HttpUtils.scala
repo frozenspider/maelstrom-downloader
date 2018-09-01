@@ -8,6 +8,8 @@ import scala.io.Codec
 import scala.util.parsing.combinator.RegexParsers
 
 import org.fs.mael.core.utils.CoreUtils._
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory
+import org.fs.mael.core.utils.CoreUtils
 
 object HttpUtils {
   /**
@@ -29,6 +31,19 @@ object HttpUtils {
     // TODO: What to do with language?
     val decoded = URLDecoder.decode(encoded, charset)
     decoded
+  }
+
+  /**
+   * Ensure validity of the given `SSLConnectionSocketFactory`.
+   * This is needed because OpenJDK may have no root certs defined and that will lead to runtime exceptions.
+   */
+  def validateSslConnSocketFactory(sf: SSLConnectionSocketFactory): Unit = {
+    val trustedCertsSet = CoreUtils.getNestedPrivateField(
+      sf,
+      List("socketfactory", "context", "trustManager", "trustedCerts")
+    ).asInstanceOf[java.util.Set[_]]
+    requireFriendly(!trustedCertsSet.isEmpty, "Your JVM defines no root CA certificates, SSL validation is impossible!"
+      + "\nYou may fix this by manually replacing $JRE_HOME/lib/security/cacerts file with the one from Oracle JRE")
   }
 
   def validateCookiesCharacterSet(cookiesMap: Map[String, String]): Unit = {

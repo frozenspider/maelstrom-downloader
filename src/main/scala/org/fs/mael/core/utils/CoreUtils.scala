@@ -9,6 +9,7 @@ import java.nio.file.attribute.BasicFileAttributes
 
 import scala.annotation.tailrec
 
+import org.apache.commons.lang3.reflect.FieldUtils
 import org.fs.mael.core.UserFriendlyException
 import org.fs.utility.StopWatch
 
@@ -57,6 +58,16 @@ trait CoreUtils {
     ) finally {
       cl.close()
     }
+  }
+
+  /** Get a private field chain using reflection */
+  def getNestedPrivateField(obj: AnyRef, path: List[String]): AnyRef = path match {
+    case Nil =>
+      obj
+    case fieldName :: path =>
+      val field = FieldUtils.getField(obj.getClass, fieldName, true)
+      val innerObj = field.get(obj)
+      getNestedPrivateField(innerObj, path)
   }
 
   /**

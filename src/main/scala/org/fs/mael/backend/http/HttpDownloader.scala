@@ -382,7 +382,9 @@ class HttpDownloader(
       if (de.backendSpecificCfg(HttpSettings.DisableCertificatesValidation)) {
         HttpDownloader.NonValidatingSslConnSocketFactory
       } else {
-        SSLConnectionSocketFactory.getSocketFactory()
+        val sf = SSLConnectionSocketFactory.getSocketFactory()
+        HttpUtils.validateSslConnSocketFactory(sf)
+        sf
       }
     }
 
