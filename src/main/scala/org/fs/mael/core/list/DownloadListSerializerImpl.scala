@@ -101,10 +101,7 @@ object DownloadListSerializerImpl {
           val accessChecker = backendMgr(backendId).settingsAccessChecker
           BackendConfigStore(accessChecker)
         case JString(s) =>
-          val (backendId, serialString) = {
-            val split = s.split("\\|", 2)
-            (split(0), split(1))
-          }
+          val Array(backendId, serialString) = s.split("\\|", 2)
           val accessChecker = backendMgr(backendId).settingsAccessChecker
           BackendConfigStore(serialString, accessChecker)
       }, {
