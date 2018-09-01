@@ -380,10 +380,7 @@ class HttpDownloader(
 
     private def createSslConnSocketFactory(): SSLConnectionSocketFactory = {
       if (de.backendSpecificCfg(HttpSettings.DisableCertificatesValidation)) {
-        val builder = new SSLContextBuilder();
-        builder.loadTrustMaterial(null, (chain, authType) => true);
-        // TODO: Disable rest of the checks?
-        new SSLConnectionSocketFactory(builder.build(), NoopHostnameVerifier.INSTANCE)
+        HttpDownloader.NonValidatingSslConnSocketFactory
       } else {
         SSLConnectionSocketFactory.getSocketFactory()
       }
@@ -394,5 +391,14 @@ class HttpDownloader(
       if (this.isInterrupted) throw new InterruptedException
       action
     }
+  }
+}
+
+object HttpDownloader {
+  private lazy val NonValidatingSslConnSocketFactory: SSLConnectionSocketFactory = {
+    val sslContext = new SSLContextBuilder()
+      .loadTrustMaterial(null, (chain, authType) => true)
+      .build()
+    new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE)
   }
 }
