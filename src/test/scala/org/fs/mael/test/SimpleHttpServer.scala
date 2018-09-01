@@ -54,7 +54,9 @@ class SimpleHttpServer(
     val socketConfig = SocketConfig.custom()
       .setSoTimeout(waitTimeoutMs)
       .setTcpNoDelay(true)
-      .setSoReuseAddress(true) // Without this, recreating socket on Linux runs into "BindException: Address in use"
+      // Without this, recreating socket on Linux runs into "BindException: Address in use"
+      // Even with it, it might STILL happen, no idea how to fix it so far
+      .setSoReuseAddress(true)
       .build()
     val exceptionLogger = new ExceptionLogger {
       override def log(ex: Exception): Unit =

@@ -42,7 +42,8 @@ object HttpUtils {
       List("socketfactory", "context", "trustManager", "trustedCerts")
     ).asInstanceOf[java.util.Set[_]]
     requireFriendly(!trustedCertsSet.isEmpty, "Your JVM defines no root CA certificates, SSL validation is impossible!"
-      + "\nYou may fix this by manually replacing $JRE_HOME/lib/security/cacerts file with the one from Oracle JRE")
+      + "\nYou may fix this by manually replacing $JRE_HOME/lib/security/cacerts file with the one from Oracle JRE"
+      + " or by disabling HTTPS certificates validation")
   }
 
   def validateCookiesCharacterSet(cookiesMap: Map[String, String]): Unit = {
