@@ -25,6 +25,7 @@ import org.apache.http.conn.ManagedHttpClientConnection
 import org.apache.http.conn.routing.HttpRoute
 import org.apache.http.conn.socket.ConnectionSocketFactory
 import org.apache.http.conn.socket.PlainConnectionSocketFactory
+import org.apache.http.conn.ssl.NoopHostnameVerifier
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory
 import org.apache.http.impl.client.BasicCookieStore
 import org.apache.http.impl.client.HttpClients
@@ -33,6 +34,8 @@ import org.apache.http.impl.conn.DefaultHttpResponseParserFactory
 import org.apache.http.impl.conn.ManagedHttpClientConnectionFactory
 import org.apache.http.impl.cookie.BasicClientCookie
 import org.apache.http.impl.io.DefaultHttpRequestWriterFactory
+import org.apache.http.ssl.SSLContextBuilder
+import org.fs.mael.backend.http.config.HttpSettings
 import org.fs.mael.backend.http.utils.HttpUtils
 import org.fs.mael.core.Status
 import org.fs.mael.core.UserFriendlyException
@@ -41,8 +44,10 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
-import org.fs.mael.core.utils.CoreUtils
+import org.fs.mael.core.utils.CoreUtils._
 import org.slf4s.Logging
+
+import javax.net.ssl.SSLException
 
 class HttpDownloader(
   override val eventMgr:    EventManager,
@@ -108,7 +113,7 @@ class HttpDownloader(
   }
 
   private class DownloadingThread(val de: DownloadEntry, timeoutMs: Int)
-      extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
+    extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
 
     this.setDaemon(true)
 
@@ -126,15 +131,12 @@ class HttpDownloader(
     private def runInner(): Unit = {
       try {
         de.location.mkdirs
-        if (!de.location.exists) {
-          throw new UserFriendlyException(s"Can't create path ${de.location}")
-        }
+        requireFriendly(de.location.exists, s"Can't create path ${de.location}")
         addLogAndFire(de, LogEntry.info("Starting download..."))
 
         if (partial) {
           assert(de.filenameOption.isDefined)
-          if (!de.fileOption.get.exists())
-            throw new UserFriendlyException(s"File is missing")
+          requireFriendly(de.fileOption.get.exists(), "File is missing")
         }
         if (partial && !de.supportsResumingOption.getOrElse(true)) {
           de.sections.clear()
@@ -159,6 +161,8 @@ class HttpDownloader(
           errorLogAndFire(de, ex.getMessage)
         case ex: SocketTimeoutException =>
           errorLogAndFire(de, "Request timed out")
+        case ex: SSLException =>
+          errorLogAndFire(de, "SSL error: " + ex.getMessage)
         case ex: InterruptedException =>
           log.debug(s"Thread interrupted: ${this.getName}")
         case ex: Exception =>
@@ -179,6 +183,7 @@ class HttpDownloader(
 
       val req = {
         val rb = RequestBuilder.get(de.uri)
+        rb.addHeader(HttpHeaders.CONNECTION, "close")
         if (partial) {
           // Note that range upper-bound is inclusive
           rb.addHeader(HttpHeaders.RANGE, "bytes=" + de.downloadedSize + "-")
@@ -192,7 +197,7 @@ class HttpDownloader(
         val responseCode = res.getStatusLine.getStatusCode
         val entity = doChecked {
           if ((!partial && responseCode != HttpStatus.SC_OK) || (partial && responseCode != HttpStatus.SC_PARTIAL_CONTENT)) {
-            throw new UserFriendlyException(s"Server responded with an error")
+            failFriendly(s"Server responded with an error")
           }
           res.getEntity
         }
@@ -218,7 +223,7 @@ class HttpDownloader(
                 de.sizeOption = Some(reportedSize)
                 eventMgr.fireDetailsChanged(de)
               case Some(prevSize) if prevSize != reportedSize =>
-                throw new UserFriendlyException("File size on server changed")
+                failFriendly("File size on server changed")
               case _ => // NOOP
             }
           }
@@ -240,24 +245,24 @@ class HttpDownloader(
         downloadEntity(req, entity)
       } finally {
         res.close()
+        connManager.shutdown()
       }
     }
 
     private def addCustomHeaders(rb: RequestBuilder, cookieStore: CookieStore): Unit = {
-      import org.fs.mael.backend.http.config.HttpSettings._
       val localCfg = de.backendSpecificCfg
-      val userAgentOption = localCfg(UserAgent)
+      val userAgentOption = localCfg(HttpSettings.UserAgent)
       userAgentOption foreach { userAgent =>
         rb.setHeader(HttpHeaders.USER_AGENT, userAgent)
       }
-      val cookies = localCfg(Cookies)
+      val cookies = localCfg(HttpSettings.Cookies)
       cookies foreach {
         case (k, v) =>
           val cookie = new BasicClientCookie(k, v)
           cookie.setDomain(rb.getUri.getHost)
           cookieStore.addCookie(cookie)
       }
-      val customHeaders = localCfg(Headers)
+      val customHeaders = localCfg(HttpSettings.Headers)
       customHeaders foreach {
         case (k, v) => rb.addHeader(k, v)
       }
@@ -291,7 +296,7 @@ class HttpDownloader(
           case _                 => None
         }
       } map { fn =>
-        CoreUtils.asValidFilename(fn)
+        asValidFilename(fn)
       } getOrElse {
         // When everything else fails - generate a filename from UUID
         "file-" + de.id.toString.toUpperCase
@@ -334,36 +339,58 @@ class HttpDownloader(
     private def instantiateFile(): RandomAccessFile = {
       val f = de.fileOption.get
       (partial, f.exists) match {
-        case (false, true)  => throw new UserFriendlyException(s"File already exists")
+        case (false, true)  => failFriendly(s"File already exists")
         case (true, exists) => assert(exists) // Was checked before
         case _              => // NOOP
       }
       f.createNewFile()
-      if (!f.canWrite) {
-        throw new UserFriendlyException(s"Can't write to file ${f.getAbsolutePath}")
-      }
+      requireFriendly(f.canWrite, s"Can't write to file ${f.getAbsolutePath}")
       new RandomAccessFile(f, "rw")
     }
 
     private def createConnManager(connTimeoutMs: Int): HttpClientConnectionManager = {
       val connFactory: HttpConnectionFactory[HttpRoute, ManagedHttpClientConnection] =
         new ManagedHttpClientConnectionFactory(
-          new HttpMessageWriterProxyFactory(
+          new HttpMessageWriterLoggingFactory(
             DefaultHttpRequestWriterFactory.INSTANCE,
             msg => doChecked(addLogAndFire(de, LogEntry.request(msg)))
           ),
-          new HttpMessageParserProxyFactory(
+          new HttpMessageParserLoggingFactory(
             DefaultHttpResponseParserFactory.INSTANCE,
             msg => doChecked(addLogAndFire(de, LogEntry.response(msg)))
           )
         )
-      val connMgr = new BasicHttpClientConnectionManager(HttpDownloader.SocketFactoryRegistry, connFactory, null, null)
+      val connMgr = new BasicHttpClientConnectionManager(createSocketFactoryRegistry(), connFactory, null, FakeDnsResolver)
       connMgr.setSocketConfig(
         SocketConfig.custom()
           .setSoTimeout(connTimeoutMs)
           .build()
       )
       connMgr
+    }
+
+    /**
+     * Creates registry of `ConnectionSocketFactory` to be used in connection manager.
+     *
+     * Note that factories should perform DNS resolution on their own.
+     */
+    private def createSocketFactoryRegistry(): Registry[ConnectionSocketFactory] = {
+      val proxy = de.backendSpecificCfg.resolve(HttpSettings.ConnectionProxy)
+      def logUpdate(msg: String) = addLogAndFire(de, LogEntry.info(msg))
+      RegistryBuilder.create[ConnectionSocketFactory]
+        .register("http", new ProxyConnectionSocketFactory(proxy, logUpdate, PlainConnectionSocketFactory.getSocketFactory()))
+        .register("https", new ProxyLayeredConnectionSocketFactory(proxy, logUpdate, createSslConnSocketFactory()))
+        .build()
+    }
+
+    private def createSslConnSocketFactory(): SSLConnectionSocketFactory = {
+      if (de.backendSpecificCfg(HttpSettings.DisableSslValidation)) {
+        HttpDownloader.NonValidatingSslConnSocketFactory
+      } else {
+        val sf = SSLConnectionSocketFactory.getSocketFactory()
+        HttpUtils.validateSslConnSocketFactory(sf)
+        sf
+      }
     }
 
     /** Execute an action only if thread isn't interrupted, in which case - throw {@code InterruptedException} */
@@ -375,8 +402,10 @@ class HttpDownloader(
 }
 
 object HttpDownloader {
-  private val SocketFactoryRegistry: Registry[ConnectionSocketFactory] = RegistryBuilder.create[ConnectionSocketFactory]
-    .register("http", PlainConnectionSocketFactory.getSocketFactory())
-    .register("https", SSLConnectionSocketFactory.getSocketFactory())
-    .build()
+  private lazy val NonValidatingSslConnSocketFactory: SSLConnectionSocketFactory = {
+    val sslContext = new SSLContextBuilder()
+      .loadTrustMaterial(null, (chain, authType) => true)
+      .build()
+    new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE)
+  }
 }

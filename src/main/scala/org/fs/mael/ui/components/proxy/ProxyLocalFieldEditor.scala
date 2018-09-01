@@ -11,7 +11,7 @@ import org.fs.mael.core.config.BackendConfigStore
 import org.fs.mael.core.config.ConfigSetting
 import org.fs.mael.core.config.ConfigSetting._
 import org.fs.mael.core.config.LocalConfigSettingValue
-import org.fs.mael.core.config.proxy.Proxy
+import org.fs.mael.core.proxy.Proxy
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.ui.components.ConfigAware
 import org.fs.mael.ui.utils.SwtUtils._

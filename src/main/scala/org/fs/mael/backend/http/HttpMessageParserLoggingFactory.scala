@@ -9,7 +9,7 @@ import org.apache.http.message.BasicLineFormatter
 import org.apache.http.util.CharArrayBuffer
 import org.fs.mael.core.utils.CoreUtils._
 
-class HttpMessageParserProxyFactory(
+class HttpMessageParserLoggingFactory(
   delegate:    HttpMessageParserFactory[HttpResponse],
   logResponse: String => Unit
 ) extends HttpMessageParserFactory[HttpResponse] {

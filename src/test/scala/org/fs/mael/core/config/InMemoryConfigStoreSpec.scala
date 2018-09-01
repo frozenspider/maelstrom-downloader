@@ -2,22 +2,21 @@ package org.fs.mael.core.config
 
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.FunSuite
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class InMemoryConfigStoreSpec
   extends FunSuite
-  with BeforeAndAfter {
+  with BeforeAndAfter
+  with BeforeAndAfterAll {
 
-  private val (setting11, setting12, setting21, setting22) = {
-    ConfigSetting.test_clearRegistry()
-    (
-      ConfigSetting("group1.1", "my-default11"),
-      ConfigSetting("group1.2", -1),
-      ConfigSetting("group2.1", Radio.r1, Radio.values),
-      ConfigSetting("group2.2", Some("my-default22"))
-    )
-  }
+  private lazy val (setting11, setting12, setting21, setting22) = (
+    ConfigSetting("group1.1", "my-default11"),
+    ConfigSetting("group1.2", -1),
+    ConfigSetting("group2.1", Radio.r1, Radio.values),
+    ConfigSetting("group2.2", Some("my-default22"))
+  )
 
   sealed abstract class Radio(idx: Int) extends ConfigSetting.RadioValue(idx.toString, idx + "-pretty")
   object Radio {
@@ -28,6 +27,10 @@ class InMemoryConfigStoreSpec
   }
 
   private var failureOption: Option[Throwable] = None
+
+  override def afterAll() {
+    ConfigSetting.test_clearRegistry()
+  }
 
   before {
     failureOption = None

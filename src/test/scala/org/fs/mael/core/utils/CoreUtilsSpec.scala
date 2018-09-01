@@ -58,7 +58,7 @@ class CoreUtilsSpec
   test("waitUntil condition proc after timeout") {
     val sw = new StopWatch
     assert(waitUntil(100) {
-      sw.peek >= 150
+      sw.peek >= 200
     } === false)
   }
 

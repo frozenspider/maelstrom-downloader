@@ -6,6 +6,7 @@ import org.fs.mael.core.config.ConfigSetting._
 import org.fs.mael.test.TestUtils
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.FunSuite
 import org.scalatest.prop.TableDrivenPropertyChecks
 
@@ -13,22 +14,24 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 class ConfigStoreSpec
   extends FunSuite
   with BeforeAndAfter
+  with BeforeAndAfterAll
   with TableDrivenPropertyChecks {
   import org.fs.mael.test.TestUtils.ConfigValueClasses._
 
-  private val (setting1, setting2, setting3, setting4) = {
+  private lazy val (setting1, setting2, setting3, setting4) = (
+    ConfigSetting("my.id1", "my-default1"),
+    ConfigSetting("my.id2", -1),
+    ConfigSetting("my.id3", Some("my-default2")),
+    ConfigSetting("my.id4", Radio.r1, Radio.values)
+  )
+
+  override def afterAll() {
     ConfigSetting.test_clearRegistry()
-    (
-      ConfigSetting("my.id1", "my-default1"),
-      ConfigSetting("my.id2", -1),
-      ConfigSetting("my.id3", Some("my-default2")),
-      ConfigSetting("my.id4", Radio.r1, Radio.values)
-    )
   }
 
-  private val settingAbcs = new SeqConfigSetting[ABC]("group1.abcs", Nil, AbcClassses)
-  private val settingAbc = new RefConfigSetting("group1.abc", A, settingAbcs)
-  private val settingAbcLocal = new LocalEntityConfigSetting[ABC]("group1.local.abc", settingAbcs, settingAbc, AbcClassses)
+  private lazy val settingAbcs = new SeqConfigSetting[ABC]("group1.abcs", Nil, AbcClassses)
+  private lazy val settingAbc = new RefConfigSetting("group1.abc", A, settingAbcs)
+  private lazy val settingAbcLocal = new LocalEntityConfigSetting[ABC]("group1.local.abc", settingAbcs, settingAbc, AbcClassses)
 
   sealed abstract class Radio(idx: Int) extends ConfigSetting.RadioValue(idx.toString, idx + "-pretty")
   object Radio {
