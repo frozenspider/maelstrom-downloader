@@ -20,6 +20,7 @@ import org.fs.mael.test.stub.ControlledTransferManager
 import org.fs.mael.test.stub.StoringEventManager
 import org.scalatest.BeforeAndAfter
 import org.scalatest.TestSuite
+import java.net.BindException
 
 /** Base trait for specs testing {@link HttpDownloader} */
 trait HttpDownloaderSpecBase
@@ -64,9 +65,17 @@ trait HttpDownloaderSpecBase
   // Helper methods
   //
 
-  protected def startHttpServer(): Unit = {
-    _server = new SimpleHttpServer(httpPort, waitTimeoutMs, None, ex => failureOption = Some(ex))
-    _server.start()
+  protected def startHttpServer(gotBindException: Boolean = false): Unit = {
+    try {
+      _server = new SimpleHttpServer(httpPort, waitTimeoutMs, None, ex => failureOption = Some(ex))
+      _server.start()
+    } catch {
+      // Workaround for java.net.BindException: Address already in use (Bind failed) which sometimes happen
+      // on Travis CI builds. Don't know the case nor how to fix it properly.
+      case ex: BindException if !gotBindException =>
+        Thread.sleep(100)
+        startHttpServer(true)
+    }
   }
 
   protected def startHttpsServer(): Unit = {
