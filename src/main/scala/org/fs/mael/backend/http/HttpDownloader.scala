@@ -19,6 +19,7 @@ import org.apache.http.client.methods.RequestBuilder
 import org.apache.http.config.Registry
 import org.apache.http.config.RegistryBuilder
 import org.apache.http.config.SocketConfig
+import org.apache.http.conn.ConnectTimeoutException
 import org.apache.http.conn.HttpClientConnectionManager
 import org.apache.http.conn.HttpConnectionFactory
 import org.apache.http.conn.ManagedHttpClientConnection
@@ -162,6 +163,8 @@ class HttpDownloader(
           errorLogAndFire(de, ex.getMessage)
         case ex: SocketTimeoutException =>
           errorLogAndFire(de, "Request timed out")
+        case ex: ConnectTimeoutException =>
+          errorLogAndFire(de, s"Connection to ${ex.getHost.toHostString} timed out")
         case ex: SSLException =>
           errorLogAndFire(de, "SSL error: " + ex.getMessage)
         case ex: InterruptedException =>
