@@ -55,10 +55,71 @@ abstract class Socks5ProxyBase(
     failures.headOption.map(onFailure)
   }
 
+  protected def establishConnection(socket: Socket): Unit = {
+    val out = new DataOutputStream(socket.getOutputStream())
+    val in = new DataInputStream(socket.getInputStream())
+
+    // First byte is version, should be 5
+    val protocolVer = in.read()
+    require(protocolVer == 5, s"Only SOCKS5 supported, got ${protocolVer}")
+
+    val authMethod = authenticate(in, out)
+
+    // Receive CONNECT request
+    val connReq = readMessage(in)
+    require(connReq.cmd == 0x01, "Only CONNECT command is supported")
+    Socks5ProxyBase.this.synchronized {
+      connLog = connLog :+ (authMethod, connReq)
+    }
+
+    // We're responding exactly like Tor does - with zeroed address/port
+    val connRes = Message(0x00, Addr(InetAddress.getByAddress(Array[Byte](0, 0, 0, 0))), 0)
+    out.writeAndFlush(connRes.raw)
+
+    handleReq(in, out)
+  }
+
+  protected def authenticate(in: DataInputStream, out: DataOutputStream): AuthMethod = {
+    // Second byte - number of authentication methods supported
+    val authMethodsNum = in.read()
+
+    // Read list of supported authentication methods
+    val authMethods = Array.ofDim[Byte](authMethodsNum)
+    in.readFully(authMethods)
+
+    // Only authentication methods 0 and 2, no authentication and user/pass, are supported
+    val noAuthMethodFound = authMethods.exists(_ == 0x00)
+    val usernamePassMethodFound = authMethods.exists(_ == 0x02)
+
+    val authMethodRes = Array.ofDim[Byte](2)
+    authMethodRes(0) = 0x05.toByte // protocol version
+    if (noAuthMethodFound && !enforceUserPassAuth) {
+      authMethodRes(1) = 0x00.toByte
+      out.writeAndFlush(authMethodRes)
+      AuthMethod.NoAuth
+    } else if (usernamePassMethodFound) {
+      // See https://tools.ietf.org/html/rfc1929
+      authMethodRes(1) = 0x02.toByte
+      out.writeAndFlush(authMethodRes)
+      require(in.read() == 0x01, "Invalid VER during username/password negotiation")
+      val uLen = in.read()
+      val uBytes = Array.ofDim[Byte](uLen)
+      in.readFully(uBytes)
+      val pLen = in.read()
+      val pBytes = Array.ofDim[Byte](pLen)
+      in.readFully(pBytes)
+      out.writeAndFlush(Array[Byte](0x01, 0x00))
+      AuthMethod.UserPass(new String(uBytes, "UTF-8"), new String(pBytes, "UTF-8"))
+    } else {
+      authMethodRes(1) = 0xFF.toByte // no acceptable methods
+      out.writeAndFlush(authMethodRes)
+      throw new IOException("Authentication method not supported")
+    }
+  }
+
   protected def handleReq(in: DataInputStream, out: DataOutputStream): Unit
 
   private class ServerProcess extends Thread {
-
     setUncaughtExceptionHandler((thread, th) => {
       log.error("Uncaught exception in SOCKS5 mock proxy", th)
     })
@@ -73,73 +134,12 @@ abstract class Socks5ProxyBase(
             Try(socket.close())
           }
         } catch {
-          case ex: SocketException => // NOOP, expected
+          case ex: SocketException      => // NOOP, expected
+          case ex: InterruptedException => // NOOP, expected
           case th: Throwable =>
             log.error("Error processing socket connection", th)
             onFailure(th)
         }
-      }
-    }
-
-    private def establishConnection(socket: Socket): Unit = {
-      val out = new DataOutputStream(socket.getOutputStream())
-      val in = new DataInputStream(socket.getInputStream())
-
-      // First byte is version, should be 5
-      val protocolVer = in.read()
-      require(protocolVer == 5, s"Only SOCKS5 supported, got ${protocolVer}")
-
-      val authMethod = authenticate(in, out)
-
-      // Receive CONNECT request
-      val connReq = readMessage(in)
-      require(connReq.cmd == 0x01, "Only CONNECT command is supported")
-      Socks5ProxyBase.this.synchronized {
-        connLog = connLog :+ (authMethod, connReq)
-      }
-
-      // We're responding exactly like Tor does - with zeroed address/port
-      val connRes = Message(0x00, Addr(InetAddress.getByAddress(Array[Byte](0, 0, 0, 0))), 0)
-      out.writeAndFlush(connRes.raw)
-
-      handleReq(in, out)
-    }
-
-    private def authenticate(in: DataInputStream, out: DataOutputStream): AuthMethod = {
-      // Second byte - number of authentication methods supported
-      val authMethodsNum = in.read()
-
-      // Read list of supported authentication methods
-      val authMethods = Array.ofDim[Byte](authMethodsNum)
-      in.readFully(authMethods)
-
-      // Only authentication methods 0 and 2, no authentication and user/pass, are supported
-      val noAuthMethodFound = authMethods.exists(_ == 0x00)
-      val usernamePassMethodFound = authMethods.exists(_ == 0x02)
-
-      val authMethodRes = Array.ofDim[Byte](2)
-      authMethodRes(0) = 0x05.toByte // protocol version
-      if (noAuthMethodFound && !enforceUserPassAuth) {
-        authMethodRes(1) = 0x00.toByte
-        out.writeAndFlush(authMethodRes)
-        AuthMethod.NoAuth
-      } else if (usernamePassMethodFound) {
-        // See https://tools.ietf.org/html/rfc1929
-        authMethodRes(1) = 0x02.toByte
-        out.writeAndFlush(authMethodRes)
-        require(in.read() == 0x01, "Invalid VER during username/password negotiation")
-        val uLen = in.read()
-        val uBytes = Array.ofDim[Byte](uLen)
-        in.readFully(uBytes)
-        val pLen = in.read()
-        val pBytes = Array.ofDim[Byte](pLen)
-        in.readFully(pBytes)
-        out.writeAndFlush(Array[Byte](0x01, 0x00))
-        AuthMethod.UserPass(new String(uBytes, "UTF-8"), new String(pBytes, "UTF-8"))
-      } else {
-        authMethodRes(1) = 0xFF.toByte // no acceptable methods
-        out.writeAndFlush(authMethodRes)
-        throw new IOException("Authentication method not supported")
       }
     }
   }

@@ -15,15 +15,20 @@ import org.fs.mael.backend.http.config.HttpSettings
 import org.fs.mael.core.Status
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.checksum.ChecksumType
+import org.fs.mael.core.utils.CoreUtils._
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
 import org.scalatest.FunSuite
+import org.scalatest.concurrent.TimeLimits
+import org.scalatest.time._
+import org.scalatest.exceptions.TestFailedException
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class HttpDownloaderSpec
   extends FunSuite
   with HttpDownloaderSpecBase
-  with BeforeAndAfter {
+  with BeforeAndAfter
+  with TimeLimits {
 
   before {
     super.beforeMethod()
@@ -167,7 +172,7 @@ class HttpDownloaderSpec
     startHttpServer()
     server.respondWith { (req, res) =>
       serveContentNormally(expectedBytes)(req, res)
-      res.setHeader("Content-Disposition", """attachment;filename="___ __ ________ - _______ _________ ______ _. _____.zip";filename*=UTF-8''%D0%9E%D0%BD%D0%B8%20%D0%BD%D0%B5%20%D0%BF%D1%80%D0%B8%D0%BB%D0%B5%D1%82%D1%8F%D1%82%20-%20%D1%81%D0%B1%D0%BE%D1%80%D0%BD%D0%B8%D0%BA%20%D1%80%D0%B0%D1%81%D1%81%D0%BA%D0%B0%D0%B7%D0%BE%D0%B2%20%D1%87%D0%B8%D1%82%D0%B0%D0%B5%D1%82%20%D0%90.%20%D0%94%D1%83%D0%BD%D0%B8%D0%BD.zip""")
+      res.setHeader("Content-Disposition", """attachment;filename="wrong.zip";filename*=UTF-8''%D0%9E%D0%BD%D0%B8%20%D0%BD%D0%B5%20%D0%BF%D1%80%D0%B8%D0%BB%D0%B5%D1%82%D1%8F%D1%82%20-%20%D1%81%D0%B1%D0%BE%D1%80%D0%BD%D0%B8%D0%BA%20%D1%80%D0%B0%D1%81%D1%81%D0%BA%D0%B0%D0%B7%D0%BE%D0%B2%20%D1%87%D0%B8%D1%82%D0%B0%D0%B5%D1%82%20%D0%90.%20%D0%94%D1%83%D0%BD%D0%B8%D0%BD.zip""")
     }
 
     expectStatusChangeEvents(de, Status.Running, Status.Complete)
@@ -252,6 +257,47 @@ class HttpDownloaderSpec
     assert(transferMgr.bytesRead === 5)
   }
 
+  test("stopping download right away should interrupt I/O") {
+    val de = createDownloadEntry()
+
+    startHttpServer()
+    server.respondWith((req, res) => {
+      Thread.sleep(30 * 1000)
+      failureOption = Some(new UnsupportedOperationException("This should be unreachable!"))
+    })
+
+    failAfter(Span(1, Seconds)) {
+      expectStatusChangeEvents(de, Status.Running, Status.Stopped)
+      downloader.start(de, 999999)
+      downloader.stop(de)
+      await.firedAndStopped()
+
+      assert(downloader.test_getThreads.isEmpty)
+    }
+  }
+
+  test("stopping download after connection established should interrupt I/O") {
+    val de = createDownloadEntry()
+    var connEstablished = false
+
+    startHttpServer()
+    server.respondWith((req, res) => {
+      connEstablished = true
+      Thread.sleep(30 * 1000)
+      failureOption = Some(new UnsupportedOperationException("This should be unreachable!"))
+    })
+
+    failAfter(Span(1, Seconds)) {
+      expectStatusChangeEvents(de, Status.Running, Status.Stopped)
+      downloader.start(de, 999999)
+      assert(waitUntil(500)(connEstablished))
+      downloader.stop(de)
+      await.firedAndStopped()
+
+      assert(downloader.test_getThreads.isEmpty)
+    }
+  }
+
   test("file size - pre-allocate if known") {
     val de = createDownloadEntry()
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
@@ -322,7 +368,7 @@ class HttpDownloaderSpec
 
   test("failure - SSL cert validation failed") {
     val de = createDownloadEntry(https = true)
-    // We're not disabling HTTPS cert validation and our self-signed cert fails it 
+    // We're not disabling HTTPS cert validation and our self-signed cert fails it
     de.checksumOption = Some(Checksum(ChecksumType.MD5, "7cfdd07889b3295d6a550914ab35e068"))
 
     startHttpsServer()

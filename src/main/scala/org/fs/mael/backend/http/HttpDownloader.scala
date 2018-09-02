@@ -19,6 +19,7 @@ import org.apache.http.client.methods.RequestBuilder
 import org.apache.http.config.Registry
 import org.apache.http.config.RegistryBuilder
 import org.apache.http.config.SocketConfig
+import org.apache.http.conn.ConnectTimeoutException
 import org.apache.http.conn.HttpClientConnectionManager
 import org.apache.http.conn.HttpConnectionFactory
 import org.apache.http.conn.ManagedHttpClientConnection
@@ -33,6 +34,7 @@ import org.apache.http.impl.conn.BasicHttpClientConnectionManager
 import org.apache.http.impl.conn.DefaultHttpResponseParserFactory
 import org.apache.http.impl.conn.ManagedHttpClientConnectionFactory
 import org.apache.http.impl.cookie.BasicClientCookie
+import org.apache.http.impl.execchain.RequestAbortedException
 import org.apache.http.impl.io.DefaultHttpRequestWriterFactory
 import org.apache.http.ssl.SSLContextBuilder
 import org.fs.mael.backend.http.config.HttpSettings
@@ -40,6 +42,7 @@ import org.fs.mael.backend.http.utils.HttpUtils
 import org.fs.mael.core.Status
 import org.fs.mael.core.UserFriendlyException
 import org.fs.mael.core.backend.BackendDownloader
+import org.fs.mael.core.connection.AbortableConnectionRegistry
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
@@ -116,9 +119,10 @@ class HttpDownloader(
   private class DownloadingThread(val de: DownloadEntry, timeoutMs: Int)
     extends Thread(dlThreadGroup, dlThreadGroup.getName + "_" + de.id + "_" + Random.alphanumeric.take(10).mkString) {
 
-    this.setDaemon(true)
-
+    private val connReg = new AbortableConnectionRegistry
     private val partial = de.downloadedSize > 0
+
+    this.setDaemon(true)
 
     override def run(): Unit = {
       try {
@@ -127,6 +131,11 @@ class HttpDownloader(
         removeThread(this)
         log.debug(s"Thread removed: ${this.getName}")
       }
+    }
+
+    override def interrupt(): Unit = {
+      super.interrupt()
+      connReg.abort()
     }
 
     private def runInner(): Unit = {
@@ -158,10 +167,16 @@ class HttpDownloader(
           errorLogAndFire(de, ex.getMessage)
         case ex: UnknownHostException =>
           errorLogAndFire(de, "Host cannot be resolved: " + ex.getMessage)
+        case ex: SocketException if isInterrupted =>
+          // This almost definitely means that user stopped the thread
+          log.debug(s"SocketException on interrupted thread: " + ex.getMessage)
         case ex: SocketException =>
           errorLogAndFire(de, ex.getMessage)
         case ex: SocketTimeoutException =>
           errorLogAndFire(de, "Request timed out")
+        case ex: RequestAbortedException if isInterrupted => // NOOP, expected
+        case ex: ConnectTimeoutException =>
+          errorLogAndFire(de, s"Connection to ${ex.getHost.toHostString} timed out")
         case ex: SSLException =>
           errorLogAndFire(de, "SSL error: " + ex.getMessage)
         case ex: InterruptedException =>
@@ -192,6 +207,8 @@ class HttpDownloader(
         addCustomHeaders(rb, cookieStore)
         rb.build()
       }
+      // This might not be necessary since we're registering sockets in their respective factories
+      connReg.register(req)
 
       val res = httpClient.execute(req)
       try {
@@ -379,8 +396,8 @@ class HttpDownloader(
       val proxy = de.backendSpecificCfg.resolve(HttpSettings.ConnectionProxy)
       def logUpdate(msg: String) = addLogAndFire(de, LogEntry.info(msg))
       RegistryBuilder.create[ConnectionSocketFactory]
-        .register("http", new ProxyConnectionSocketFactory(proxy, logUpdate, PlainConnectionSocketFactory.getSocketFactory()))
-        .register("https", new ProxyLayeredConnectionSocketFactory(proxy, logUpdate, createSslConnSocketFactory()))
+        .register("http", new CustomConnectionSocketFactory(proxy, logUpdate, PlainConnectionSocketFactory.getSocketFactory(), connReg))
+        .register("https", new CustomLayeredConnectionSocketFactory(proxy, logUpdate, createSslConnSocketFactory(), connReg))
         .build()
     }
 

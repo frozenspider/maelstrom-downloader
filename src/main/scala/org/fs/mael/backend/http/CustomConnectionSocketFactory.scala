@@ -11,22 +11,26 @@ import scala.util.Try
 import org.apache.http.HttpHost
 import org.apache.http.conn.socket.ConnectionSocketFactory
 import org.apache.http.protocol.HttpContext
+import org.fs.mael.core.connection.AbortableConnectionRegistry
 import org.fs.mael.core.proxy.Proxy
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.core.utils.IoUtils._
 import org.fs.utility.Imports._
 
 /**
- * `ConnectionSocketFactory` wrapper that supports using proxy for connection.
+ * `ConnectionSocketFactory` wrapper that adds the following:
  *
- * Performs DNS resolution on its own, possibly delegating it to a proxy.
+ *  - Supports using proxy for connection
+ *  - Performs DNS resolution on its own, possibly delegating it to a proxy
+ *  - Register all connections into supplied `AbortableConnectionRegistry`
  *
  * @author FS
  */
-class ProxyConnectionSocketFactory(
+class CustomConnectionSocketFactory(
   proxy:     Proxy,
   logUpdate: String => Unit,
-  wrapped:   ConnectionSocketFactory
+  wrapped:   ConnectionSocketFactory,
+  connReg:   AbortableConnectionRegistry
 ) extends ConnectionSocketFactory {
 
   override def createSocket(context: HttpContext): Socket = {
@@ -47,12 +51,14 @@ class ProxyConnectionSocketFactory(
       case proxy: Proxy.SOCKS5 if proxy.dns => InetSocketAddress.createUnresolved(host.getHostName, fakeRemoteAddr.getPort)
       case _                                => new InetSocketAddress(host.getHostName, fakeRemoteAddr.getPort)
     }
+    connReg.register(initialSocket)
     val targetSocket = proxy match {
       case Proxy.NoProxy =>
         wrapped.connectSocket(connTimeoutMs, initialSocket, host, remoteAddr, localAddr, context)
       case proxy: Proxy.SOCKS5 =>
         Socks5.connectSocket(proxy, connTimeoutMs, initialSocket, host, remoteAddr, Option(localAddr), context)
     }
+    connReg.register(targetSocket)
     targetSocket
   }
 
