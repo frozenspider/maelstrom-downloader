@@ -54,6 +54,7 @@ class HttpBackend(
     val headers = HttpUtils.parseHeaders(requestString)
     val uri = if (parsedRequestLineUri startsWith "/") {
       val host = headers.find(_._1.toLowerCase == "host").get._2
+      // We can't determine whether it's HTTP or HTTPS so we're going with the former
       val url = new URL("http", host, parsedRequestLineUri)
       url.toURI
     } else {
@@ -76,7 +77,7 @@ class HttpBackend(
     }
     val uri = new URI(uriString)
     val headersString = options collect {
-      case (o, args) if o == "H" =>
+      case (o, args) if o == "H" || o == "header" =>
         requireFriendly(args.size == 1, s"Malformed CLI string: ($o) with ($args)")
         args.head
     } mkString "\n"
@@ -142,7 +143,7 @@ object HttpBackend {
 
     val OptionName = "[^'\"\\s=;, -]+"
     val ShortOption = ("-" + OptionName).r ~ (S ~> StringP).* ^^ { case (o ~ args) => (o.drop(1), args) }
-    val LongOption = ("--" + OptionName).r ~ ("=" ~> StringP).? ^^ { case (o ~ argOpt) => (o.drop(2), argOpt.toSeq) }
+    val LongOption = ("--" + OptionName).r ~ (("=" | S) ~> StringP).? ^^ { case (o ~ argOpt) => (o.drop(2), argOpt.toSeq) }
     val Option = ShortOption | LongOption
 
     val Pattern = S.? ~> CurlPrefix ~> S ~> Url ~ (S ~> Option).* <~ S.? ^^ { case (url ~ options) => (url, options) }

@@ -92,8 +92,8 @@ class HttpBackendSpec
          | -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
          | --compressed
          | -H "Cookie: _ga=GA1.2.639706670.1391702045; tz=Asia"%"2FTashkent"
-         | -H "DNT: 1"
-         | -H "Cache-Control: max-age=0"
+         | --header="DNT: 1"
+         | --header "Cache-Control: max-age=0"
          | -H "My-Header: "a""b"\"c\""""".stripMargin.replaceAll("\n", " ")
     )
     assert(parsed1.uri.toString === "https://github.com/frozenspider/maelstrom-downloader/issues")

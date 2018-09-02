@@ -36,7 +36,6 @@ import org.fs.mael.ui.utils.Hotkey._
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
 
-// FIXME: Show info about CURL/plaintext import
 class MainFrame(
   display:         Display,
   resources:       Resources,
@@ -177,6 +176,12 @@ class MainFrame(
   private def fillToolbar(toolbar: ToolBar, shell: Shell): Unit = {
     val btnAdd = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnAdd =>
       btnAdd.setText("Add")
+      btnAdd.setToolTipText("""
+        |Parses a download from clipboard if it contains one of the following:
+        | - URL
+        | - Plaintext HTTP request string (i.e. GET line followed by header lines)
+        | - curl command
+        |""".stripMargin.trim)
       btnAdd.addListener(SWT.Selection, e => {
         tryShowingError(peer, log) {
           val dialog = new EditDownloadDialog(None, shell, resources, globalCfg, backendMgr, downloadListMgr, eventMgr)
