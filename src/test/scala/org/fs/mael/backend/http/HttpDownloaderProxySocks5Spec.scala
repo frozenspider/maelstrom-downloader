@@ -1,38 +1,34 @@
 package org.fs.mael.backend.http
 
-import java.io.File
-import java.io.OutputStream
-import java.net.SocketException
-import java.net.URI
-import java.net.URLEncoder
-
-import scala.io.Codec
-import scala.util.Random
+import java.io.DataInputStream
+import java.io.DataOutputStream
+import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.Socket
+import java.util.UUID
 
 import org.apache.http._
 import org.apache.http.entity._
+import org.fs.mael.backend.http.config.HttpSettings
 import org.fs.mael.core.Status
-import org.fs.mael.core.checksum.Checksum
-import org.fs.mael.core.checksum.ChecksumType
+import org.fs.mael.core.config.LocalConfigSettingValue
+import org.fs.mael.core.proxy.Proxy
+import org.fs.mael.core.proxy.Proxy.SOCKS5.AuthMethod
+import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.test.proxy.Socks5ForwardingProxy
+import org.fs.mael.test.proxy.Socks5MockProxy
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
 import org.scalatest.FunSuite
-import java.util.Arrays
-import org.fs.mael.test.proxy.Socks5MockProxy
-import org.fs.mael.backend.http.config.HttpSettings
-import org.fs.mael.core.config.LocalConfigSettingValue
-import org.fs.mael.core.proxy.Proxy
-import java.util.UUID
-import java.net.InetAddress
-import org.fs.mael.test.proxy.Socks5ForwardingProxy
-import org.fs.mael.test.proxy.Socks5ForwardingProxy
-import java.net.InetSocketAddress
+import org.scalatest.concurrent.TimeLimits
+import org.scalatest.time._
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class HttpDownloaderProxySocks5Spec
   extends FunSuite
   with HttpDownloaderSpecBase
-  with BeforeAndAfter {
+  with BeforeAndAfter
+  with TimeLimits {
 
   val proxyResponse = {
     val content = (1 to 5).map(_.toByte).toArray
@@ -181,6 +177,90 @@ class HttpDownloaderProxySocks5Spec
     assert(socks5FwProxy.connLog.size === 1)
     assert(socks5FwProxy.connLog(0)._1 === Proxy.SOCKS5.AuthMethod.NoAuth)
     assert(socks5FwProxy.connLog(0)._2 === Proxy.SOCKS5.Message(0x01, Proxy.SOCKS5.Addr(InetAddress.getLoopbackAddress), de.uri.getPort))
+  }
+
+  test("stopping download during initial phase should interrupt I/O") {
+    var connEstablished = false
+    socks5MockProxy = new Socks5MockProxy(proxyPort, false, req => proxyResponse, th => failureOption = Some(th)) {
+      override def establishConnection(socket: Socket): Unit = {
+        connEstablished = true
+        Thread.sleep(30 * 1000)
+        failureOption = Some(new UnsupportedOperationException("This should be unreachable!"))
+      }
+    }
+    socks5MockProxy.start()
+
+    val de = createDownloadEntry()
+    de.backendSpecificCfg.set(HttpSettings.ConnectionProxy, LocalConfigSettingValue.Embedded(
+      socks5(None, false)
+    ))
+
+    failAfter(Span(1, Seconds)) {
+      expectStatusChangeEvents(de, Status.Running, Status.Stopped)
+      downloader.start(de, 999999)
+      assert(waitUntil(500)(connEstablished))
+      downloader.stop(de)
+      await.firedAndStopped()
+
+      assert(downloader.test_getThreads.isEmpty)
+    }
+  }
+
+  test("stopping download during auth should interrupt I/O") {
+    var authStarted = false
+    socks5MockProxy = new Socks5MockProxy(proxyPort, false, req => proxyResponse, th => failureOption = Some(th)) {
+      override def authenticate(in: DataInputStream, out: DataOutputStream): AuthMethod = {
+        authStarted = true
+        Thread.sleep(30 * 1000)
+        failureOption = Some(new UnsupportedOperationException("This should be unreachable!"))
+        super.authenticate(in, out)
+      }
+    }
+    socks5MockProxy.start()
+
+    val de = createDownloadEntry()
+    de.backendSpecificCfg.set(HttpSettings.ConnectionProxy, LocalConfigSettingValue.Embedded(
+      socks5(None, false)
+    ))
+
+    failAfter(Span(1, Seconds)) {
+      expectStatusChangeEvents(de, Status.Running, Status.Stopped)
+      downloader.start(de, 999999)
+      assert(waitUntil(500)(authStarted))
+      downloader.stop(de)
+      await.firedAndStopped()
+
+      assert(downloader.test_getThreads.isEmpty)
+    }
+  }
+
+  test("stopping download right after auth should interrupt I/O") {
+    var authStarted = false
+    socks5MockProxy = new Socks5MockProxy(proxyPort, false, req => proxyResponse, th => failureOption = Some(th)) {
+      override def authenticate(in: DataInputStream, out: DataOutputStream): AuthMethod = {
+        val res = super.authenticate(in, out)
+        authStarted = true
+        Thread.sleep(30 * 1000)
+        failureOption = Some(new UnsupportedOperationException("This should be unreachable!"))
+        res
+      }
+    }
+    socks5MockProxy.start()
+
+    val de = createDownloadEntry()
+    de.backendSpecificCfg.set(HttpSettings.ConnectionProxy, LocalConfigSettingValue.Embedded(
+      socks5(None, false)
+    ))
+
+    failAfter(Span(1, Seconds)) {
+      expectStatusChangeEvents(de, Status.Running, Status.Stopped)
+      downloader.start(de, 999999)
+      assert(waitUntil(500)(authStarted))
+      downloader.stop(de)
+      await.firedAndStopped()
+
+      assert(downloader.test_getThreads.isEmpty)
+    }
   }
 
   test("failure - proxy requires username/password, none provided") {

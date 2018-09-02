@@ -20,8 +20,8 @@ import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
 import org.scalatest.FunSuite
 import org.scalatest.concurrent.TimeLimits
-import org.scalatest.time.Seconds
-import org.scalatest.time.Span
+import org.scalatest.time._
+import org.scalatest.exceptions.TestFailedException
 
 @RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class HttpDownloaderSpec
@@ -263,7 +263,7 @@ class HttpDownloaderSpec
     startHttpServer()
     server.respondWith((req, res) => {
       Thread.sleep(30 * 1000)
-      fail("This should be unreachable!")
+      failureOption = Some(new UnsupportedOperationException("This should be unreachable!"))
     })
 
     failAfter(Span(1, Seconds)) {
@@ -284,7 +284,7 @@ class HttpDownloaderSpec
     server.respondWith((req, res) => {
       connEstablished = true
       Thread.sleep(30 * 1000)
-      fail("This should be unreachable!")
+      failureOption = Some(new UnsupportedOperationException("This should be unreachable!"))
     })
 
     failAfter(Span(1, Seconds)) {
