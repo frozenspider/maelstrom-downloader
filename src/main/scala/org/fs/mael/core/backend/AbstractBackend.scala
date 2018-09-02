@@ -14,7 +14,7 @@ import org.fs.mael.ui.config.MFieldEditorPreferencePage
 import org.fs.mael.ui.config.MPreferencePageDescriptor
 
 abstract class AbstractBackend extends Backend {
-  protected def pageDescriptors: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage]]
+  protected def pageDescriptors: Seq[MPreferencePageDescriptor[_ <: MFieldEditorPreferencePage[BackendConfigStore]]]
 
   /** Global application config, its subpath serves as template for download-specific configs */
   protected def globalCfg: IGlobalConfigStore
@@ -37,7 +37,7 @@ abstract class AbstractBackend extends Backend {
   }
 
   override def layoutConfig(cfgOption: Option[BackendConfigStore], tabFolder: TabFolder, isEditable: Boolean): BackendConfigUi = {
-    val resultCfg = BackendConfigStore(settingsAccessChecker)
+    val resultCfg = BackendConfigStore(globalCfg, settingsAccessChecker)
     new BackendConfigUiImpl(resultCfg, isEditable, cfgOption, globalCfg, tabFolder, pageDescriptors)
   }
 }

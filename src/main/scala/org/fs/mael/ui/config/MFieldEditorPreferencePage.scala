@@ -7,17 +7,21 @@ import org.eclipse.jface.preference.RadioGroupFieldEditor
 import org.eclipse.swt.widgets.Composite
 import org.fs.mael.core.config.ConfigSetting
 import org.fs.mael.core.config.IConfigStore
+import org.fs.mael.ui.components.ConfigAware
 
-abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPreferencePage(style) {
+abstract class MFieldEditorPreferencePage[C <: IConfigStore](style: Int) extends FieldEditorPreferencePage(style) {
   /** Making this method visible */
   override def noDefaultAndApplyButton(): Unit = super.noDefaultAndApplyButton()
+
+  /** Making this method visible */
+  override def checkState(): Unit = super.checkState()
 
   /**
    * Keep track of field editors created on this page as well as their parents.
    * Please use this if an element is added manually rather than through helpers defined here
    */
   protected var _fieldEditorsWithParents: IndexedSeq[(FieldEditor, Composite)] = IndexedSeq.empty
-  protected var _cfg: IConfigStore = _
+  protected var _cfg: C = _
 
   /**
    * Initialize a default value for the given config setting.
@@ -28,9 +32,17 @@ abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPrefere
     _cfg.initDefault(setting)
   }
 
-  def setConfigStore(cfg: IConfigStore): Unit = {
+  def setConfigStore(cfg: C): Unit = {
     _cfg = cfg
     super.setPreferenceStore(cfg.inner)
+  }
+
+  override protected def initialize(): Unit = {
+    _fieldEditorsWithParents.foreach(_._1 match {
+      case e: ConfigAware[C] => e.cfg = _cfg
+      case _                 => // NOOP
+    })
+    super.initialize()
   }
 
   override def setPreferenceStore(store: IPreferenceStore): Unit = {
@@ -56,5 +68,14 @@ abstract class MFieldEditorPreferencePage(style: Int) extends FieldEditorPrefere
         parent, true
       )
     }
+  }
+
+  def customRow[FE <: FieldEditor](settings: ConfigSetting[_]*)(createEditor: (Composite) => FE): FE = {
+    settings foreach initSetting
+    val parent = getFieldEditorParent
+    val editor = createEditor(parent)
+    addField(editor)
+    _fieldEditorsWithParents = _fieldEditorsWithParents :+ (editor, parent)
+    editor
   }
 }

@@ -14,6 +14,7 @@ import org.fs.mael.core.config.BackendConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.Events._
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.test.TestUtils
 import org.fs.mael.test.stub.StoringEventManager
 import org.fs.mael.test.stub.StubBackend
 import org.fs.mael.test.stub.StubDownloadListSerializer
@@ -121,7 +122,7 @@ class DownloadListManagerSpec
   }
 
   private def defaultCfg: BackendConfigStore = {
-    val cfg = BackendConfigStore(StubBackend.SettingsAccessChecker)
+    val cfg = BackendConfigStore(TestUtils.emptyGlobalCfg(), StubBackend.SettingsAccessChecker)
     cfg.initDefault(StubBackend.StubSetting)
     cfg
   }

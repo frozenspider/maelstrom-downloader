@@ -93,7 +93,7 @@ class EditDownloadDialog(
     locationInput.setStringValue(de.location.getAbsolutePath)
     filenameInput.setText(de.filenameOption getOrElse "")
     if (de.status == Status.Running) {
-      disable(locationInput, locationRow)
+      setEnabled(locationInput, locationRow, false)
       filenameInput.setEditable(false)
     }
 
@@ -384,7 +384,7 @@ class EditDownloadDialog(
 
   private def processAutostart(backend: Backend, de: DownloadEntry): Unit = {
     if (autostartCheckbox.getSelection) {
-      backend.downloader.start(de, globalCfg(GlobalSettings.NetworkTimeout))
+      backend.downloader.start(de, globalCfg(GlobalSettings.ConnectionTimeout))
     }
     globalCfg.set(GlobalSettings.AutoStartDownloads, autostartCheckbox.getSelection)
   }

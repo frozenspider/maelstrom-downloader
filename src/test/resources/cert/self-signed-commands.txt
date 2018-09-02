@@ -1,0 +1,16 @@
+openssl req -x509 -nodes -days 36500 -newkey rsa:2048 -keyout self-signed.key -out self-signed.pem
+
+Country Name (2 letter code) [AU]:XX
+State or Province Name (full name) [Some-State]:localhost
+Locality Name (eg, city) []:domain
+Organization Name (eg, company) [Internet Widgits Pty Ltd]:localhost
+Organizational Unit Name (eg, section) []:project
+Common Name (e.g. server FQDN or YOUR name) []:localhost
+Email Address []:.
+
+
+openssl x509 -outform der -in self-signed.pem -out self-signed.der
+
+openssl pkcs12 -export -in self-signed.pem -inkey self-signed.key -name "localhost" -out self-signed.p12
+
+keytool -importkeystore -deststorepass password -destkeypass password -destkeystore self-signed.jks -srckeystore self-signed.p12 -srcstoretype PKCS12 -srcstorepass password -alias localhost

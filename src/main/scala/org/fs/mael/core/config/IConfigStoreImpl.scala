@@ -8,7 +8,7 @@ import org.eclipse.jface.preference.IPreferenceStore
 import org.eclipse.jface.preference.PreferenceStore
 import org.eclipse.jface.util.PropertyChangeEvent
 
-trait ConfigStore extends IConfigStore {
+trait IConfigStoreImpl extends IConfigStore {
   var settings: Set[ConfigSetting[_]] = Set.empty
   protected[config] var listerensEnabled: Boolean = true
 
@@ -20,12 +20,17 @@ trait ConfigStore extends IConfigStore {
    */
   def initDefault(setting: ConfigSetting[_]): Unit = {
     settings += setting
-    ConfigStore.initDefault(inner, setting)
+    setting.setDefault(inner)
   }
 
   def apply[T](setting: ConfigSetting[T]): T = {
     initDefault(setting)
     setting.get(inner) ensuring (_ != null)
+  }
+
+  def resolve[T <: LocalConfigSettingValue.WithPersistentId](setting: ConfigSetting.RefConfigSetting[T]): T = {
+    val uuid = this(setting)
+    this(setting.refSetting) find (_.uuid == uuid) getOrElse setting.defaultValue
   }
 
   def set[T](setting: ConfigSetting[T], value: T): Unit = {
@@ -57,24 +62,14 @@ trait ConfigStore extends IConfigStore {
 
   override def toString(): String = {
     val keys = inner.preferenceNames().sorted
-    val content = keys map (k => s"k -> ${inner.getString(k)}") mkString ", "
+    val content = keys map (k => s"$k -> ${inner.getString(k)}") mkString ", "
     this.getClass.getSimpleName + "(" + content + ")"
   }
 
   override def equals(that: Any): Boolean = that match {
-    case that: ConfigStore => this.toSerialString == that.toSerialString
-    case _                 => false
+    case that: IConfigStoreImpl => this.toSerialString == that.toSerialString
+    case _                      => false
   }
 
   override def hashCode: Int = this.toSerialString.hashCode
-}
-
-object ConfigStore {
-  /**
-   * Initialize default values for the given config setting.
-   * Invoking this multiple times is safe and does nothing.
-   */
-  def initDefault(store: IPreferenceStore, setting: ConfigSetting[_]): Unit = {
-    setting.setDefault(store)
-  }
 }

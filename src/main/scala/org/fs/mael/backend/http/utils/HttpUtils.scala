@@ -8,6 +8,8 @@ import scala.io.Codec
 import scala.util.parsing.combinator.RegexParsers
 
 import org.fs.mael.core.utils.CoreUtils._
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory
+import org.fs.mael.core.utils.CoreUtils
 
 object HttpUtils {
   /**
@@ -28,6 +30,26 @@ object HttpUtils {
     // TODO: What to do with language?
     val decoded = URLDecoder.decode(encoded, charset)
     decoded
+  }
+
+  /**
+   * Ensure validity of the given `SSLConnectionSocketFactory`, throwing user-friendly exception is something's wrong.
+   *
+   * Specifically, it tries to ensure that JVM has certificate authorities (CA) defined.
+   * This is needed because OpenJDK prior to 10 was shipped with empty `cacerts` which had to be installed manually.
+   */
+  def validateSslConnSocketFactory(sf: SSLConnectionSocketFactory): Unit = {
+    try {
+      val trustedCertsSet = CoreUtils.getNestedField(
+        sf,
+        List("socketfactory", "context", "trustManager", "trustedCerts")
+      ).asInstanceOf[java.util.Set[_]]
+      requireFriendly(!trustedCertsSet.isEmpty, "Your JVM defines no root CA certificates, SSL validation is impossible!"
+        + "\nYou may fix this by manually replacing $JRE_HOME/lib/security/cacerts file with the one from Oracle JRE"
+        + " or by disabling HTTPS certificates validation")
+    } catch {
+      case ex: NoSuchFieldException => // Unknown JVM type (at least not Oracle JRE 8 nor OpenJDK 8), can't perform validation
+    }
   }
 
   def validateCookiesCharacterSet(cookiesMap: Map[String, String]): Unit = {

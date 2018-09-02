@@ -6,6 +6,9 @@ scalaVersion   := "2.12.6"
 // Show tests duration and full stacktrace on test errors
 testOptions in Test += Tests.Argument("-oDF")
 
+// Disable concurrent test execution
+Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
+
 sourceManaged            := baseDirectory.value / "src_managed"
 sourceManaged in Compile := baseDirectory.value / "src_managed" / "main" / "scala"
 sourceManaged in Test    := baseDirectory.value / "src_managed" / "test" / "scala"
@@ -40,6 +43,7 @@ libraryDependencies ++= Seq(
   "org.apache.httpcomponents" %  "httpclient"               % "4.5.5",
   // Logging
   "org.slf4s"                 %% "slf4s-api"                % "1.7.25",
+  "org.slf4j"                 %  "jcl-over-slf4j"           % "1.7.25",
   "ch.qos.logback"            %  "logback-classic"          % "1.1.2",
   // Other
   "com.github.frozenspider"   %% "fs-common-utils"          % "0.1.3",
