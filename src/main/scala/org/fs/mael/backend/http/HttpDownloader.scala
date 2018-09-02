@@ -34,6 +34,7 @@ import org.apache.http.impl.conn.BasicHttpClientConnectionManager
 import org.apache.http.impl.conn.DefaultHttpResponseParserFactory
 import org.apache.http.impl.conn.ManagedHttpClientConnectionFactory
 import org.apache.http.impl.cookie.BasicClientCookie
+import org.apache.http.impl.execchain.RequestAbortedException
 import org.apache.http.impl.io.DefaultHttpRequestWriterFactory
 import org.apache.http.ssl.SSLContextBuilder
 import org.fs.mael.backend.http.config.HttpSettings
@@ -173,6 +174,7 @@ class HttpDownloader(
           errorLogAndFire(de, ex.getMessage)
         case ex: SocketTimeoutException =>
           errorLogAndFire(de, "Request timed out")
+        case ex: RequestAbortedException if isInterrupted => // NOOP, expected
         case ex: ConnectTimeoutException =>
           errorLogAndFire(de, s"Connection to ${ex.getHost.toHostString} timed out")
         case ex: SSLException =>
@@ -205,6 +207,7 @@ class HttpDownloader(
         addCustomHeaders(rb, cookieStore)
         rb.build()
       }
+      // This might not be necessary since we're registering sockets in their respective factories
       connReg.register(req)
 
       val res = httpClient.execute(req)
