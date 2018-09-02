@@ -18,13 +18,15 @@ import org.fs.mael.core.utils.IoUtils._
 import org.fs.utility.Imports._
 
 /**
- * `ConnectionSocketFactory` wrapper that supports using proxy for connection.
+ * `ConnectionSocketFactory` wrapper that adds the following:
  *
- * Performs DNS resolution on its own, possibly delegating it to a proxy.
+ *  - Supports using proxy for connection
+ *  - Performs DNS resolution on its own, possibly delegating it to a proxy
+ *  - Register all connections into supplied `AbortableConnectionRegistry`
  *
  * @author FS
  */
-class ProxyConnectionSocketFactory(
+class CustomConnectionSocketFactory(
   proxy:     Proxy,
   logUpdate: String => Unit,
   wrapped:   ConnectionSocketFactory,

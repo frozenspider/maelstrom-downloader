@@ -10,16 +10,16 @@ import org.fs.mael.core.connection.AbortableConnectionRegistry
 import org.fs.mael.core.proxy.Proxy
 
 /**
- * A variant of `ProxyConnectionSocketFactory` for `LayeredConnectionSocketFactory`.
+ * A variant of `CustomConnectionSocketFactory` for `LayeredConnectionSocketFactory`.
  *
  * @author FS
  */
-class ProxyLayeredConnectionSocketFactory(
+class CustomLayeredConnectionSocketFactory(
   proxy:     Proxy,
   logUpdate: String => Unit,
   wrapped:   LayeredConnectionSocketFactory,
   connReg:   AbortableConnectionRegistry
-) extends ProxyConnectionSocketFactory(proxy, logUpdate, wrapped, connReg)
+) extends CustomConnectionSocketFactory(proxy, logUpdate, wrapped, connReg)
   with LayeredConnectionSocketFactory {
 
   override def connectSocket(
