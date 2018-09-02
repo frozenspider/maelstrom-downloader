@@ -34,7 +34,7 @@ object GlobalSettings {
     })
 
   val ConnectionTimeout: ConfigSetting[Int] =
-    ConfigSetting("main.connection.timeoutMs", 0)
+    ConfigSetting("main.connection.timeoutMs", 10000)
 
   val ConnectionProxies: ConfigSetting[Seq[Proxy]] =
     new SeqConfigSetting[Proxy]("main.connection.proxies", Seq(Proxy.NoProxy), Proxy.Classes)
