@@ -9,6 +9,9 @@
 * Improved HTTPS support, added ability to disable SSL validation
 * Remember main window size, position and maximized state
 * When creating new download, attempt is made to parse a plaintext HTTP/curl request from clipboard
+* Fixed issue with stop not interrupting ongoing I/O.
+  On faulty connection this might've lead to thread hanging until timeout was reached,
+  or even indefinitely if timeout was 0
 * (Internal) Implemented backend-specific settings framework
   * (Internal) Implemented global defaults serving as template for local per-download settings
   * (Internal) Implemented local settings that can refer to global ones without caching
