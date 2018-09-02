@@ -97,7 +97,21 @@ class CustomConnectionSocketFactory(
       out.writeAndFlush(Proxy.SOCKS5.Message(0x01, dstAddr, remoteAddr.getPort).raw)
 
       val res = Proxy.SOCKS5.readMessage(in)
-      requireFriendly(res.cmd == 0x00, "Proxy responded with an error")
+
+      if (res.cmd != 0x00) {
+        val errorMsg = res.cmd match {
+          case 0x01  => "General SOCKS server failure"
+          case 0x02  => "Connection not allowed by ruleset"
+          case 0x03  => "Network unreachable"
+          case 0x04  => "Host unreachable"
+          case 0x05  => "Connection refused"
+          case 0x06  => "TTL expired"
+          case 0x07  => "Command not supported"
+          case 0x08  => "Address type not supported"
+          case other => s"(unknown error code $other)"
+        }
+        requireFriendly(res.cmd == 0x00, "Proxy responded with an error: " + errorMsg)
+      }
 
       logUpdate(s"Proxy connection established")
       proxySocket
