@@ -27,6 +27,7 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.core.utils.IoUtils
 import org.fs.mael.ui.config.GlobalSettings
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.SwtUtils._
@@ -178,7 +179,7 @@ class EditDownloadDialog(
       input.setMessage("<Filename, leave blank to deduce automatically>")
       input.addVerifyListener(e => {
         // Remove all illegal characters
-        e.text = asValidFilename(e.text)
+        e.text = IoUtils.asValidFilename(e.text)
       })
       installDefaultHotkeys(input)
     }
@@ -394,7 +395,7 @@ class EditDownloadDialog(
     (new ProgressMonitorDialog(shell)).run(true, true, monitor => {
       monitor.beginTask("Moving file", (from.length / 100).toInt)
       try {
-        moveFile(from.toPath, to.toPath, (portion, total) => {
+        IoUtils.moveFile(from.toPath, to.toPath, (portion, total) => {
           if (monitor.isCanceled) throw new InterruptedException
           monitor.worked((portion / 100).toInt)
         })

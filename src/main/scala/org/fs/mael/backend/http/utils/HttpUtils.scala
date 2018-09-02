@@ -7,9 +7,9 @@ import scala.collection.immutable.ListMap
 import scala.io.Codec
 import scala.util.parsing.combinator.RegexParsers
 
-import org.fs.mael.core.utils.CoreUtils._
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory
-import org.fs.mael.core.utils.CoreUtils
+import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.core.utils.LangUtils
 
 object HttpUtils {
   /**
@@ -40,7 +40,7 @@ object HttpUtils {
    */
   def validateSslConnSocketFactory(sf: SSLConnectionSocketFactory): Unit = {
     try {
-      val trustedCertsSet = CoreUtils.getNestedField(
+      val trustedCertsSet = LangUtils.getNestedField(
         sf,
         List("socketfactory", "context", "trustManager", "trustedCerts")
       ).asInstanceOf[java.util.Set[_]]

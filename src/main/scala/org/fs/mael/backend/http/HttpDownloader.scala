@@ -45,6 +45,7 @@ import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.core.utils.IoUtils
 import org.slf4s.Logging
 
 import javax.net.ssl.SSLException
@@ -296,7 +297,7 @@ class HttpDownloader(
           case _                 => None
         }
       } map { fn =>
-        asValidFilename(fn)
+        IoUtils.asValidFilename(fn)
       } getOrElse {
         // When everything else fails - generate a filename from UUID
         "file-" + de.id.toString.toUpperCase
