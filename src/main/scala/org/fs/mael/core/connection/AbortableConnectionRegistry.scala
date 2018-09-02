@@ -1,8 +1,11 @@
 package org.fs.mael.core.connection
 
-import org.apache.http.client.methods.HttpUriRequest
-import org.apache.http.client.methods.AbstractExecutionAwareRequest
+import java.net.Socket
+
 import scala.util.Try
+
+import org.apache.http.client.methods.AbstractExecutionAwareRequest
+import org.apache.http.client.methods.HttpUriRequest
 
 /**
  * Stores all the connection made from specific thread so that they can all be aborted should it be required.
@@ -14,12 +17,21 @@ import scala.util.Try
 class AbortableConnectionRegistry {
   private var aborted: Boolean = false
   private var reqs: Seq[AbstractExecutionAwareRequest] = Seq.empty
+  private var sockets: Seq[Socket] = Seq.empty
 
   def register(req: HttpUriRequest): Unit = this.synchronized {
     // Another option would be to somehow wrap (?) the request, intercepting setCancellable...
     req match {
       case req: AbstractExecutionAwareRequest => registerAbortableReq(req)
       case _                                  => throw new AssertionError("Unknown request type!")
+    }
+  }
+
+  def register(socket: Socket): Unit = this.synchronized {
+    if (!aborted) {
+      sockets = sockets :+ socket
+    } else {
+      abort(socket)
     }
   }
 
@@ -35,9 +47,14 @@ class AbortableConnectionRegistry {
   def abort(): Unit = this.synchronized {
     aborted = true
     reqs.foreach(abort)
+    sockets.foreach(abort)
   }
 
   private def abort(req: AbstractExecutionAwareRequest): Unit = {
     Try(req.abort())
+  }
+
+  private def abort(socket: Socket): Unit = {
+    Try(socket.close())
   }
 }

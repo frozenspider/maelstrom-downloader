@@ -6,6 +6,7 @@ import java.net.Socket
 import org.apache.http.HttpHost
 import org.apache.http.conn.socket.LayeredConnectionSocketFactory
 import org.apache.http.protocol.HttpContext
+import org.fs.mael.core.connection.AbortableConnectionRegistry
 import org.fs.mael.core.proxy.Proxy
 
 /**
@@ -16,8 +17,9 @@ import org.fs.mael.core.proxy.Proxy
 class ProxyLayeredConnectionSocketFactory(
   proxy:     Proxy,
   logUpdate: String => Unit,
-  wrapped:   LayeredConnectionSocketFactory
-) extends ProxyConnectionSocketFactory(proxy, logUpdate, wrapped)
+  wrapped:   LayeredConnectionSocketFactory,
+  connReg:   AbortableConnectionRegistry
+) extends ProxyConnectionSocketFactory(proxy, logUpdate, wrapped, connReg)
   with LayeredConnectionSocketFactory {
 
   override def connectSocket(
@@ -43,6 +45,8 @@ class ProxyLayeredConnectionSocketFactory(
     port:    Int,
     context: HttpContext
   ): Socket = {
-    wrapped.createLayeredSocket(socket, target, port, context)
+    val res = wrapped.createLayeredSocket(socket, target, port, context)
+    connReg.register(res)
+    res
   }
 }

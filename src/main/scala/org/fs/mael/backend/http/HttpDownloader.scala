@@ -393,8 +393,8 @@ class HttpDownloader(
       val proxy = de.backendSpecificCfg.resolve(HttpSettings.ConnectionProxy)
       def logUpdate(msg: String) = addLogAndFire(de, LogEntry.info(msg))
       RegistryBuilder.create[ConnectionSocketFactory]
-        .register("http", new ProxyConnectionSocketFactory(proxy, logUpdate, PlainConnectionSocketFactory.getSocketFactory()))
-        .register("https", new ProxyLayeredConnectionSocketFactory(proxy, logUpdate, createSslConnSocketFactory()))
+        .register("http", new ProxyConnectionSocketFactory(proxy, logUpdate, PlainConnectionSocketFactory.getSocketFactory(), connReg))
+        .register("https", new ProxyLayeredConnectionSocketFactory(proxy, logUpdate, createSslConnSocketFactory(), connReg))
         .build()
     }
 
