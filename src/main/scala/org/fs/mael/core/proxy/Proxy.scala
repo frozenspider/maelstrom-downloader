@@ -11,6 +11,7 @@ import java.util.UUID
 import org.fs.mael.core.config.LocalConfigSettingValue
 import org.fs.mael.core.utils.IoUtils._
 
+/** Connection proxy */
 sealed trait Proxy extends LocalConfigSettingValue.WithPersistentId
 
 object Proxy {

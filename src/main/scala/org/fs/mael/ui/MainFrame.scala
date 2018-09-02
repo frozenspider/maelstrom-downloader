@@ -36,6 +36,7 @@ import org.fs.mael.ui.utils.Hotkey._
 import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
 
+// FIXME: Show info about CURL/plaintext import
 class MainFrame(
   display:         Display,
   resources:       Resources,

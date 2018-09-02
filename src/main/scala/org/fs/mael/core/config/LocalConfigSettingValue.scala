@@ -4,11 +4,12 @@ import java.util.UUID
 
 /**
  * Represents a config setting value which can either:
- * {{{
- * - Default to global config value
- * - Reference an entry from global config
- * - Define a new local instance in-place
- * }}}
+ *
+ *  - Default to global config value
+ *  - Reference an entry from global config
+ *  - Define a new local instance in-place
+ *
+ * @author FS
  */
 sealed trait LocalConfigSettingValue[+T]
 

@@ -6,10 +6,13 @@
 * Added support for proxy servers (SOCKS5)
 * Added ability to set custom cookies
 * Added ability to set custom headers
+* Improved HTTPS support, added ability to disable SSL validation
 * Remember main window size, position and maximized state
 * When creating new download, attempt is made to parse a plaintext HTTP/curl request from clipboard
 * (Internal) Implemented backend-specific settings framework
   * (Internal) Implemented global defaults serving as template for local per-download settings
+  * (Internal) Implemented local settings that can refer to global ones without caching
+    (so far - setting for connection proxy only)
 * (Internal) Implemented migrations framework
 
 ### 0.2
