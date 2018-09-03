@@ -218,8 +218,8 @@ class HttpDownloaderSpec
 
   test("deduce filename from URL") {
     val de = createDownloadEntry()
-    val filename = de.filenameOption.get
-    val encodedFilename = URLEncoder.encode(s"/?${filename}?/", Codec.UTF8.name)
+    val filename = requestTempFilename("_/?" + _ + "?/_")
+    val encodedFilename = URLEncoder.encode(filename, Codec.UTF8.name)
     de.filenameOption = None
     de.uri = new URI(de.uri.toString replaceAllLiterally (de.uri.getPath, s"/$encodedFilename"))
     val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
@@ -231,9 +231,41 @@ class HttpDownloaderSpec
     downloader.start(de, 999999)
     await.firedAndStopped()
 
-    assert(de.filenameOption === Some("__" + filename + "__"))
+    assert(de.filenameOption === Some("___" + filename.drop(3).dropRight(3) + "___"))
     assert(readLocalFile(de) === expectedBytes)
     assert(server.reqCounter === 1)
+    assert(transferMgr.bytesRead === 5)
+  }
+
+  test("deduce filename from URL - with redirect") {
+    val de = createDownloadEntry()
+    val oldFilename = requestTempFilename("_/?" + _ + "?/_old")
+    val encodedOldFilename = URLEncoder.encode(oldFilename, Codec.UTF8.name)
+    de.filenameOption = None
+    de.uri = new URI(de.uri.toString replaceAllLiterally (de.uri.getPath, s"/$encodedOldFilename"))
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+    val newFilename = requestTempFilename()
+
+    startHttpServer()
+    server.respondWith((req: HttpRequest, res: HttpResponse) => {
+      val uri = req.getRequestLine.getUri
+      if (uri contains encodedOldFilename) {
+        res.setStatusCode(302)
+        res.setHeader(HttpHeaders.LOCATION, de.uri.getPath.replaceAllLiterally(oldFilename, newFilename))
+      } else if (uri contains newFilename) {
+        serveContentNormally(expectedBytes)(req, res)
+      } else {
+        failureOption = Some(new UnsupportedOperationException("Unexpected request from client! URI = " + uri))
+      }
+    })
+
+    expectStatusChangeEvents(de, Status.Running, Status.Complete)
+    downloader.start(de, 999999)
+    await.firedAndStopped()
+
+    assert(de.filenameOption === Some(newFilename))
+    assert(readLocalFile(de) === expectedBytes)
+    assert(server.reqCounter === 2)
     assert(transferMgr.bytesRead === 5)
   }
 

@@ -1,6 +1,7 @@
 package org.fs.mael.backend.http
 
 import java.io.File
+import java.net.BindException
 import java.net.URI
 import java.nio.file.Files
 
@@ -13,6 +14,7 @@ import org.fs.mael.core.config.BackendConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.Events
 import org.fs.mael.core.event.PriorityEvent
+import org.fs.mael.core.utils.IoUtils
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.test.SimpleHttpServer
 import org.fs.mael.test.TestUtils
@@ -20,7 +22,6 @@ import org.fs.mael.test.stub.ControlledTransferManager
 import org.fs.mael.test.stub.StoringEventManager
 import org.scalatest.BeforeAndAfter
 import org.scalatest.TestSuite
-import java.net.BindException
 
 /** Base trait for specs testing {@link HttpDownloader} */
 trait HttpDownloaderSpecBase
@@ -55,7 +56,7 @@ trait HttpDownloaderSpecBase
 
   /** Needs to be called manually from `after {}` block */
   def afterMethod(): Unit = {
-    Option(_server).map(_.shutdown())
+    Option(_server).foreach(_.shutdown())
     tmpFilenames.foreach {
       new File(tmpDir, _).delete()
     }
@@ -83,9 +84,9 @@ trait HttpDownloaderSpecBase
     _server.start()
   }
 
-  protected def requestTempFilename(): String = {
-    val filename = Random.alphanumeric.take(10).mkString + ".tmp"
-    tmpFilenames = filename +: tmpFilenames
+  protected def requestTempFilename(alter: (String => String) = identity): String = {
+    val filename = alter(Random.alphanumeric.take(10).mkString + ".tmp")
+    tmpFilenames = IoUtils.asValidFilename(filename) +: tmpFilenames
     filename
   }
 
@@ -115,7 +116,7 @@ trait HttpDownloaderSpecBase
       case Events.StatusChanged(`de`, _) if de.status == status2 && firstStatusAdopted =>
         succeeded = true
       case Events.StatusChanged(`de`, _) =>
-        failureOption = Some(new IllegalStateException(s"Expected status '${status2}', got '${de.status}'; log: ${de.downloadLog.mkString("\n", "\n", "")}"))
+        failureOption = Some(new IllegalStateException(s"Expected status '${status2}', got '${de.status}'; log: ${de.downloadLog.mkString("\n", "\n > ", "")}"))
     }
   }
 
@@ -150,7 +151,7 @@ trait HttpDownloaderSpecBase
         new ByteArrayEntity(content, ContentType.APPLICATION_OCTET_STREAM)
       } else {
         val rangeHeaders = req.getHeaders(HttpHeaders.RANGE).map(_.getValue)
-        assert(rangeHeaders.size === 1)
+        assert(rangeHeaders.length === 1)
         assert(rangeHeaders.head.matches("bytes=[0-9]+-[0-9]*"))
         val range: (Int, Option[Int]) = {
           val parts = rangeHeaders.head.drop(6).split("-")
@@ -159,7 +160,7 @@ trait HttpDownloaderSpecBase
           (left, rightOption)
         }
         val partialContent = range match {
-          case (left, Some(right)) => content.drop(left).take(right - left)
+          case (left, Some(right)) => content.slice(left, left + right - left)
           case (left, None)        => content.drop(left)
         }
         res.setStatusCode(HttpStatus.SC_PARTIAL_CONTENT)
@@ -199,7 +200,7 @@ trait HttpDownloaderSpecBase
     /** Wait for the file associated with download entry to appear on disc */
     def fileAppears(de: DownloadEntry): Unit = {
       val waitUntilFileAppears = waitUntil(waitTimeoutMs) {
-        getLocalFileOption(de) map (_.exists) getOrElse false
+        getLocalFileOption(de) exists (_.exists)
       }
       assert(waitUntilFileAppears)
     }

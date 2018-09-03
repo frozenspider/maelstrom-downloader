@@ -2,11 +2,14 @@ package org.fs.mael.backend.http.utils
 
 import java.io.ByteArrayInputStream
 import java.net.URLDecoder
+import java.net.URL
 
 import scala.collection.immutable.ListMap
 import scala.io.Codec
 import scala.util.parsing.combinator.RegexParsers
 
+import org.apache.http.HttpRequest
+import org.apache.http.HttpHeaders
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory
 import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.core.utils.LangUtils
@@ -30,6 +33,19 @@ object HttpUtils {
     // TODO: What to do with language?
     val decoded = URLDecoder.decode(encoded, charset)
     decoded
+  }
+
+  private val HostAndPortRegex = "([^:]+):(.+)".r
+
+  def requestToUrl(req: HttpRequest): URL = {
+    val protocol = req.getProtocolVersion.getProtocol.toLowerCase
+    val (host, port) = req.getFirstHeader(HttpHeaders.HOST).getValue match {
+      case HostAndPortRegex(host, port) => (host, port.toInt)
+      case host if protocol == "http"   => (host, 80)
+      case host if protocol == "https"  => (host, 443)
+      case _                            => throw new IllegalArgumentException("Non-http request?")
+    }
+    new URL(protocol, host, port, req.getRequestLine.getUri)
   }
 
   /**

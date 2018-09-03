@@ -5,17 +5,21 @@ import java.net.SocketException
 import java.net.SocketTimeoutException
 import java.net.URLDecoder
 import java.net.UnknownHostException
+import java.net.URL
 
 import scala.io.Codec
 import scala.util.Random
 
+import javax.net.ssl.SSLException
 import org.apache.http.HttpEntity
 import org.apache.http.HttpHeaders
+import org.apache.http.HttpRequest
 import org.apache.http.HttpResponse
 import org.apache.http.HttpStatus
 import org.apache.http.client.CookieStore
 import org.apache.http.client.methods.HttpUriRequest
 import org.apache.http.client.methods.RequestBuilder
+import org.apache.http.client.protocol.HttpClientContext
 import org.apache.http.config.Registry
 import org.apache.http.config.RegistryBuilder
 import org.apache.http.config.SocketConfig
@@ -47,11 +51,9 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
-import org.fs.mael.core.utils.CoreUtils._
 import org.fs.mael.core.utils.IoUtils
+import org.fs.mael.core.utils.CoreUtils._
 import org.slf4s.Logging
-
-import javax.net.ssl.SSLException
 
 class HttpDownloader(
   override val eventMgr:    EventManager,
@@ -102,8 +104,8 @@ class HttpDownloader(
   }
 
   private def stopLogAndFire(de: DownloadEntry, threadOption: Option[Thread]): Unit = {
-    changeStatusAndFire(de, Status.Stopped)
     addLogAndFire(de, LogEntry.info("Download stopped"))
+    changeStatusAndFire(de, Status.Stopped)
     threadOption match {
       case None    => log.info(s"Download stopped: ${de.uri} (${de.id})")
       case Some(t) => log.info(s"Download stopped: ${de.uri} (${de.id}) by ${t.getName}")
@@ -111,8 +113,8 @@ class HttpDownloader(
   }
 
   private def errorLogAndFire(de: DownloadEntry, msg: String): Unit = {
-    changeStatusAndFire(de, Status.Error)
     addLogAndFire(de, LogEntry.error(msg))
+    changeStatusAndFire(de, Status.Error)
     log.info(s"Download error - $msg: ${de.uri} (${de.id})")
   }
 
@@ -153,7 +155,7 @@ class HttpDownloader(
           addLogAndFire(de, LogEntry.info("Resuming is not supported, starting over"))
         }
 
-        if (partial && de.sizeOption == Some(de.downloadedSize)) {
+        if (partial && (de.sizeOption contains de.downloadedSize)) {
           // File already fully downloaded, probably a checksum error
         } else {
           contactServerAndDownload()
@@ -210,7 +212,9 @@ class HttpDownloader(
       // This might not be necessary since we're registering sockets in their respective factories
       connReg.register(req)
 
-      val res = httpClient.execute(req)
+      val ctx = HttpClientContext.create()
+      val res = httpClient.execute(req, ctx)
+      val innerReq = ctx.getRequest
       try {
         val responseCode = res.getStatusLine.getStatusCode
         val entity = doChecked {
@@ -221,7 +225,7 @@ class HttpDownloader(
         }
 
         val filename = de.filenameOption getOrElse {
-          val filename = deduceFilename(res)
+          val filename = deduceFilename(innerReq, res)
           doChecked {
             de.filenameOption = Some(filename)
             eventMgr.fireDetailsChanged(de)
@@ -234,7 +238,7 @@ class HttpDownloader(
           case _          => None
         }
         val reportedSizeOption = contentLengthOption map (x => if (partial) x + de.downloadedSize else x)
-        reportedSizeOption map { reportedSize =>
+        reportedSizeOption foreach { reportedSize =>
           doChecked {
             de.sizeOption match {
               case None =>
@@ -286,7 +290,7 @@ class HttpDownloader(
       }
     }
 
-    private def deduceFilename(res: HttpResponse): String = {
+    private def deduceFilename(req: HttpRequest, res: HttpResponse): String = {
       {
         // If filename is specified in Content-Disposition header
         Option(res.getFirstHeader("Content-Disposition")).flatMap(h => {
@@ -309,10 +313,11 @@ class HttpDownloader(
         })
       } orElse {
         // Try to use the last part of URL path as filename
-        de.uri.toURL.getPath.split("/").lastOption flatMap {
-          case x if x.length > 0 => Some(URLDecoder.decode(x, Codec.UTF8.name))
-          case _                 => None
-        }
+        HttpUtils.requestToUrl(req).getPath
+          .split("/")
+          .filter(!_.isEmpty)
+          .lastOption
+          .map(x => URLDecoder.decode(x, Codec.UTF8.name))
       } map { fn =>
         IoUtils.asValidFilename(fn)
       } getOrElse {
@@ -324,7 +329,7 @@ class HttpDownloader(
     private def downloadEntity(req: HttpUriRequest, entity: HttpEntity): Unit = {
       val file = instantiateFile()
       try {
-        de.sizeOption map file.setLength
+        de.sizeOption foreach file.setLength
         file.seek(de.downloadedSize)
 
         val bufferSize = 1 * 1024 // 1 KB
@@ -394,7 +399,7 @@ class HttpDownloader(
      */
     private def createSocketFactoryRegistry(): Registry[ConnectionSocketFactory] = {
       val proxy = de.backendSpecificCfg.resolve(HttpSettings.ConnectionProxy)
-      def logUpdate(msg: String) = addLogAndFire(de, LogEntry.info(msg))
+      def logUpdate(msg: String): Unit = addLogAndFire(de, LogEntry.info(msg))
       RegistryBuilder.create[ConnectionSocketFactory]
         .register("http", new CustomConnectionSocketFactory(proxy, logUpdate, PlainConnectionSocketFactory.getSocketFactory(), connReg))
         .register("https", new CustomLayeredConnectionSocketFactory(proxy, logUpdate, createSslConnSocketFactory(), connReg))
@@ -405,7 +410,7 @@ class HttpDownloader(
       if (de.backendSpecificCfg(HttpSettings.DisableSslValidation)) {
         HttpDownloader.NonValidatingSslConnSocketFactory
       } else {
-        val sf = SSLConnectionSocketFactory.getSocketFactory()
+        val sf = SSLConnectionSocketFactory.getSocketFactory
         HttpUtils.validateSslConnSocketFactory(sf)
         sf
       }
