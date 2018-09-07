@@ -53,6 +53,8 @@ class MainFrame(
   private var btnStart: ToolItem = _
   private var btnStop: ToolItem = _
 
+  private lazy val aboutDialogController = new AboutDialogController(resources)
+
   val peer: Shell = new Shell(display).withCode { peer =>
 
     // Layout
@@ -115,7 +117,7 @@ class MainFrame(
   private def initTray(tray: Tray, shell: Shell): Unit = {
     trayItem = new TrayItem(tray, SWT.NONE)
     trayItem.setImage(resources.mainIcon)
-    trayItem.setToolTipText(BuildInfo.prettyName)
+    trayItem.setToolTipText(BuildInfo.fullPrettyName)
 
     import org.fs.mael.ui.config.GlobalSettings._
     globalCfg.addSettingChangedListener(ShowTrayIconBehavior)(e => {
@@ -170,6 +172,19 @@ class MainFrame(
       val itemSettings = new MenuItem(submenu, SWT.PUSH)
       itemSettings.setText("Settings")
       itemSettings.addListener(SWT.Selection, e => new GlobalSettingsController(globalCfg).showDialog(shell))
+    }
+
+    new MenuItem(menu, SWT.CASCADE).withCode { menuItem =>
+      menuItem.setText("&Help")
+
+      val submenu = new Menu(parent, SWT.DROP_DOWN)
+      menuItem.setMenu(submenu)
+
+      val itemSettings = new MenuItem(submenu, SWT.PUSH)
+      itemSettings.setText("About")
+      itemSettings.addListener(SWT.Selection, e => {
+        aboutDialogController.showDialog(peer)
+      })
     }
   }
 

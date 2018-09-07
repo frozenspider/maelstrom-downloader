@@ -222,7 +222,7 @@ object SwtUtils {
   }
 
   def toSelectionListener(f: SelectionEvent => Unit): SelectionListener = new SelectionListener {
-    override def widgetSelected(e: SelectionEvent): Unit = f(e)
+    override def widgetSelected(e: SelectionEvent): Unit        = f(e)
     override def widgetDefaultSelected(e: SelectionEvent): Unit = f(e)
   }
 
