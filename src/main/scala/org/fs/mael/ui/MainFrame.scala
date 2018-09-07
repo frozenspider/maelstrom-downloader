@@ -208,7 +208,7 @@ class MainFrame(
     btnStart = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnStart =>
       btnStart.setText("Start")
       btnStart.addListener(SWT.Selection, e => {
-        mainTable.selectedEntries map { de =>
+        mainTable.selectedEntries foreach { de =>
           tryShowingError(peer, log) {
             val backend = backendMgr(de.backendId)
             backend.downloader.start(de, globalCfg(GlobalSettings.ConnectionTimeout))
@@ -221,7 +221,7 @@ class MainFrame(
     btnStop = (new ToolItem(toolbar, SWT.PUSH)).withCode { btnStop =>
       btnStop.setText("Stop")
       btnStop.addListener(SWT.Selection, e => {
-        mainTable.selectedEntries map { de =>
+        mainTable.selectedEntries foreach { de =>
           tryShowingError(peer, log) {
             val backend = backendMgr(de.backendId)
             backend.downloader.stop(de)
@@ -386,7 +386,7 @@ class MainFrame(
         case 1  => Some(OnWindowClose.Minimize)
         case 2  => Some(OnWindowClose.Close)
       }
-      if (actionOption == None) {
+      if (actionOption.isEmpty) {
         closeEvent.doit = false
       } else {
         val Some(action) = actionOption
@@ -431,7 +431,7 @@ class MainFrame(
       }
       try {
         val running = getRunningEntities()
-        if (running.size > 0) {
+        if (running.nonEmpty) {
           val confirmed = MessageDialog.openConfirm(peer, "Confirmation",
             s"You have ${running.size} active download(s). Are you sure you wish to quit?")
 
@@ -443,7 +443,7 @@ class MainFrame(
               backend.downloader.stop(de)
             }
             peer.setVisible(false)
-            val terminatedNormally = waitUntil(2000) { getRunningEntities().size == 0 }
+            val terminatedNormally = waitUntil(2000) { getRunningEntities().isEmpty }
             if (!terminatedNormally) {
               log.error("Couldn't stop all downloads before exiting")
             }
@@ -502,7 +502,7 @@ class MainFrame(
       }
 
       case Logged(de, entry) => syncExecSafely(peer) {
-        if (mainTable.selectedEntryOption == Some(de)) {
+        if (mainTable.selectedEntryOption contains de) {
           logTable.append(entry, false)
         }
       }

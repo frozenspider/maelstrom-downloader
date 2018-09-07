@@ -15,10 +15,10 @@ import org.slf4s.Logger
 
 object SwtUtils {
   def getCurrentMonitor(c: Control): Monitor = {
-    val rect = c.getBounds
-    val monitors = c.getDisplay.getMonitors
+    val rect          = c.getBounds
+    val monitors      = c.getDisplay.getMonitors
     val intersections = monitors.map(_.getBounds.intersection(rect))
-    val maxMonitor = monitors.zip(intersections).maxBy(pair => getArea(pair._2))._1
+    val maxMonitor    = monitors.zip(intersections).maxBy(pair => getArea(pair._2))._1
     maxMonitor
   }
 
@@ -27,10 +27,10 @@ object SwtUtils {
     val mBounds = monitor.getBounds
     val wBounds = window.getBounds
 
-    val x = mBounds.x + (mBounds.width - wBounds.width) / 2;
-    val y = mBounds.y + (mBounds.height - wBounds.height) / 2;
+    val x = mBounds.x + (mBounds.width - wBounds.width) / 2
+    val y = mBounds.y + (mBounds.height - wBounds.height) / 2
 
-    window.setLocation(x, y);
+    window.setLocation(x, y)
   }
 
   def installDefaultHotkeys(t: Text): Unit = {
@@ -49,7 +49,12 @@ object SwtUtils {
     }
   }
 
-  def createMenuItem(menu: Menu, text: String, parent: Control, hOption: Option[Hotkey])(action: Event => Unit): MenuItem = {
+  def createMenuItem(
+      menu: Menu,
+      text: String,
+      parent: Control,
+      hOption: Option[Hotkey]
+  )(action: Event => Unit): MenuItem = {
     val mi = new MenuItem(menu, SWT.NONE)
     // TODO: Convert all to typed listeners
     mi.addListener(SWT.Selection, e => action(e))
@@ -77,8 +82,7 @@ object SwtUtils {
     try {
       code
     } catch {
-      case ex: InterruptedException =>
-      // Cancelled by user, do nothing
+      case _: InterruptedException => // Cancelled by user, do nothing
       case ex: UserFriendlyException =>
         showError(shell, message = ex.getMessage)
       case ex: Throwable =>
@@ -88,7 +92,7 @@ object SwtUtils {
   }
 
   def showError(shell: Shell, title: String = "Error", message: String): Unit = {
-    val popup = new MessageBox(shell, SWT.ICON_ERROR | SWT.OK);
+    val popup = new MessageBox(shell, SWT.ICON_ERROR | SWT.OK)
     popup.setText(title)
     popup.setMessage(message)
     popup.open()
@@ -99,14 +103,14 @@ object SwtUtils {
   def keyReleased(pf: PartialFunction[KeyEvent, Unit]) = new KeyReleasedListener(pf)
 
   def isRowVisible(row: TableItem): Boolean = {
-    val table = row.getParent
-    val rowBounds = row.getBounds
-    val tableBounds = table.getBounds
+    val table        = row.getParent
+    val rowBounds    = row.getBounds
+    val tableBounds  = table.getBounds
     val headerHeight = table.getHeaderHeight
-    val rowTop = rowBounds.y
-    val rowBot = rowTop + rowBounds.height
-    val topVisible = rowTop >= headerHeight && rowTop <= tableBounds.height
-    val botVisible = rowBot >= headerHeight && rowBot <= tableBounds.height
+    val rowTop       = rowBounds.y
+    val rowBot       = rowTop + rowBounds.height
+    val topVisible   = rowTop >= headerHeight && rowTop <= tableBounds.height
+    val botVisible   = rowBot >= headerHeight && rowBot <= tableBounds.height
     topVisible && botVisible
   }
 
@@ -160,7 +164,7 @@ object SwtUtils {
    * its selection state changes (by user or by firing event)
    */
   def bindToButtonState(btn: Button, reaction: Boolean => Unit): Unit = {
-    btn.addSelectionListener(toSelectionListener(e => reaction(btn.getSelection)))
+    btn.addSelectionListener(toSelectionListener(_ => reaction(btn.getSelection)))
     reaction(btn.getSelection)
   }
 
@@ -174,7 +178,7 @@ object SwtUtils {
 
   val monospacedFontData: FontData = {
     // Taken from https://bugs.eclipse.org/bugs/show_bug.cgi?id=48055
-    val osName = System.getProperty("os.name")
+    val osName   = System.getProperty("os.name")
     val wsNameLC = SWT.getPlatform.toLowerCase
     val fd = (osName, wsNameLC) match {
       case ("Linux", "gtk")                   => new FontData("Monospace", 10, SWT.NORMAL)
@@ -191,7 +195,8 @@ object SwtUtils {
   //
 
   object Clipboard {
-    lazy val value = Toolkit.getDefaultToolkit.getSystemClipboard
+    lazy val value: java.awt.datatransfer.Clipboard =
+      Toolkit.getDefaultToolkit.getSystemClipboard
 
     def getString(): String =
       value.getData(DataFlavor.stringFlavor).asInstanceOf[String].trim
@@ -207,8 +212,7 @@ object SwtUtils {
 
   /** Execute code in UI thread iff UI is not disposed yet */
   def syncExecSafely(widget: Widget)(code: => Unit): Unit =
-    if (!widget.isDisposed) widget.getDisplay.syncExec { () =>
-      if (!widget.isDisposed) code
+    if (!widget.isDisposed) widget.getDisplay.syncExec { () => if (!widget.isDisposed) code
     }
 
   /** Shitty SWT design makes this necessary */
@@ -233,7 +237,7 @@ object SwtUtils {
 
   implicit class RichFont(font: Font) {
     def bold: Font = {
-      new Font(font.getDevice, alteredFontData(_.setStyle(SWT.BOLD)));
+      new Font(font.getDevice, alteredFontData(_.setStyle(SWT.BOLD)))
     }
 
     private def alteredFontData(f: FontData => Unit): Array[FontData] = {
