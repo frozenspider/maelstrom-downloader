@@ -16,9 +16,9 @@ class HeadersFieldEditorDialog(parent: Shell, initialHeadersMap: ListMap[String,
   extends StringTablePopupEditorDialog("Headers Editor", parent, initialHeadersMap)
   with Logging {
 
-  override protected lazy val nameColumnHeader: String = "Header name"
-  override protected lazy val valueColumnHeader: String = "Header value"
-  override protected lazy val removeEntryTooltipText: String = "Remove header entry"
+  override protected val nameColumnHeader: String = "Header name"
+  override protected val valueColumnHeader: String = "Header value"
+  override protected val removeEntryTooltipText: String = "Remove header entry"
 
   override protected def init(): Unit = {
     super.init()

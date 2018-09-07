@@ -85,9 +85,10 @@ abstract class StringTablePopupEditorDialog(title: String, parent: Shell, initia
     validateAndGet(nameValPairs)
   }
 
-  protected lazy val nameColumnHeader: String = "Name"
-  protected lazy val valueColumnHeader: String = "Value"
-  protected lazy val removeEntryTooltipText: String = "Remove entry"
+  // These have to be lazy to be overridden
+  protected val nameColumnHeader: String       = "Name"
+  protected val valueColumnHeader: String      = "Value"
+  protected val removeEntryTooltipText: String = "Remove entry"
 
   protected def validateAndGet(nameValPairs: IndexedSeq[(String, String)]): ListMap[String, String]
 }

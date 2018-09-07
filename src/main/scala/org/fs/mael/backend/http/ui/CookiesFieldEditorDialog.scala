@@ -16,9 +16,9 @@ class CookiesFieldEditorDialog(parent: Shell, initialCookiesMap: ListMap[String,
   extends StringTablePopupEditorDialog("Cookies Editor", parent, initialCookiesMap)
   with Logging {
 
-  override protected lazy val nameColumnHeader: String = "Cookie name"
-  override protected lazy val valueColumnHeader: String = "Cookie value"
-  override protected lazy val removeEntryTooltipText: String = "Remove cookie entry"
+  override protected val nameColumnHeader: String = "Cookie name"
+  override protected val valueColumnHeader: String = "Cookie value"
+  override protected val removeEntryTooltipText: String = "Remove cookie entry"
 
   override protected def init(): Unit = {
     super.init()

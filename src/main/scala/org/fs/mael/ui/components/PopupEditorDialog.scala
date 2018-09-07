@@ -14,7 +14,7 @@ import org.slf4s.Logging
 
 abstract class PopupEditorDialog[RT](title: String, parent: Shell, initial: RT) { this: Logging =>
 
-  private var result: Promise[Option[RT]] = Promise()
+  private val result: Promise[Option[RT]] = Promise()
 
   protected var shell: Shell = _
   protected var scrollpane: ScrolledComposite = _
