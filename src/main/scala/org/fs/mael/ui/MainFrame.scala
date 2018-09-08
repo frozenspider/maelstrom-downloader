@@ -1,7 +1,5 @@
 package org.fs.mael.ui
 
-import java.awt.Desktop
-
 import scala.collection.mutable.WeakHashMap
 import scala.util.Random
 
@@ -27,6 +25,7 @@ import org.fs.mael.core.event.Events._
 import org.fs.mael.core.event.UiSubscriber
 import org.fs.mael.core.list.DownloadListManager
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.core.utils.SystemUtils
 import org.fs.mael.ui.components._
 import org.fs.mael.ui.config.GlobalSettings
 import org.fs.mael.ui.config.GlobalSettingsController
@@ -342,9 +341,7 @@ class MainFrame(
 
     def openFoldersClicked(): Unit = {
       val selected = mainTable.selectedEntries
-      val locations = selected.map(_.location).distinct
-      locations foreach Desktop.getDesktop.open
-      // TODO: Select files?
+      SystemUtils.openFolders(selected map (de => (de.location, de.filenameOption)))
     }
 
     def onWindowMoveResize(resizeEvent: ControlEvent): Unit = {
@@ -369,6 +366,7 @@ class MainFrame(
 
     private def promptWindowClose(closeEvent: Event): Unit = {
       import java.util.LinkedHashMap
+
       import org.fs.mael.ui.config.GlobalSettings._
       val lhm = new LinkedHashMap[String, Integer].withCode { lhm =>
         lhm.put(OnWindowClose.Minimize.prettyName, 1)

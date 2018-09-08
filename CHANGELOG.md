@@ -6,6 +6,8 @@
 * Added support for proxy servers (SOCKS5)
 * Added ability to set custom cookies
 * Added ability to set custom headers
+* Added "About" dialog
+* Opening file folder on Windows OS now selects the file in explorer
 * Improved HTTPS support, added ability to disable SSL validation
 * Remember main window size, position and maximized state
 * When creating new download, attempt is made to parse a plaintext HTTP/curl request from clipboard
