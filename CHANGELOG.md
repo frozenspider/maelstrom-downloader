@@ -8,8 +8,9 @@
 * Added ability to set custom headers
 * Added "About" dialog
 * Opening file folder on Windows OS now selects the file in explorer
+* Double-clicking completed download now opens file folder instead of opening download properties
 * Improved HTTPS support, added ability to disable SSL validation
-* Remember main window size, position and maximized state
+* Remember main window size, position and maximized state 
 * When creating new download, attempt is made to parse a plaintext HTTP/curl request from clipboard
 * Fixed issue with stop not interrupting ongoing I/O.
   On faulty connection this might've lead to thread hanging until timeout was reached,

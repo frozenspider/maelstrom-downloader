@@ -45,14 +45,16 @@ class MainFrame(
 ) extends Logging {
 
   private val trayOption = Option(display.getSystemTray)
-  private var trayItem: TrayItem = _
+  private var trayItem: TrayItem        = _
   private var mainTable: DownloadsTable = _
-  private var logTable: LogTable = _
+  private var logTable: LogTable        = _
 
   private var btnStart: ToolItem = _
-  private var btnStop: ToolItem = _
+  private var btnStop: ToolItem  = _
 
   private lazy val aboutDialogController = new AboutDialogController(resources)
+
+  private implicit val implicitLog = log
 
   val peer: Shell = new Shell(display).withCode { peer =>
 
@@ -269,16 +271,9 @@ class MainFrame(
       new MenuItem(menu, SWT.SEPARATOR)
 
       val openProps = createMenuItem(menu, "Properties", parent, None) { e =>
-        tryShowingError(peer, log) {
-          mainTable.selectedEntryOption match {
-            case Some(de) =>
-              val dialog = new EditDownloadDialog(Some(de), shell, resources, globalCfg, backendMgr, downloadListMgr, eventMgr)
-              dialog.shell.open()
-            case None => // NOOP
-          }
-        }
+        actions.openDownloadPropertiesOfSelected()
       }.forSingleDownloads()
-      mainTable.peer.addListener(SWT.MouseDoubleClick, e => openProps.notifyListeners(SWT.Selection, e))
+      mainTable.peer.addListener(SWT.MouseDoubleClick, actions.mainTableRowDoubleClicked)
     }
 
     mainTable.peer.addListener(SWT.Selection, e => {
@@ -342,6 +337,26 @@ class MainFrame(
     def openFoldersClicked(): Unit = {
       val selected = mainTable.selectedEntries
       SystemUtils.openFolders(selected map (de => (de.location, de.filenameOption)))
+    }
+
+    def openDownloadPropertiesOfSelected(): Unit = {
+      mainTable.selectedEntryOption match {
+        case Some(de) =>
+          val dialog =
+            new EditDownloadDialog(Some(de), peer, resources, globalCfg, backendMgr, downloadListMgr, eventMgr)
+          dialog.shell.open()
+        case None => // NOOP
+      }
+    }
+
+    def mainTableRowDoubleClicked(e: Event): Unit = {
+      tryShowingError(peer, log) {
+        mainTable.selectedEntryOption match {
+          case Some(de) if de.status == Status.Complete => openFoldersClicked()
+          case Some(de)                                 => openDownloadPropertiesOfSelected()
+          case None                                     => // NOOP
+        }
+      }
     }
 
     def onWindowMoveResize(resizeEvent: ControlEvent): Unit = {

@@ -54,10 +54,16 @@ object SwtUtils {
       text: String,
       parent: Control,
       hOption: Option[Hotkey]
-  )(action: Event => Unit): MenuItem = {
+  )(
+      action: Event => Unit
+  )(implicit log: Logger): MenuItem = {
     val mi = new MenuItem(menu, SWT.NONE)
     // TODO: Convert all to typed listeners
-    mi.addListener(SWT.Selection, e => action(e))
+    mi.addListener(SWT.Selection, e => {
+      tryShowingError(parent.getShell, log) {
+        action(e)
+      }
+    })
     mi.setText(text)
     hOption foreach { h =>
       mi.setText(mi.getText + "\t" + h)
