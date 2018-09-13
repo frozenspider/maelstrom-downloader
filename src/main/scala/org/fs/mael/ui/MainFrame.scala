@@ -100,7 +100,7 @@ class MainFrame(
 
     loadWindowPosition(peer)
 
-    peer.addListener(SWT.Close, actions.onWindowClose)
+    peer.addErrorShowingListener(SWT.Close, actions.onWindowClose)
     peer.addControlListener(new ControlListener {
       override def controlMoved(e: ControlEvent): Unit = actions.onWindowMoveResize(e)
       override def controlResized(e: ControlEvent): Unit = actions.onWindowMoveResize(e)
@@ -131,7 +131,7 @@ class MainFrame(
       shell.setMinimized(false)
       shell.forceActive()
     }
-    trayItem.addListener(SWT.Selection, show)
+    trayItem.addErrorShowingListener(SWT.Selection, show)
 
     // TODO: Add more items
     val menu = new Menu(shell, SWT.POP_UP)
@@ -161,7 +161,7 @@ class MainFrame(
 
       val itemExit = new MenuItem(submenu, SWT.PUSH)
       itemExit.setText("Exit")
-      itemExit.addListener(SWT.Selection, actions.exitClicked)
+      itemExit.addErrorShowingListener(SWT.Selection, actions.exitClicked)
     }
 
     new MenuItem(menu, SWT.CASCADE).withCode { menuItem =>
@@ -172,7 +172,9 @@ class MainFrame(
 
       val itemSettings = new MenuItem(submenu, SWT.PUSH)
       itemSettings.setText("Settings")
-      itemSettings.addListener(SWT.Selection, e => new GlobalSettingsController(globalCfg).showDialog(shell))
+      itemSettings.addErrorShowingListener(SWT.Selection, e => {
+        new GlobalSettingsController(globalCfg).showDialog(shell)
+      })
     }
 
     new MenuItem(menu, SWT.CASCADE).withCode { menuItem =>
@@ -183,7 +185,7 @@ class MainFrame(
 
       val itemSettings = new MenuItem(submenu, SWT.PUSH)
       itemSettings.setText("About")
-      itemSettings.addListener(SWT.Selection, e => {
+      itemSettings.addErrorShowingListener(SWT.Selection, e => {
         aboutDialogController.showDialog(peer)
       })
     }
@@ -198,11 +200,9 @@ class MainFrame(
         | - Plaintext HTTP request string (i.e. GET line followed by header lines)
         | - curl command
         |""".stripMargin.trim)
-      btnAdd.addListener(SWT.Selection, e => {
-        tryShowingError(peer, log) {
-          val dialog = new EditDownloadDialog(None, shell, resources, globalCfg, backendMgr, downloadListMgr, eventMgr)
-          dialog.shell.open()
-        }
+      btnAdd.addErrorShowingListener(SWT.Selection, e => {
+        val dialog = new EditDownloadDialog(None, shell, resources, globalCfg, backendMgr, downloadListMgr, eventMgr)
+        dialog.open()
       })
     }
 
@@ -273,10 +273,10 @@ class MainFrame(
       val openProps = createMenuItem(menu, "Properties", parent, None) { e =>
         actions.openDownloadPropertiesOfSelected()
       }.forSingleDownloads()
-      mainTable.peer.addListener(SWT.MouseDoubleClick, actions.mainTableRowDoubleClicked)
+      mainTable.peer.addErrorShowingListener(SWT.MouseDoubleClick, actions.mainTableRowDoubleClicked)
     }
 
-    mainTable.peer.addListener(SWT.Selection, e => {
+    mainTable.peer.addErrorShowingListener(SWT.Selection, e => {
       // Re-fire this event as internal event
       // (We can't process this here right away to avoid possible race condition)
       eventMgr.fireSelectionChanged(mainTable.selectedEntries)
@@ -342,20 +342,17 @@ class MainFrame(
     def openDownloadPropertiesOfSelected(): Unit = {
       mainTable.selectedEntryOption match {
         case Some(de) =>
-          val dialog =
-            new EditDownloadDialog(Some(de), peer, resources, globalCfg, backendMgr, downloadListMgr, eventMgr)
-          dialog.shell.open()
+          val dialog = new EditDownloadDialog(Some(de), peer, resources, globalCfg, backendMgr, downloadListMgr, eventMgr)
+          dialog.open()
         case None => // NOOP
       }
     }
 
     def mainTableRowDoubleClicked(e: Event): Unit = {
-      tryShowingError(peer, log) {
-        mainTable.selectedEntryOption match {
-          case Some(de) if de.status == Status.Complete => openFoldersClicked()
-          case Some(de)                                 => openDownloadPropertiesOfSelected()
-          case None                                     => // NOOP
-        }
+      mainTable.selectedEntryOption match {
+        case Some(de) if de.status == Status.Complete => openFoldersClicked()
+        case Some(de)                                 => openDownloadPropertiesOfSelected()
+        case None                                     => // NOOP
       }
     }
 
@@ -559,14 +556,14 @@ class MainFrame(
   import scala.language.reflectiveCalls
   private implicit class ItemExt[T <: { def setEnabled(b: Boolean): Unit }](item: T) {
     def forSingleDownloads(): T = {
-      mainTable.peer.addListener(SWT.Selection, e => {
+      mainTable.peer.addErrorShowingListener(SWT.Selection, e => {
         item.setEnabled(mainTable.peer.getSelectionCount == 1)
       })
       item
     }
 
     def forDownloads(condition: Seq[DownloadEntry] => Boolean): T = {
-      mainTable.peer.addListener(SWT.Selection, e => {
+      mainTable.peer.addErrorShowingListener(SWT.Selection, e => {
         item.setEnabled(condition(mainTable.selectedEntries))
       })
       eventMgr.subscribe(new UiSubscriber {

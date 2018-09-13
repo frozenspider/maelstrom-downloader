@@ -1,21 +1,22 @@
 package org.fs.mael.ui.components
 
 import org.eclipse.jface.dialogs.MessageDialog
+import org.eclipse.swt.SWT
 import org.eclipse.swt.graphics.Image
+import org.eclipse.swt.layout.RowLayout
+import org.eclipse.swt.program.Program
 import org.eclipse.swt.widgets.Composite
 import org.eclipse.swt.widgets.Control
 import org.eclipse.swt.widgets.Link
 import org.eclipse.swt.widgets.Shell
-import org.eclipse.swt.SWT
-import org.eclipse.swt.layout.RowLayout
-import org.eclipse.swt.program.Program
 import org.fs.mael.BuildInfo
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.ui.DialogController
 import org.fs.mael.ui.resources.Resources
 import org.fs.mael.ui.utils.SwtUtils
 
-class AboutDialogController(resources: Resources) {
-  def showDialog(parent: Shell): Unit = {
+class AboutDialogController(resources: Resources) extends DialogController {
+  override def showDialog(parent: Shell): Unit = {
     val msg = s"""
       |${BuildInfo.prettyName}
       |Version ${BuildInfo.version}

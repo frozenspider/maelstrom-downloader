@@ -218,7 +218,8 @@ object SwtUtils {
 
   /** Execute code in UI thread iff UI is not disposed yet */
   def syncExecSafely(widget: Widget)(code: => Unit): Unit =
-    if (!widget.isDisposed) widget.getDisplay.syncExec { () => if (!widget.isDisposed) code
+    if (!widget.isDisposed) widget.getDisplay.syncExec { () =>
+      if (!widget.isDisposed) code
     }
 
   /** Shitty SWT design makes this necessary */
@@ -250,6 +251,12 @@ object SwtUtils {
       val fontData = font.getFontData
       fontData.foreach(f)
       fontData
+    }
+  }
+
+  implicit class RichWidget(widget: Widget) {
+    def addErrorShowingListener(eventType: Int, action: Event => Unit): Unit = {
+      widget.addListener(eventType, e => action(e))
     }
   }
 }

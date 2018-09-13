@@ -8,8 +8,9 @@ import org.eclipse.swt.widgets.Shell
 import org.fs.mael.backend.http.config.HttpSettings
 import org.fs.mael.core.config.IGlobalConfigStore
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.ui.DialogController
 
-class GlobalSettingsController(val globalCfg: IGlobalConfigStore) {
+class GlobalSettingsController(val globalCfg: IGlobalConfigStore) extends DialogController {
 
   val mgr = new PreferenceManager().withCode { mgr =>
     def addPage[Page <: MFieldEditorPreferencePage[IGlobalConfigStore]](pageDescr: MPreferencePageDescriptor[Page]): Unit = {
@@ -27,7 +28,7 @@ class GlobalSettingsController(val globalCfg: IGlobalConfigStore) {
     }
   }
 
-  def showDialog(parent: Shell): Unit = {
+  override def showDialog(parent: Shell): Unit = {
     initPages()
     val dlg = new PreferenceDialog(parent, mgr)
     dlg.setPreferenceStore(globalCfg.inner)

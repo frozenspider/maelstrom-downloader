@@ -9,7 +9,6 @@ import scala.util.Try
 import org.eclipse.jface.dialogs.ProgressMonitorDialog
 import org.eclipse.jface.preference.DirectoryFieldEditor
 import org.eclipse.swt._
-import org.eclipse.swt.events._
 import org.eclipse.swt.graphics.Font
 import org.eclipse.swt.layout._
 import org.eclipse.swt.widgets._
@@ -34,16 +33,16 @@ import org.fs.mael.ui.utils.SwtUtils._
 import org.slf4s.Logging
 
 class EditDownloadDialog(
-  _deOption:       Option[DownloadEntry],
-  parent:          Shell,
-  resources:       Resources,
-  globalCfg:       IGlobalConfigStore,
-  backendMgr:      BackendManager,
+  _deOption: Option[DownloadEntry],
+  parent: Shell,
+  resources: Resources,
+  globalCfg: IGlobalConfigStore,
+  backendMgr: BackendManager,
   downloadListMgr: DownloadListManager,
-  eventMgr:        EventManager
+  eventMgr: EventManager
 ) extends Logging {
 
-  private val isNewDownload = !_deOption.isDefined
+  private val isNewDownload = _deOption.isEmpty
   private var tabFolder: TabFolder = _
 
   private var uriInput: Text = _
@@ -60,7 +59,7 @@ class EditDownloadDialog(
   private var backendOption: Option[Backend] = _
   private var backendCfgUiOption: Option[BackendConfigUi] = None
 
-  val shell = new Shell(parent, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL).withCode { shell =>
+  private val shell = new Shell(parent, SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL).withCode { shell =>
     isNewDownload match {
       case true  => shell.setText("Add Download")
       case false => shell.setText("Edit Download")
@@ -72,7 +71,7 @@ class EditDownloadDialog(
   tabFolder = new TabFolder(shell, SWT.NONE)
   tabFolder.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true))
 
-  val mainTab = new TabItem(tabFolder, SWT.NONE).withCode { tab =>
+  private val mainTab = new TabItem(tabFolder, SWT.NONE).withCode { tab =>
     tab.setText("Main")
     val mainPage = new Composite(tabFolder, SWT.NONE)
     fillMainPage(mainPage)
@@ -114,6 +113,10 @@ class EditDownloadDialog(
   })
   uriInput.setFocus()
 
+  def open(): Unit = {
+    shell.open()
+  }
+
   /** Try to initialize download entry - or at least URI field - from clipboard */
   private def initWithClipboard(): Option[DownloadEntry] = {
     Try {
@@ -122,7 +125,7 @@ class EditDownloadDialog(
         require(!content.contains("\n"))
         val url = new URL(content)
         uriInput.setText(url.toString)
-        None
+        Option.empty[DownloadEntry]
       } orElse {
         val httpBackend = backendMgr(HttpBackend.Id).asInstanceOf[HttpBackend]
         val location = new File(locationInput.getStringValue.trim)
@@ -287,7 +290,7 @@ class EditDownloadDialog(
       // From now on, backend is frozen
       backendOption = Some(backend)
       val deCfgOption = deOption map (_.backendSpecificCfg)
-      val isEditable = deOption map (de => de.status.canBeStarted) getOrElse true
+      val isEditable = deOption forall (de => de.status.canBeStarted)
       backendCfgUiOption = Some(backend.layoutConfig(deCfgOption, tabFolder, isEditable))
 
       // Re-do buttons layout, hiding "advanced" button
