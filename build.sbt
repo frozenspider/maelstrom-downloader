@@ -61,4 +61,4 @@ libraryDependencies ++= Seq(
   "org.scalactic"             %% "scalactic"                % "3.0.4" % "test",
   "org.scalatest"             %% "scalatest"                % "3.0.4" % "test",
   "com.google.jimfs"          %  "jimfs"                    % "1.1"   % "test"
-) ++ getSwtOsDeps(SwtConfig)
+)
