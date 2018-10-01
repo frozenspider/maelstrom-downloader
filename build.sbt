@@ -1,6 +1,6 @@
 name           := "maelstrom-downloader"
 val prettyName =  "Maelstrom Downloader"
-version        := "0.2-SNAPSHOT"
+version        := "1.0"
 homepage       := Some(url("https://github.com/frozenspider/maelstrom-downloader"))
 scalaVersion   := "2.12.6"
 
