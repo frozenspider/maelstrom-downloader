@@ -13,6 +13,8 @@ class LogTable(
   resources: Resources
 ) extends MUiComponent[Table](parent) {
 
+  private var _currentOption: Option[DownloadEntryView] = None
+
   private val columnDefs = Seq(
     ColumnDef("", 24),
     ColumnDef("Date", 80),
@@ -45,7 +47,7 @@ class LogTable(
       }
     })
 
-    table.getColumns.filter(_.getWidth == 0).map(_.pack())
+    table.getColumns.filter(_.getWidth == 0).foreach(_.pack())
     table
   }
 
@@ -56,8 +58,11 @@ class LogTable(
   }
 
   def render(deOption: Option[DownloadEntryView]): Unit = {
+    _currentOption = deOption
     deOption map render getOrElse { peer.removeAll() }
   }
+
+  def currentOption: Option[DownloadEntryView] = _currentOption
 
   def append(entry: LogEntry, dontScroll: Boolean): Unit = {
     val lines = entry.details.trim.split("\n")

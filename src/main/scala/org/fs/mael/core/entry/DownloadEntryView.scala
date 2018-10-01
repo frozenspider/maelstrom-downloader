@@ -8,6 +8,7 @@ import scala.collection.MapLike
 
 import org.fs.mael.core.Status
 import org.fs.mael.core.checksum.Checksum
+import org.fs.mael.core.config.BackendConfigStore
 
 import com.github.nscala_time.time.Imports._
 
@@ -69,11 +70,11 @@ trait DownloadEntryView {
   /** Whether resuming is supported, if known */
   def supportsResumingOption: Option[Boolean]
 
-  def speedOption: Option[Long]
-
   def sections: MapLike[Start, Downloaded, _]
 
   def downloadLog: IndexedSeq[LogEntry]
+
+  def backendSpecificCfg: BackendConfigStore
 
   override final def equals(obj: Any): Boolean = obj match {
     case dd: DownloadEntryView => this.id == dd.id

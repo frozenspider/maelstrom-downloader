@@ -4,9 +4,6 @@ import java.net.URI
 
 import scala.collection.SortedSet
 
-import org.fs.mael.core.entry.DownloadEntry
-import org.fs.mael.core.entry.DownloadEntryView
-
 class BackendManager {
   /** Backends with priority, ordered from highest to lowest priority */
   private var _backends: SortedSet[(Backend, Int)] =
@@ -14,6 +11,7 @@ class BackendManager {
 
   def +=(backend: Backend, priority: Int): Unit = {
     this.synchronized {
+      backend.init()
       _backends += (backend -> priority)
     }
   }
@@ -39,13 +37,6 @@ class BackendManager {
   def findFor(uri: URI): Option[Backend] = {
     this.synchronized {
       _backends map (_._1) find (_.isSupported(uri))
-    }
-  }
-
-  def getCastedPair(de: DownloadEntryView): BackendWithEntry = {
-    this.synchronized {
-      val backend = apply(de.backendId)
-      BackendWithEntry.apply(backend, de.asInstanceOf[DownloadEntry[_]])
     }
   }
 }

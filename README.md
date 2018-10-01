@@ -1,6 +1,6 @@
 maelstrom-downloader
 =======================
-
+[![Version](https://img.shields.io/github/release/frozenspider/maelstrom-downloader.svg)](https://github.com/frozenspider/maelstrom-downloader/releases)
 [![Build Status](https://travis-ci.org/frozenspider/maelstrom-downloader.svg?branch=master)](https://travis-ci.org/frozenspider/maelstrom-downloader)
 [![codecov](https://codecov.io/gh/frozenspider/maelstrom-downloader/branch/master/graph/badge.svg)](https://codecov.io/gh/frozenspider/maelstrom-downloader)
 
@@ -20,5 +20,4 @@ and system environment variable `LAUNCH4J_HOME` pointing to it.
 
 Changelog
 ---------
-
 See [CHANGELOG.md](CHANGELOG.md)

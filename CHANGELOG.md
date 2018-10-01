@@ -1,3 +1,26 @@
+### 1.0
+* Added ability to automatically start new downloads
+* Added ability to restart download from the beginning
+* Added tray icon and minimize to tray setting
+* Added download speed and remaining time columns, implemented related tracking and calculations
+* Added support for proxy servers (SOCKS5)
+* Added ability to set custom cookies
+* Added ability to set custom headers
+* Added "About" dialog
+* Opening file folder on Windows OS now selects the file in explorer
+* Double-clicking completed download now opens file folder instead of opening download properties
+* Improved HTTPS support, added ability to disable SSL validation
+* Remember main window size, position and maximized state 
+* When creating new download, attempt is made to parse a plaintext HTTP/curl request from clipboard
+* Fixed issue with stop not interrupting ongoing I/O.
+  On faulty connection this might've lead to thread hanging until timeout was reached,
+  or even indefinitely if timeout was 0
+* (Internal) Implemented backend-specific settings framework
+  * (Internal) Implemented global defaults serving as template for local per-download settings
+  * (Internal) Implemented local settings that can refer to global ones without caching
+    (so far - setting for connection proxy only)
+* (Internal) Implemented migrations framework
+
 ### 0.2
 * Added ability to specify download filename
 * Added ability to specify a hash checksum to verify a downloaded file integrity

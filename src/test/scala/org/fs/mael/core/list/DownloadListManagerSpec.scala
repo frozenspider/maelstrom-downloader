@@ -2,18 +2,19 @@ package org.fs.mael.core.list
 
 import java.io.File
 import java.net.URI
-import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
+import scala.io.Codec
 import scala.io.Source
 
 import org.fs.mael.core.Status
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.checksum.ChecksumType
-import org.fs.mael.core.entry.BackendSpecificEntryData
+import org.fs.mael.core.config.BackendConfigStore
 import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.event.Events._
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.test.TestUtils
 import org.fs.mael.test.stub.StoringEventManager
 import org.fs.mael.test.stub.StubBackend
 import org.fs.mael.test.stub.StubDownloadListSerializer
@@ -26,21 +27,21 @@ class DownloadListManagerSpec
 
   test("load/save") {
     val file: File = File.createTempFile("dlm-spec-test-file", ".tmp")
-    Files.write(file.toPath, "myInitialString".getBytes(StandardCharsets.UTF_8))
+    Files.write(file.toPath, "myInitialString".getBytes(Codec.UTF8.charSet))
     assert(Source.fromFile(file).mkString === "myInitialString")
 
     val backend = new StubBackend
     val entries = Seq(
-      backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1"),
-      backend.create(new URI("uri2"), new File("/a2"), None, Some(Checksum(ChecksumType.SHA1, "1abcde")), "comment2")
+      backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1", Some(defaultCfg)),
+      backend.create(new URI("uri2"), new File("/a2"), None, Some(Checksum(ChecksumType.SHA1, "1abcde")), "comment2", None)
     )
     val serializer: DownloadListSerializer = new DownloadListSerializer {
-      override def serialize(entries2: Iterable[DownloadEntry[_]]): String = {
+      override def serialize(entries2: Iterable[DownloadEntry]): String = {
         assert(entries2 === entries)
         "mySerializedString"
       }
 
-      override def deserialize(entriesString: String): Seq[DownloadEntry[_ <: BackendSpecificEntryData]] = {
+      override def deserialize(entriesString: String): Seq[DownloadEntry] = {
         assert(entriesString === "myInitialString")
         entries
       }
@@ -70,7 +71,7 @@ class DownloadListManagerSpec
     )
     val entries = statuses.zipWithIndex.map {
       case (status, i) =>
-        backend.create(new URI("uri" + i), new File(""), None, None, "").withCode {
+        backend.create(new URI("uri" + i), new File(""), None, None, "", None).withCode {
           _.status = status
         }
     }
@@ -90,8 +91,8 @@ class DownloadListManagerSpec
 
     val backend = new StubBackend
     val entries = IndexedSeq(
-      backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1"),
-      backend.create(new URI("uri2"), new File("/a2"), None, Some(Checksum(ChecksumType.SHA1, "1abcde")), "comment2")
+      backend.create(new URI("uri1"), new File("/a1"), Some("fn1"), None, "comment1", Some(defaultCfg)),
+      backend.create(new URI("uri2"), new File("/a2"), None, Some(Checksum(ChecksumType.SHA1, "1abcde")), "comment2", None)
     )
 
     dlm.add(entries(0))
@@ -118,5 +119,11 @@ class DownloadListManagerSpec
     assert(eventMgr.events.size === 6)
     assert(eventMgr.events(4) === Removed(entries(0)))
     assert(eventMgr.events(5) === Removed(entries(1)))
+  }
+
+  private def defaultCfg: BackendConfigStore = {
+    val cfg = BackendConfigStore(TestUtils.emptyGlobalCfg(), StubBackend.SettingsAccessChecker)
+    cfg.initDefault(StubBackend.StubSetting)
+    cfg
   }
 }

@@ -1,9 +1,7 @@
 package org.fs.mael.core.event
 
 import org.fs.mael.core.Status
-import org.fs.mael.core.entry.BackendSpecificEntryData
 import org.fs.mael.core.entry.DownloadEntry
-import org.fs.mael.core.entry.DownloadEntryView
 import org.fs.mael.core.entry.LogEntry
 
 sealed trait PriorityEvent {
@@ -34,9 +32,7 @@ object Events {
   //
 
   /** Download entry configuration changed */
-  case class ConfigChanged(
-    de: DownloadEntry[_ <: BackendSpecificEntryData]
-  ) extends PriorityEventImpl(Int.MaxValue) with EventForBackend {
+  case class ConfigChanged(de: DownloadEntry) extends PriorityEventImpl(Int.MaxValue) with EventForBackend {
     override def msg = "Config changed for " + de.uri
   }
 
@@ -49,7 +45,7 @@ object Events {
    *
    * Should be fired by download list manager.
    */
-  case class Added(de: DownloadEntryView) extends PriorityEventImpl(100) with EventForUi {
+  case class Added(de: DownloadEntry) extends PriorityEventImpl(100) with EventForUi {
     override def msg = "Added " + de.uri
   }
 
@@ -58,12 +54,12 @@ object Events {
    *
    * Should be fired by download list manager.
    */
-  case class Removed(de: DownloadEntryView) extends PriorityEventImpl(100) with EventForUi {
+  case class Removed(de: DownloadEntry) extends PriorityEventImpl(100) with EventForUi {
     override def msg = "Removed " + de.uri
   }
 
   //
-  // Backend events
+  // Other events
   //
 
   /**
@@ -71,7 +67,7 @@ object Events {
    *
    * Should be fired by backend.
    */
-  case class StatusChanged(de: DownloadEntryView, prevStatus: Status) extends PriorityEventImpl(100) with EventForUi {
+  case class StatusChanged(de: DownloadEntry, prevStatus: Status) extends PriorityEventImpl(100) with EventForUi {
     override def msg = "Status of " + de.uri + " changed from " + prevStatus + " to " + de.status
   }
 
@@ -80,7 +76,7 @@ object Events {
    *
    * Should be fired by backend.
    */
-  case class DetailsChanged(de: DownloadEntryView) extends PriorityEventImpl(50) with EventForUi {
+  case class DetailsChanged(de: DownloadEntry) extends PriorityEventImpl(50) with EventForUi {
     override def msg = "Details changed for " + de.uri
   }
 
@@ -89,8 +85,18 @@ object Events {
    *
    * Should be fired by backend.
    */
-  case class Logged(de: DownloadEntryView, entry: LogEntry) extends PriorityEventImpl(20) with EventForUi {
+  case class Logged(de: DownloadEntry, entry: LogEntry) extends PriorityEventImpl(20) with EventForUi {
     override def msg = "Log entry added for " + de.uri
+  }
+
+  /**
+   * Selected rows in main download table changed.
+   *
+   * Should be fired by UI.
+   */
+  // Note that this should have lesser priority than Logged event, otherwise it may cause double-rendering of some log lines
+  case class SelectionChanged(des: Seq[DownloadEntry]) extends PriorityEventImpl(10) with EventForUi {
+    override def msg = s"Selected ${des.size} entries"
   }
 
   /**
@@ -100,8 +106,18 @@ object Events {
    *
    * (Note that these events will be fired much more often than UI would wish to process.)
    */
-  case class Progress(de: DownloadEntryView) extends PriorityEventImpl(Int.MinValue) with EventForUi {
+  case class Progress(de: DownloadEntry) extends PriorityEventImpl(Int.MinValue) with EventForUi {
     override def msg = "Progress for " + de.uri
   }
 
+  /**
+   * Download speed (calculated value) changed.
+   *
+   * Should be fired by speed tracker.
+   *
+   * (Note that these events will be fired much more often than UI would wish to process.)
+   */
+  case class SpeedEta(de: DownloadEntry, speedOption: Option[Long], etaSecondsOption: Option[Long]) extends PriorityEventImpl(Int.MinValue) with EventForUi {
+    override def msg = "Speed for " + de.uri
+  }
 }

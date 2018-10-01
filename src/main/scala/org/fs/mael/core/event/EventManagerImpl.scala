@@ -23,7 +23,7 @@ class EventManagerImpl extends EventManager with Logging {
   private var paused: Boolean = false
 
   /** Event subscribers who will receive firing events, notified from worker thread */
-  private var subscribers: Set[EventSubscriber] = Set.empty
+  private var subscribers: Seq[EventSubscriber] = Seq.empty
 
   /** Priority queue for all non-processed events */
   private val pq: PriorityQueue[PriorityEvent] = new PriorityQueue()(peOrd)
@@ -34,7 +34,11 @@ class EventManagerImpl extends EventManager with Logging {
 
   override def subscribe(subscriber: EventSubscriber): Unit = {
     this.synchronized {
-      subscribers += subscriber
+      require(
+        !subscribers.exists(_.subscriberId == subscriber.subscriberId),
+        s"Subscriber with ID ${subscriber.subscriberId} is already subscribed"
+      )
+      subscribers = subscribers :+ subscriber
     }
   }
 
