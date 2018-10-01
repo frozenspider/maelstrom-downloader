@@ -1,3 +1,6 @@
+###SNAPSHOT
+(Nothing so far)
+
 ### 1.0
 * Added ability to automatically start new downloads
 * Added ability to restart download from the beginning
