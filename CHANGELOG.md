@@ -1,4 +1,4 @@
-### SNAPSHOT
+### 1.0
 * Added ability to automatically start new downloads
 * Added ability to restart download from the beginning
 * Added tray icon and minimize to tray setting
