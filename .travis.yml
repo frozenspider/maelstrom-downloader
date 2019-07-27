@@ -1,7 +1,7 @@
 language: scala
 
 scala:
-  - 2.12.6
+  - 2.12.8
 
 # At least JDK 11 causes compilation errors
 jdk: openjdk8
