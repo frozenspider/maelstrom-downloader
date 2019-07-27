@@ -1,6 +1,7 @@
 ### SNAPSHOT
 * Fixed timeout not being set on initial HTTP connection
 * Set HTTP client's `TCP_NODELAY` to `false`
+* Set HTTP client's DSCP traffic class to CS1 ("Lower Effort")
 * Fixed `Content-Disposition: attachment; filename` not using ISO-8859-1 charset as per RFC 6266
 
 ### 1.0
