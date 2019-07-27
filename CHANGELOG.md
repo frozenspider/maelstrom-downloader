@@ -1,5 +1,5 @@
-###SNAPSHOT
-(Nothing so far)
+### SNAPSHOT
+* Fixed `Content-Disposition: attachment; filename` not using ISO-8859-1 charset as per RFC 6266
 
 ### 1.0
 * Added ability to automatically start new downloads

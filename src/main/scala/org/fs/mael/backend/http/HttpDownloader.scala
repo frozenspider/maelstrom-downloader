@@ -309,7 +309,9 @@ class HttpDownloader(
                 addLogAndFire(de, LogEntry.error("Server responded with malformed filename*: " + ex))
                 None
             }
-          } orElse headerParts.get("filename")
+          } orElse {
+            headerParts.get("filename") map HttpUtils.decodeIso8859Filename
+          }
         })
       } orElse {
         // Try to use the last part of URL path as filename
