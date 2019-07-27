@@ -1,7 +1,10 @@
 language: scala
 
 scala:
-  - 2.12.3
+  - 2.12.6
+
+# At least JDK 11 causes compilation errors
+jdk: openjdk8
 
 # Use container-based infrastructure
 sudo: false
