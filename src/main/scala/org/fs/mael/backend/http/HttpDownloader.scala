@@ -5,7 +5,6 @@ import java.net.SocketException
 import java.net.SocketTimeoutException
 import java.net.URLDecoder
 import java.net.UnknownHostException
-import java.net.URL
 
 import scala.io.Codec
 import scala.util.Random
@@ -17,6 +16,7 @@ import org.apache.http.HttpRequest
 import org.apache.http.HttpResponse
 import org.apache.http.HttpStatus
 import org.apache.http.client.CookieStore
+import org.apache.http.client.config.RequestConfig
 import org.apache.http.client.methods.HttpUriRequest
 import org.apache.http.client.methods.RequestBuilder
 import org.apache.http.client.protocol.HttpClientContext
@@ -51,8 +51,8 @@ import org.fs.mael.core.entry.DownloadEntry
 import org.fs.mael.core.entry.LogEntry
 import org.fs.mael.core.event.EventManager
 import org.fs.mael.core.transfer.TransferManager
-import org.fs.mael.core.utils.IoUtils
 import org.fs.mael.core.utils.CoreUtils._
+import org.fs.mael.core.utils.IoUtils
 import org.slf4s.Logging
 
 class HttpDownloader(
@@ -198,6 +198,12 @@ class HttpDownloader(
           .setConnectionManager(connManager)
         clientBuilder.build()
       }
+      val ctx: HttpClientContext = {
+        val ctx = HttpClientContext.create()
+        ctx.setCookieStore(cookieStore)
+        ctx.setRequestConfig(createRequestConfig(timeoutMs))
+        ctx
+      }
 
       val req = {
         val rb = RequestBuilder.get(de.uri)
@@ -212,8 +218,7 @@ class HttpDownloader(
       // This might not be necessary since we're registering sockets in their respective factories
       connReg.register(req)
 
-      val ctx = HttpClientContext.create()
-      val res = httpClient.execute(req, ctx)
+      val res      = httpClient.execute(req, ctx)
       val innerReq = ctx.getRequest
       try {
         val responseCode = res.getStatusLine.getStatusCode
@@ -272,7 +277,7 @@ class HttpDownloader(
     }
 
     private def addCustomHeaders(rb: RequestBuilder, cookieStore: CookieStore): Unit = {
-      val localCfg = de.backendSpecificCfg
+      val localCfg        = de.backendSpecificCfg
       val userAgentOption = localCfg(HttpSettings.UserAgent)
       userAgentOption foreach { userAgent =>
         rb.setHeader(HttpHeaders.USER_AGENT, userAgent)
@@ -296,7 +301,7 @@ class HttpDownloader(
         Option(res.getFirstHeader("Content-Disposition")).flatMap(h => {
           val headerParts = (
             for {
-              el <- h.getElements.toSeq
+              el    <- h.getElements.toSeq
               param <- el.getParameters
             } yield (param.getName -> param.getValue)
           ).toMap
@@ -387,7 +392,9 @@ class HttpDownloader(
         )
       val connMgr = new BasicHttpClientConnectionManager(createSocketFactoryRegistry(), connFactory, null, FakeDnsResolver)
       connMgr.setSocketConfig(
-        SocketConfig.custom()
+        SocketConfig
+          .custom()
+          .setTcpNoDelay(false)
           .setSoTimeout(connTimeoutMs)
           .build()
       )
@@ -416,6 +423,17 @@ class HttpDownloader(
         HttpUtils.validateSslConnSocketFactory(sf)
         sf
       }
+    }
+
+    /** Creates a {@code RequestConfig} with the given timeout */
+    private def createRequestConfig(connTimeoutMs: Int): RequestConfig = {
+      // NOTE: Proxy configurable here is HttpHost only - so it's set on SocketFactory level instead
+      RequestConfig
+        .custom()
+        .setConnectionRequestTimeout(connTimeoutMs)
+        .setConnectTimeout(connTimeoutMs)
+        .setSocketTimeout(connTimeoutMs)
+        .build()
     }
 
     /** Execute an action only if thread isn't interrupted, in which case - throw {@code InterruptedException} */
