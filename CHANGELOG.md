@@ -1,4 +1,4 @@
-### SNAPSHOT
+### 1.1
 * Fixed timeout not being set on initial HTTP connection
 * Set HTTP client's `TCP_NODELAY` to `false`
 * Set HTTP client's DSCP traffic class to CS1 ("Lower Effort")
