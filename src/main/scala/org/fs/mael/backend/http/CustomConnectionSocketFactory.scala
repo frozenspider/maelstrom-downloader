@@ -20,6 +20,7 @@ import org.fs.utility.Imports._
 /**
  * `ConnectionSocketFactory` wrapper that adds the following:
  *
+ *  - Specifies lower priority traffic class hint
  *  - Supports using proxy for connection
  *  - Performs DNS resolution on its own, possibly delegating it to a proxy
  *  - Register all connections into supplied `AbortableConnectionRegistry`
@@ -27,14 +28,16 @@ import org.fs.utility.Imports._
  * @author FS
  */
 class CustomConnectionSocketFactory(
-  proxy:     Proxy,
-  logUpdate: String => Unit,
-  wrapped:   ConnectionSocketFactory,
-  connReg:   AbortableConnectionRegistry
+    proxy: Proxy,
+    logUpdate: String => Unit,
+    wrapped: ConnectionSocketFactory,
+    connReg: AbortableConnectionRegistry
 ) extends ConnectionSocketFactory {
 
   override def createSocket(context: HttpContext): Socket = {
-    wrapped.createSocket(context)
+    val socket = wrapped.createSocket(context)
+    socket.setTrafficClass(trafficClassFromDscp(DSCP.LowerEffort))
+    socket
   }
 
   override def connectSocket(
@@ -62,12 +65,31 @@ class CustomConnectionSocketFactory(
     targetSocket
   }
 
+  /** Append 2 Explicit Congestion Notification (ECN) bits to 6 DSCP bits*/
+  private def trafficClassFromDscp(dscp: Long): Int = {
+    require(dscp >= 0 && dscp < 64, "Invalid DiffServ codepoint, should be 6-bit")
+    dscp.toInt << 2
+  }
+
+  /**
+   * Constants for Differentiated Services Field (DS, DSCP, DiffServ) IP header
+   *
+   * @see [[https://tools.ietf.org/html/rfc2474 RFC 2474 (DS Field)]]
+   * @see [[https://tools.ietf.org/html/rfc3662 RFC 3662 (Lower Effort)]]
+   * @see [[https://support.huawei.com/enterprise/en/doc/EDOC1100027157 QoS Priority Mapping explanation by Huawei]]
+   */
+  private object DSCP {
+
+    /** Aka Low-Priority Data in Service Class Markings */
+    val LowerEffort: Long = 8 // 001000, CS1 class
+  }
+
   /**
    * Encapsulates all SOCKS5 related stuff
    *
-   * @see <a href="https://www.ietf.org/rfc/rfc1928.txt">RFC-1928</a>
-   * @see <a href="https://samsclass.info/122/proj/how-socks5-works.html">How Socks 5 Works</a> (network traffic sniff & analysis)
-   * @see <a href="https://stackoverflow.com/q/22937983/466646">How to use Socks 5 proxy with Apache HTTP Client 4?</a> (SO)
+   * @see [[https://www.ietf.org/rfc/rfc1928.txt RFC 1928]]
+   * @see [[https://samsclass.info/122/proj/how-socks5-works.html How Socks 5 Works]] (network traffic sniff & analysis)
+   * @see [[https://stackoverflow.com/q/22937983/466646 How to use Socks 5 proxy with Apache HTTP Client 4?]] (SO)
    */
   object Socks5 {
 

@@ -189,6 +189,32 @@ class HttpDownloaderSpec
     }
   }
 
+  test("deduce filename from header - YouTube UTF-8 Russian (ISO-8859-1)") {
+    val de = createDownloadEntry()
+    val filename = "Миллиард.mp4"
+    de.filenameOption = None
+    val expectedBytes = Array[Byte](1, 2, 3, 4, 5)
+
+    startHttpServer()
+    server.respondWith { (req, res) =>
+      serveContentNormally(expectedBytes)(req, res)
+      res.setHeader("Content-Disposition", """attachment; filename="ÐÐ¸Ð»Ð»Ð¸Ð°ÑÐ´.mp4"""")
+    }
+
+    expectStatusChangeEvents(de, Status.Running, Status.Complete)
+    try {
+      downloader.start(de, 999999)
+      await.firedAndStopped()
+
+      assert(de.filenameOption === Some(filename))
+      assert(readLocalFile(de) === expectedBytes)
+      assert(server.reqCounter === 1)
+      assert(transferMgr.bytesRead === 5)
+    } finally {
+      de.fileOption foreach { _.delete() }
+    }
+  }
+
   test("deduce filename from header - illegal filename*") {
     val de = createDownloadEntry()
     de.filenameOption = None

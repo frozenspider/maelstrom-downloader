@@ -1,11 +1,16 @@
+### 1.1
+* Fixed timeout not being set on initial HTTP connection
+* Set HTTP client's `TCP_NODELAY` to `false`
+* Set HTTP client's DSCP traffic class to CS1 ("Lower Effort")
+* Fixed `Content-Disposition: attachment; filename` not using ISO-8859-1 charset as per RFC 6266
+
 ### 1.0
 * Added ability to automatically start new downloads
 * Added ability to restart download from the beginning
 * Added tray icon and minimize to tray setting
 * Added download speed and remaining time columns, implemented related tracking and calculations
 * Added support for proxy servers (SOCKS5)
-* Added ability to set custom cookies
-* Added ability to set custom headers
+* Added ability to set custom cookies and headers
 * Added "About" dialog
 * Opening file folder on Windows OS now selects the file in explorer
 * Double-clicking completed download now opens file folder instead of opening download properties

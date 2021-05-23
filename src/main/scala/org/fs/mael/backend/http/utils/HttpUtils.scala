@@ -35,6 +35,15 @@ object HttpUtils {
     decoded
   }
 
+  /**
+   * Decodes a ISO-8859-1 filename into plain Java UTF-8 string
+   *
+   * (As per {@link https://tools.ietf.org/html/rfc6266#section-4.3})
+   */
+  def decodeIso8859Filename(s: String): String = {
+    new String(s.getBytes(Codec.ISO8859.charSet), Codec.UTF8.charSet)
+  }
+
   private val HostAndPortRegex = "([^:]+):(.+)".r
 
   def requestToUrl(req: HttpRequest): URL = {

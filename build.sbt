@@ -1,8 +1,8 @@
 name           := "maelstrom-downloader"
 val prettyName =  "Maelstrom Downloader"
-version        := "1.0"
+version        := "1.1"
 homepage       := Some(url("https://github.com/frozenspider/maelstrom-downloader"))
-scalaVersion   := "2.12.6"
+scalaVersion   := "2.12.8"
 
 // Show tests duration and full stacktrace on test errors
 testOptions in Test += Tests.Argument("-oDF")
