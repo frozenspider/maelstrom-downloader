@@ -45,7 +45,7 @@ object SwtDependencies {
     swtOrganization % swtBaseArtifact % swtVer exclude (swtOrganization, "org.eclipse.swt.${osgi.platform}")
 
   val swtCurrOsDep =
-    swtOrganization % swtCurrOsArtifact % swtVer % Provided exclude (swtOrganization, swtBaseArtifact)
+    swtOrganization % swtCurrOsArtifact % swtVer exclude (swtOrganization, swtBaseArtifact)
 
   val jfaceDep =
     (swtOrganization % jfaceArtifact % jfaceVer)
