@@ -48,7 +48,7 @@ class HttpBackend(
    */
   def parsePlaintextRequest(requestString: String, location: File): DownloadEntry = {
     requireFriendly(requestString startsWith "GET ", "Not an HTTP request string")
-    val parsedRequestLineUri = requestString.lines.next match {
+    val parsedRequestLineUri = requestString.linesIterator.next match {
       case HttpBackend.RequestPattern(uri) => uri
     }
     val headers = HttpUtils.parseHeaders(requestString)
@@ -91,12 +91,12 @@ class HttpBackend(
       val (headers3, cookies) = headersLC.get("cookie") match {
         case Some(cookieString) =>
           val cookies = HttpUtils.parseClientCookies(cookieString)
-          (headers.filterKeys(_.toLowerCase != "cookie"), cookies)
+          (headers.filter(_._1.toLowerCase != "cookie"), cookies)
         case None =>
           (headers, ListMap.empty[String, String])
       }
       val (headers4, userAgentOption) = {
-        (headers3.filterKeys(_.toLowerCase != "user-agent"), headersLC.get("user-agent"))
+        (headers3.filter(_._1.toLowerCase != "user-agent"), headersLC.get("user-agent"))
       }
       (headers4, cookies, userAgentOption)
     }

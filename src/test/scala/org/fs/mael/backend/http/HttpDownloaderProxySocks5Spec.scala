@@ -19,13 +19,13 @@ import org.fs.mael.test.proxy.Socks5ForwardingProxy
 import org.fs.mael.test.proxy.Socks5MockProxy
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.concurrent.TimeLimits
 import org.scalatest.time._
 
-@RunWith(classOf[org.scalatest.junit.JUnitRunner])
+@RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class HttpDownloaderProxySocks5Spec
-  extends FunSuite
+  extends AnyFunSuite
   with HttpDownloaderSpecBase
   with BeforeAndAfter
   with TimeLimits {

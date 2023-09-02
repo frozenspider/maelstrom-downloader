@@ -5,11 +5,11 @@ import scala.collection.immutable.ListMap
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory
 import org.fs.mael.core.UserFriendlyException
 import org.junit.runner.RunWith
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
-@RunWith(classOf[org.scalatest.junit.JUnitRunner])
+@RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class HttpUtilsSpec
-  extends FunSuite {
+  extends AnyFunSuite {
 
   test("decode RFC 5987") {
     val d = HttpUtils.decodeRfc5987ExtValue _
@@ -26,7 +26,7 @@ class HttpUtilsSpec
   }
 
   test("validate default SSL socket factory") {
-    val sf = SSLConnectionSocketFactory.getSocketFactory()
+    val sf = SSLConnectionSocketFactory.getSocketFactory
     HttpUtils.validateSslConnSocketFactory(sf)
   }
 

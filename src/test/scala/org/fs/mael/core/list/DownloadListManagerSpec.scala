@@ -19,11 +19,11 @@ import org.fs.mael.test.stub.StoringEventManager
 import org.fs.mael.test.stub.StubBackend
 import org.fs.mael.test.stub.StubDownloadListSerializer
 import org.junit.runner.RunWith
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
-@RunWith(classOf[org.scalatest.junit.JUnitRunner])
+@RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class DownloadListManagerSpec
-  extends FunSuite {
+  extends AnyFunSuite {
 
   test("load/save") {
     val file: File = File.createTempFile("dlm-spec-test-file", ".tmp")

@@ -4,12 +4,12 @@
 
 val buildOutputPath = file("./_build")
 
-mainClass          in assembly := Some("org.fs.mael.MaelstromDownloaderMain")
-assemblyJarName    in assembly := name.value + ".jar"
-assemblyOutputPath in assembly := buildOutputPath / (assemblyJarName in assembly).value
+assembly / mainClass          := Some("org.fs.mael.MaelstromDownloaderMain")
+assembly / assemblyJarName    := name.value + ".jar"
+assembly / assemblyOutputPath := buildOutputPath / (assembly / assemblyJarName).value
 
 // Discard META-INF files to avoid assembly deduplication errors
-assemblyMergeStrategy in assembly := {
+assembly / assemblyMergeStrategy := {
   case PathList("META-INF", xs @ _*) => MergeStrategy.discard
   case x                             => MergeStrategy.first
 }
@@ -58,7 +58,6 @@ launch4j := Def.taskDyn {
     val launch4jBasedir = new File(launch4jBasedirString)
 
     val configurations = Seq(
-      ("x86", "org.eclipse.swt.win32.win32.x86.jar",    Jre.RUNTIME_BITS_32),
       ("x64", "org.eclipse.swt.win32.win32.x86_64.jar", Jre.RUNTIME_BITS_64)
     )
 
@@ -66,12 +65,12 @@ launch4j := Def.taskDyn {
     val conf: Config = ConfigPersister.getInstance.getConfig
     conf.setHeaderType("gui")
     conf.setIcon(file("./src/main/resources/icons/main.ico"))
-    conf.setJar(new File((assemblyJarName in assembly).value))
+    conf.setJar(new File((assembly / assemblyJarName).value))
     conf.setDontWrapJar(true)
     conf.setDownloadUrl("http://java.com/download")
 
     val cp = new ClassPath
-    cp.setMainClass((mainClass in assembly).value.get)
+    cp.setMainClass((assembly / mainClass).value.get)
     conf.setClassPath(cp)
 
     val jre = new Jre
@@ -104,11 +103,13 @@ val shellScript = taskKey[Unit](s"Generates a Linux/MacOS runnable shell script"
 
 shellScript := {
   val file = buildOutputPath / (name.value + ".sh")
-  val cp = Seq(
-    (assemblyJarName in assembly).value,
-    swtLibRelativeOutputDirString + "/" + swtOsArtifacts("linux") + ".jar"
-  ).mkString(":")
-  val command = s"java -XstartOnFirstThread -cp '$cp' ${(mainClass in assembly).value.get}"
+  // Added all artifacts to classpath - but not sure if that's really needed, seem to work without it.
+  val nixArtifacts = swtOsArtifacts.toSeq.collect {
+    case (("linux", _), artifact) => artifact
+    case (("macos", _), artifact) => artifact
+  }
+  val cp = ((assembly / assemblyJarName).value +: nixArtifacts).mkString(":")
+  val command = s"java -XstartOnFirstThread -cp '$cp' ${(assembly / mainClass).value.get}"
   IO.write(file, command + "\n")
 }
 
