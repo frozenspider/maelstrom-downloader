@@ -82,7 +82,7 @@ class MainFrame(
     mainTable = new DownloadsTable(sashForm, resources, globalCfg)
     logTable = new LogTable(sashForm, resources)
 
-    sashForm.setWeights(Array(10, 10))
+    sashForm.setWeights(10, 10)
 
     // Init
 

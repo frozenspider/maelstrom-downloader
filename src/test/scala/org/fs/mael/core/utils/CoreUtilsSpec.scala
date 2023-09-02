@@ -5,11 +5,11 @@ import java.io.Closeable
 import org.fs.mael.core.UserFriendlyException
 import org.fs.utility.StopWatch
 import org.junit.runner.RunWith
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
-@RunWith(classOf[org.scalatest.junit.JUnitRunner])
+@RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class CoreUtilsSpec
-  extends FunSuite {
+  extends AnyFunSuite {
 
   import CoreUtils._
 

@@ -1,3 +1,10 @@
+### 1.2
+* Updated to Scala 2.13, SWT 3.124.0
+* Due to SWT, now requires JDK 17+ to build
+* Removed support for 32-bit OSes
+* Added support for MacOS, including Apple Silicon
+* Tweaked HTTPS certificate validity check - it's no longer possible out of the box :(
+
 ### 1.1
 * Fixed timeout not being set on initial HTTP connection
 * Set HTTP client's `TCP_NODELAY` to `false`

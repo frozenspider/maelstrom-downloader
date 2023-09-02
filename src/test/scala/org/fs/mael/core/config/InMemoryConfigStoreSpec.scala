@@ -3,11 +3,11 @@ package org.fs.mael.core.config
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
 import org.scalatest.BeforeAndAfterAll
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
-@RunWith(classOf[org.scalatest.junit.JUnitRunner])
+@RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class InMemoryConfigStoreSpec
-  extends FunSuite
+  extends AnyFunSuite
   with BeforeAndAfter
   with BeforeAndAfterAll {
 

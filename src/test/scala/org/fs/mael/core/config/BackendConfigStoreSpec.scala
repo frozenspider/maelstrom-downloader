@@ -8,13 +8,13 @@ import org.fs.mael.test.TestUtils.ConfigValueClasses._
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
 import org.scalatest.BeforeAndAfterAll
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
 import junit.framework.AssertionFailedError
 
-@RunWith(classOf[org.scalatest.junit.JUnitRunner])
+@RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class BackendConfigStoreSpec
-  extends FunSuite
+  extends AnyFunSuite
   with BeforeAndAfter
   with BeforeAndAfterAll {
 

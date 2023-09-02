@@ -7,11 +7,11 @@ import scala.io.Codec
 
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
-@RunWith(classOf[org.scalatest.junit.JUnitRunner])
+@RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class ChecksumsSpec
-  extends FunSuite
+  extends AnyFunSuite
   with BeforeAndAfter {
 
   var file: File = _

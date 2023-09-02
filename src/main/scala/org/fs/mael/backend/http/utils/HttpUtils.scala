@@ -1,6 +1,7 @@
 package org.fs.mael.backend.http.utils
 
 import java.io.ByteArrayInputStream
+import java.lang.reflect.InaccessibleObjectException
 import java.net.URLDecoder
 import java.net.URL
 
@@ -69,11 +70,18 @@ object HttpUtils {
         sf,
         List("socketfactory", "context", "trustManager", "trustedCerts")
       ).asInstanceOf[java.util.Set[_]]
-      requireFriendly(!trustedCertsSet.isEmpty, "Your JVM defines no root CA certificates, SSL validation is impossible!"
+      requireFriendly(!trustedCertsSet.isEmpty, "SSL validation is impossible, your JVM defines no root CA certificates!"
         + "\nYou may fix this by manually replacing $JRE_HOME/lib/security/cacerts file with the one from Oracle JRE"
         + " or by disabling HTTPS certificates validation")
     } catch {
-      case ex: NoSuchFieldException => // Unknown JVM type (at least not Oracle JRE 8 nor OpenJDK 8), can't perform validation
+      case ex: InaccessibleObjectException =>
+        failFriendly("Reflective access is disallowed, can't make sure SSL validation works!"
+          + "\nYou may fix this by adding '--add-opens java.base/sun.security.ssl=ALL-UNNAMED' VM option"
+          + " or by disabling HTTPS certificates validation")
+      case ex: NoSuchFieldException =>
+        // Unknown JVM type (at least not Oracle JRE 8 nor OpenJDK <= 20), can't perform validation
+        failFriendly("Unknown JVM type, can't make sure SSL validation works!"
+          + "\nYou may fix this by by disabling HTTPS certificates validation")
     }
   }
 

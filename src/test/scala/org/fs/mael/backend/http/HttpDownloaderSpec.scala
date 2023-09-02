@@ -18,14 +18,14 @@ import org.fs.mael.core.checksum.ChecksumType
 import org.fs.mael.core.utils.CoreUtils._
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.concurrent.TimeLimits
 import org.scalatest.time._
 import org.scalatest.exceptions.TestFailedException
 
-@RunWith(classOf[org.scalatest.junit.JUnitRunner])
+@RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class HttpDownloaderSpec
-  extends FunSuite
+  extends AnyFunSuite
   with HttpDownloaderSpecBase
   with BeforeAndAfter
   with TimeLimits {

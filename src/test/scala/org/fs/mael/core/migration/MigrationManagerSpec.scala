@@ -11,11 +11,11 @@ import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.test.TestUtils._
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
-@RunWith(classOf[org.scalatest.junit.JUnitRunner])
+@RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class MigrationManagerSpec
-  extends FunSuite
+  extends AnyFunSuite
   with BeforeAndAfter {
 
   import MigrationManager._
