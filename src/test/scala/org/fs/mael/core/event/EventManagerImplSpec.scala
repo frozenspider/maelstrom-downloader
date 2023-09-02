@@ -9,13 +9,13 @@ import org.fs.mael.core.event.Events._
 import org.fs.mael.test.stub.StubBackend
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfter
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
 import com.github.nscala_time.time.Imports._
 
-@RunWith(classOf[org.scalatest.junit.JUnitRunner])
+@RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class EventManagerImplSpec
-    extends FunSuite
+    extends AnyFunSuite
     with BeforeAndAfter {
 
   private val eventMgr = new EventManagerImpl

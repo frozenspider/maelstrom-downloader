@@ -22,7 +22,7 @@ object Checksums {
     ChecksumType.SHA256 -> SHA256
   )
 
-  val LengthsMap: Map[ChecksumType, Int] = FunctionsMap.mapValues(_.bytesLength)
+  val LengthsMap: Map[ChecksumType, Int] = FunctionsMap.view.mapValues(_.bytesLength).toMap
 
   def isProper(tpe: ChecksumType, str: String): Boolean = {
     if (!(str matches HexRegex)) {

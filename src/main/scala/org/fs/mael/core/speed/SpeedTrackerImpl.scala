@@ -33,12 +33,12 @@ class SpeedTrackerImpl(
   override def update(de: DownloadEntry): Unit = this.synchronized {
     val now = DateTime.now().getMillis
 
-    val oldSizes = whmSizes.getOrElse(de, SortedMap.empty[Timestamp, CurrentSize]).filterKeys(_ >= (now - bufferMs))
+    val oldSizes = whmSizes.getOrElse(de, SortedMap.empty[Timestamp, CurrentSize]).filter(_._1 >= (now - bufferMs))
     val newSizes = oldSizes + (now -> de.downloadedSize)
     whmSizes.put(de, newSizes)
 
     val speedOption = calcSpeedOption(newSizes)
-    val oldSpeeds = whmSpeeds.getOrElse(de, SortedMap.empty[Timestamp, Speed]).filterKeys(_ >= (now - bufferMs))
+    val oldSpeeds = whmSpeeds.getOrElse(de, SortedMap.empty[Timestamp, Speed]).filter(_._1 >= (now - bufferMs))
     val newSpeeds = oldSpeeds + (now -> speedOption.getOrElse(0L))
     whmSpeeds.put(de, newSpeeds)
 

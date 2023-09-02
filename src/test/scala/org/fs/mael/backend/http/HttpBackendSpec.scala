@@ -11,11 +11,11 @@ import org.fs.mael.core.config.InMemoryConfigStore
 import org.fs.mael.core.transfer.SimpleTransferManager
 import org.fs.mael.test.stub.StoringEventManager
 import org.junit.runner.RunWith
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
-@RunWith(classOf[org.scalatest.junit.JUnitRunner])
+@RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class HttpBackendSpec
-  extends FunSuite {
+  extends AnyFunSuite {
 
   val backend = new HttpBackend(new SimpleTransferManager, new InMemoryConfigStore with IGlobalConfigStore, new StoringEventManager)
 

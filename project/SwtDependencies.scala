@@ -5,47 +5,47 @@ object SwtDependencies {
   /** Special configuration used for OS-specific SWT jars dependency management */
   lazy val SwtConfig = config("swt-config")
 
-  val swtVer = "3.106.2"
-  val jfaceVer = "3.13.2"
-  val equinoxCommonVer = "3.10.0"
-  val eclipseCommandsVer = "3.9.100"
+  val swtVer = "3.124.0"
+  val jfaceVer = "3.30.0"
+  val equinoxCommonVer = "3.18.0"
+  val eclipseCommandsVer = "3.11.0"
 
   //
   // Artifact definitions
   //
 
-  val swtOrganization = "org.eclipse.platform"
   val swtBaseArtifact = "org.eclipse.swt"
   val jfaceArtifact = "org.eclipse.jface"
   val equinoxCommonArtifact = "org.eclipse.equinox.common"
   val eclipseCommandsArtifact = "org.eclipse.core.commands"
 
-  val swtOsArtifacts: Map[String, String] = Map(
-    "win32" -> "win32.win32.x86",
-    "win64" -> "win32.win32.x86_64",
-    "linux" -> "gtk.linux.x86",
-    // "mac32" -> "cocoa.macosx.x86",
-    "mac64" -> "cocoa.macosx.x86_64"
+  // 32-bit Windows and MacOS are no longer supported
+  val swtOsArtifacts: Map[(String, String), String] = Map(
+    ("win",   "amd64")   -> "win32.win32.x86_64",
+    ("linux", "amd64")   -> "gtk.linux.x86_64",
+    ("linux", "aarch64") -> "gtk.linux.aarch64",
+    ("macos", "amd64")   -> "cocoa.macosx.x86_64",
+    ("macos", "aarch64") -> "cocoa.macosx.aarch64",
   ).mapValues(swtBaseArtifact + "." + _)
 
+
   val swtCurrOsArtifact: String = (sys.props("os.name"), sys.props("os.arch")) match {
-    case ("Linux", _)                              => swtOsArtifacts("linux")
-    case ("Mac OS X", "amd64" | "x86_64")          => swtOsArtifacts("mac64")
-    // case ("Mac OS X", _)                           => swtOsArtifacts("mac32")
-    case (os, "amd64") if os.startsWith("Windows") => swtOsArtifacts("win64")
-    case (os, _) if os.startsWith("Windows")       => swtOsArtifacts("win32")
-    case (os, arch)                                => sys.error("Cannot obtain lib for OS '" + os + "' and architecture '" + arch + "'")
+    case ("Linux", arch)                        => swtOsArtifacts("linux" -> arch)
+    case ("Mac OS X", arch)                     => swtOsArtifacts("macos" -> arch)
+    case (os, arch) if os.startsWith("Windows") => swtOsArtifacts("win" -> arch)
+    case (os, arch)                             => sys.error("Cannot obtain lib for OS '" + os + "' and architecture '" + arch + "'")
   }
 
   //
   // Dependency definitions
   //
+  val swtOrganization = "org.eclipse.platform"
 
   val swtBaseDep =
     swtOrganization % swtBaseArtifact % swtVer exclude (swtOrganization, "org.eclipse.swt.${osgi.platform}")
 
   val swtCurrOsDep =
-    swtOrganization % swtCurrOsArtifact % swtVer % Provided exclude (swtOrganization, swtBaseArtifact)
+    swtOrganization % swtCurrOsArtifact % swtVer exclude (swtOrganization, swtBaseArtifact)
 
   val jfaceDep =
     (swtOrganization % jfaceArtifact % jfaceVer)

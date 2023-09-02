@@ -109,25 +109,33 @@ class SimpleHttpServer(
   private class ServerSocketFactoryWrapper(ssf: ServerSocketFactory) extends ServerSocketFactory {
     override def createServerSocket(): ServerSocket = {
       val socket = ssf.createServerSocket()
-      SimpleHttpServer.this.synchronized(sockets = sockets :+ socket)
+      SimpleHttpServer.this.synchronized {
+        sockets = sockets :+ socket
+      }
       socket
     }
 
     override def createServerSocket(port: Int): ServerSocket = {
       val socket = ssf.createServerSocket(port)
-      SimpleHttpServer.this.synchronized(sockets = sockets :+ socket)
+      SimpleHttpServer.this.synchronized {
+        sockets = sockets :+ socket
+      }
       socket
     }
 
     override def createServerSocket(port: Int, backlog: Int): ServerSocket = {
       val socket = ssf.createServerSocket(port, backlog)
-      SimpleHttpServer.this.synchronized(sockets = sockets :+ socket)
+      SimpleHttpServer.this.synchronized {
+        sockets = sockets :+ socket
+      }
       socket
     }
 
     override def createServerSocket(port: Int, backlog: Int, ifAddress: InetAddress): ServerSocket = {
       val socket = ssf.createServerSocket(port, backlog, ifAddress)
-      SimpleHttpServer.this.synchronized(sockets = sockets :+ socket)
+      SimpleHttpServer.this.synchronized {
+        sockets = sockets :+ socket
+      }
       socket
     }
   }

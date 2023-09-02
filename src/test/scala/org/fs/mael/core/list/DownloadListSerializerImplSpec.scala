@@ -18,14 +18,14 @@ import org.fs.mael.test.TestUtils._
 import org.fs.mael.test.stub.StoringEventManager
 import org.fs.mael.test.stub.StubBackend
 import org.junit.runner.RunWith
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.exceptions.TestFailedException
 
 import com.github.nscala_time.time.Imports._
 
-@RunWith(classOf[org.scalatest.junit.JUnitRunner])
+@RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class DownloadListSerializerImplSpec
-  extends FunSuite {
+  extends AnyFunSuite {
 
   private val eventMgr = new StoringEventManager
 

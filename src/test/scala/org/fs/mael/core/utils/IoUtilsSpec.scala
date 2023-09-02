@@ -6,15 +6,15 @@ import java.nio.file.Files
 import java.nio.file.StandardOpenOption
 
 import org.junit.runner.RunWith
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.prop.TableDrivenPropertyChecks
 
 import com.google.common.jimfs.Configuration
 import com.google.common.jimfs.Jimfs
 
-@RunWith(classOf[org.scalatest.junit.JUnitRunner])
+@RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class IoUtilsSpec
-  extends FunSuite
+  extends AnyFunSuite
   with TableDrivenPropertyChecks {
 
   import IoUtils._

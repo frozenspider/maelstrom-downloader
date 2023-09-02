@@ -4,8 +4,6 @@ import java.io.File
 import java.net.URI
 import java.util.UUID
 
-import scala.collection.MapLike
-
 import org.fs.mael.core.Status
 import org.fs.mael.core.checksum.Checksum
 import org.fs.mael.core.config.BackendConfigStore
@@ -70,7 +68,7 @@ trait DownloadEntryView {
   /** Whether resuming is supported, if known */
   def supportsResumingOption: Option[Boolean]
 
-  def sections: MapLike[Start, Downloaded, _]
+  def sections: collection.Map[Start, Downloaded]
 
   def downloadLog: IndexedSeq[LogEntry]
 

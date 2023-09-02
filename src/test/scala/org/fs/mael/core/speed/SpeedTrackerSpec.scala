@@ -15,11 +15,11 @@ import org.fs.mael.test.stub.StoringEventManager
 import org.fs.mael.test.stub.StubBackend
 import org.joda.time.DateTimeUtils
 import org.junit.runner.RunWith
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
-@RunWith(classOf[org.scalatest.junit.JUnitRunner])
+@RunWith(classOf[org.scalatestplus.junit.JUnitRunner])
 class SpeedTrackerSpec
-  extends FunSuite {
+  extends AnyFunSuite {
 
   //
   // Calculation tests
