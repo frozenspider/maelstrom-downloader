@@ -6,7 +6,7 @@ maelstrom-downloader
 
 Advanced cross-platform download manager.
 
-Requires Java (at least version 8).
+Requires Java (at least version 17).
 
 
 Building
