@@ -81,6 +81,20 @@ class ChecksumsSpec
     assert(guessType("5358c37942b0126084bb16f7d602788d00416e01bc3fd0132f4458dd355d8e76") === Some(sha256))
   }
 
+  test("SHA-512") {
+    val sha512 = ChecksumType.SHA512
+    assert(!isProper(sha512, "qwe"))
+    assert(!isProper(sha512, "123"))
+    assert(!isProper(sha512, "5358c37942b0126084bb16f7d602788d00416e01bc3fd0132f4458dd355d8e76"))
+    assert(isProper(sha512, "c6c843d50e65ad6e970b7f1ee0ccfe205ea40826c4782c59179ee3ece857d404" +
+      "9b4815976b325c99fea7cf9d1be1af32504fcdfd25cabe45a491623f9ff56ae9"))
+    assert(check(Checksum(sha512, "eb75278c702e4a04e1aca60a68e141052a63406b40c7be8f8db1c3b89b612b84" +
+      "e09d64b97e8730fdf91d03a2713235d16847743eec35810ecf6b38898b14523c"), file))
+
+    assert(guessType("eb75278c702e4a04e1aca60a68e141052a63406b40c7be8f8db1c3b89b612b84" +
+      "e09d64b97e8730fdf91d03a2713235d16847743eec35810ecf6b38898b14523c") === Some(sha512))
+  }
+
   test("CRC32") {
     val crc32 = ChecksumType.CRC32
     assert(!isProper(crc32, "qwe"))

@@ -1,3 +1,6 @@
+### SNAPSHOT
+* Added SHA-512 checksum
+
 ### 1.2
 * Updated to Scala 2.13, SWT 3.124.0
 * Due to SWT, now requires JDK 17+ to build

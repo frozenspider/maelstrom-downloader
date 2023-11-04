@@ -19,7 +19,8 @@ object Checksums {
     ChecksumType.CRC32 -> CRC32,
     ChecksumType.MD5 -> MD5,
     ChecksumType.SHA1 -> SHA1,
-    ChecksumType.SHA256 -> SHA256
+    ChecksumType.SHA256 -> SHA256,
+    ChecksumType.SHA512 -> SHA512
   )
 
   val LengthsMap: Map[ChecksumType, Int] = FunctionsMap.view.mapValues(_.bytesLength).toMap
@@ -71,6 +72,7 @@ object Checksums {
   private object MD5 extends CommonsCodecChecksum(MessageDigestAlgorithms.MD5)
   private object SHA1 extends CommonsCodecChecksum(MessageDigestAlgorithms.SHA_1)
   private object SHA256 extends CommonsCodecChecksum(MessageDigestAlgorithms.SHA_256)
+  private object SHA512 extends CommonsCodecChecksum(MessageDigestAlgorithms.SHA_512)
   private object CRC32 extends MessageDigestChecksum(new CRC32Digest)
 
   private class CRC32Digest extends MessageDigest("CRC32") {
